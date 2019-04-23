@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28010.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomActivatableEquipment", "ActivatableEquipment\CustomActivatableEquipment.csproj", "{014D4AE8-B2F3-4378-B063-F6FB2AC00257}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstructorPatchTest", "..\ConstructorPatchTest\ConstructorPatchTest.csproj", "{3D50BA31-3731-49F5-BACB-0BFA828486AB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{014D4AE8-B2F3-4378-B063-F6FB2AC00257}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{014D4AE8-B2F3-4378-B063-F6FB2AC00257}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{014D4AE8-B2F3-4378-B063-F6FB2AC00257}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D50BA31-3731-49F5-BACB-0BFA828486AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D50BA31-3731-49F5-BACB-0BFA828486AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D50BA31-3731-49F5-BACB-0BFA828486AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D50BA31-3731-49F5-BACB-0BFA828486AB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

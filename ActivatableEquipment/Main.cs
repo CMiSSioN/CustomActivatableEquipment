@@ -59,18 +59,42 @@ namespace CustomActivatablePatches {
       return true;
     }
   }
-  [HarmonyPatch(typeof(Mech))]
-  [HarmonyPatch("OnMoveOrSprintComplete")]
+  [HarmonyPatch(typeof(ActorMovementSequence))]
+  [HarmonyPatch("CompleteOrders")]
   [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPatch(new Type[] { typeof(List < WayPoint >), typeof(Vector3), typeof(Quaternion), typeof(int), typeof(List < DesignMaskDef >) })]
-  public static class Mech_OnMoveOrSprintComplete {
+  [HarmonyPatch(new Type[] { })]
+  public static class ActorMovementSequence_CompleteOrders {
 
-    public static void Postfix(Mech __instance, List<WayPoint> waypoints, Vector3 finalPosition, Quaternion finalHeading, int sequenceUID, List<DesignMaskDef> remainingMasks) {
-      CustomActivatableEquipment.Log.LogWrite("Mech.OnMoveOrSprintComplete " + __instance.GUID + ":" + __instance.DisplayName + "\n");
-      foreach (MechComponent component in __instance.allComponents) {
+    public static void Postfix(ActorMovementSequence __instance) {
+      CustomActivatableEquipment.Log.LogWrite("ActorMovementSequence.ActorMovementSequence " + __instance.owningActor.GUID + ":" + __instance.owningActor.DisplayName + "\n");
+      if (__instance.meleeType == MeleeAttackType.NotSet) {
+        foreach (MechComponent component in __instance.owningActor.allComponents) {
+          if (component.IsFunctional == false) { continue; };
+          if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
+            int aRounds = CustomActivatableEquipment.ActivatableComponent.getComponentActiveRounds(component);
+            CustomActivatableEquipment.Log.LogWrite("Component:" + component.defId + " is active for " + aRounds + "\n");
+            if (CustomActivatableEquipment.ActivatableComponent.rollFail(component, false) == false) {
+              CustomActivatableEquipment.Log.LogWrite("Component fail\n");
+              CustomActivatableEquipment.ActivatableComponent.deactivateComponent(component);
+            }
+          }
+        }
+      }
+    }
+  }
+  [HarmonyPatch(typeof(MechMeleeSequence))]
+  [HarmonyPatch("CompleteOrders")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { })]
+  public static class MechMeleeSequence_CompleteOrders {
+
+    public static void Postfix(MechMeleeSequence __instance) {
+      CustomActivatableEquipment.Log.LogWrite("MechMeleeSequence.CompleteOrders " + __instance.OwningMech.GUID + ":" + __instance.OwningMech.DisplayName + "\n");
+      foreach (MechComponent component in __instance.OwningMech.allComponents) {
+        if (component.IsFunctional == false) { continue; };
         if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
           int aRounds = CustomActivatableEquipment.ActivatableComponent.getComponentActiveRounds(component);
-          CustomActivatableEquipment.Log.LogWrite("Component:" + component.defId + " is active for "+aRounds+"\n");
+          CustomActivatableEquipment.Log.LogWrite("Component:" + component.defId + " is active for " + aRounds + "\n");
           if (CustomActivatableEquipment.ActivatableComponent.rollFail(component, false) == false) {
             CustomActivatableEquipment.Log.LogWrite("Component fail\n");
             CustomActivatableEquipment.ActivatableComponent.deactivateComponent(component);
@@ -418,9 +442,21 @@ namespace CustomActivatableEquipment {
           Log.LogWrite(" apply crit to self\n");
           ActivatableComponent.critComponent(owner, component, MechStructureRules.GetChassisLocationFromArmorLocation((ArmorLocation)component.Location), ref fakeHit);
         }
+        Log.LogWrite(" owner status. Death:"+owner.IsFlaggedForDeath+" Knockdown:"+owner.IsFlaggedForKnockdown+"\n");
+        bool needToDone = false;
+        if (owner.IsFlaggedForDeath || owner.IsFlaggedForKnockdown) {
+          Log.LogWrite(" need done with actor\n");
+          needToDone = true;
+          owner.HasFiredThisRound = true;
+          owner.HasMovedThisRound = true;
+        }
         owner.HandleDeath(owner.GUID);
         if (owner.IsDead == false) {
           owner.HandleKnockdown(-1, owner.GUID, Vector2.one, (SequenceFinished)null);
+        }
+        if (needToDone) {
+          Log.LogWrite(" done with actor\n");
+          owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage(owner.DoneWithActor()));
         }
         return false;
       }
@@ -607,6 +643,7 @@ namespace CustomActivatableEquipment {
         Log.LogWrite(" not activatable\n");
         return;
       }
+      component.parent.OnActivationBegin(component.parent.GUID, -1);
       if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentActiveStatName) == false) {
         component.StatCollection.AddStatistic<bool>(ActivatableComponent.CAEComponentActiveStatName, false);
       }
@@ -877,9 +914,9 @@ namespace CustomActivatableEquipment {
         }
         if (ActivatableComponent.isComponentActivated(component)) {
           text.Append(" " + actComps[index].activatable.ActivationMessage + " ");
-          if (actComps[index].activatable.AutoActivateOnHeat > CustomActivatableEquipment.Core.Epsilon) {
+          if (actComps[index].activatable.CanBeactivatedManualy() == false) {
             if (component.parent is Mech) {
-              float neededHeat = (actComps[index].activatable.AutoActivateOnOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? actComps[index].activatable.AutoActivateOnOverheatLevel * (float)(component.parent as Mech).OverheatLevel : actComps[index].activatable.AutoActivateOnHeat;
+              float neededHeat = (actComps[index].activatable.AutoDeactivateOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? actComps[index].activatable.AutoDeactivateOverheatLevel * (float)(component.parent as Mech).OverheatLevel : actComps[index].activatable.AutoDeactivateOnHeat;
               text.Append("HEAT:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
             }
           }
@@ -887,7 +924,7 @@ namespace CustomActivatableEquipment {
           text.Append(" " + actComps[index].activatable.DeactivationMessage + " ");
           if (actComps[index].activatable.AutoActivateOnHeat > CustomActivatableEquipment.Core.Epsilon) {
             if (component.parent is Mech) {
-              float neededHeat = (actComps[index].activatable.AutoDeactivateOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? actComps[index].activatable.AutoDeactivateOverheatLevel * (float)(component.parent as Mech).OverheatLevel : actComps[index].activatable.AutoDeactivateOnHeat;
+              float neededHeat = (actComps[index].activatable.AutoActivateOnOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? actComps[index].activatable.AutoActivateOnOverheatLevel * (float)(component.parent as Mech).OverheatLevel : actComps[index].activatable.AutoActivateOnHeat;
               text.Append("HEAT:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
             }
           }
