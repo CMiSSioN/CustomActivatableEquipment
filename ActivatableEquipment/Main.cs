@@ -17,8 +17,8 @@ using Localize;
 using CustomActivatableEquipment;
 
 namespace CustomActivatablePatches {
-  [HarmonyPatch(typeof(CombatHUDActionButton))]
-  [HarmonyPatch("ExecuteClick")]
+  [HarmonyPatch(typeof(CombatHUDButtonBase))]
+  [HarmonyPatch("OnClick")]
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { })]
   public static class CombatHUDActionButton_ExecuteClick {
@@ -35,7 +35,7 @@ namespace CustomActivatablePatches {
             CustomActivatableEquipment.Log.LogWrite(" actor is selected\n");
             if (HUD.SelectedActor is Mech) {
               CustomActivatableEquipment.Log.LogWrite(" mech is selected\n");
-              CustomActivatableEquipment.Core.ShowEquipmentDlg(HUD.SelectedActor as Mech,HUD);
+              CustomActivatableEquipment.Core.ShowEquipmentDlg(HUD.SelectedActor as Mech, HUD);
             }
           }
           return false;
@@ -64,7 +64,6 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { })]
   public static class ActorMovementSequence_CompleteOrders {
-
     public static void Postfix(ActorMovementSequence __instance) {
       CustomActivatableEquipment.Log.LogWrite("ActorMovementSequence.ActorMovementSequence " + __instance.owningActor.GUID + ":" + __instance.owningActor.DisplayName + "\n");
       if (__instance.meleeType == MeleeAttackType.NotSet) {
@@ -227,8 +226,20 @@ namespace CustomActivatableEquipment {
 }
 
 namespace CustomActivatableEquipment {
+  public class AoEExplosion {
+    public float Range;
+    public float Damage;
+    public float Heat;
+    public float Stability;
+    public AoEExplosion() {
+      Range = 0f;
+      Damage = 0f;
+      Heat = 0f;
+      Stability = 0f;
+    }
+  }
   [CustomComponent("ActivatableComponent")]
-  public class ActivatableComponent : SimpleCustomComponent, IPreValidateDrop {
+  public partial class ActivatableComponent : SimpleCustomComponent, IPreValidateDrop {
     public static string CAEComponentActiveStatName = "CAEComnonentActive";
     public static string CAEComponentActiveRounds = "CAEComnonentActiveRounds";
     public static string CAEComponentFailChance = "CAEFailChance";
@@ -257,6 +268,9 @@ namespace CustomActivatableEquipment {
     public int ChargesCount { get; set; }
     public ChassisLocations[] FailDamageLocations { get; set; }
     public EffectData[] statusEffects { get; set; }
+    public VFXInfo presistantVFX { get; set; }
+    public VFXInfo activateVFX { get; set; }
+    public AoEExplosion Explosion { get; set; }
     public ActivatableComponent() {
       ButtonName = "NotSet";
       FailFlatChance = 0f;
@@ -279,9 +293,12 @@ namespace CustomActivatableEquipment {
       ActivationIsBuff = true;
       NoUniqueCheck = false;
       ChargesCount = 0;
+      presistantVFX = new VFXInfo();
+      activateVFX = new VFXInfo();
+      Explosion = new AoEExplosion();
       Log.LogWrite("ActivatableComponent constructor\n");
     }
-
+    
     public static bool isOutOfCharges(MechComponent component) {
       if (component == null) { return false; };
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
@@ -313,7 +330,6 @@ namespace CustomActivatableEquipment {
       if (this.AutoActivateOnOverheatLevel > CustomActivatableEquipment.Core.Epsilon) { return false; }
       return true;
     }
-
     public static void critComponent(Mech mech,MechComponent componentInSlot, ChassisLocations location, ref WeaponHitInfo hitInfo) {
       Weapon weapon1 = componentInSlot as Weapon;
       AmmunitionBox ammoBox = componentInSlot as AmmunitionBox;
@@ -421,7 +437,15 @@ namespace CustomActivatableEquipment {
       float roll = Random.Range(0f, 1f);
       Log.LogWrite(" roll:" + roll + "\n");
       if(roll < chance) {
-        var fakeHit = new WeaponHitInfo(-1, -1, -1, -1, component.parent.GUID, component.parent.GUID, -1, null, null, null, null, null, null, null, AttackDirection.None, Vector2.zero, null);
+        /*ObjectSpawnDataSelf activateEffect = component.ActivateVFX();
+        if (activateEffect != null) {
+          Log.LogWrite(" "+component.defId+" activate VFX is not null\n");
+          activateEffect.SpawnSelf(component.parent.Combat);
+        } else {
+          Log.LogWrite(" " + component.defId + " activate VFX is null\n");
+        }
+        component.AoEExplodeComponent();*/
+        var fakeHit = new WeaponHitInfo(-1, -1, -1, -1, component.parent.GUID, component.parent.GUID, -1, null, null, null, null, null, null, null, null, null, null, null);
         if (activatable.FailISDamage >= 1f) {
           foreach(ChassisLocations location in activatable.FailDamageLocations) {
             Log.LogWrite(" apply inner structure damage:" + location + "\n");
@@ -730,8 +754,10 @@ namespace CustomActivatableEquipment {
   }
   public class Settings {
     public bool debug { get; set; }
+    public List<string> AdditionalAssets { get; set; }
     public Settings() {
       debug = true;
+      AdditionalAssets = new List<string>();
     }
   }
   public class ComponentToggle {
@@ -855,6 +881,8 @@ namespace CustomActivatableEquipment {
   }
   public static partial class Core {
     public static float Epsilon = 0.01f;
+    //public static Dictionary<string, GameObject> AdditinalFXObjects = new Dictionary<string, GameObject>();
+
     //public static List<ActivatableComponent> currentActiveComponentsDlg = new List<ActivatableComponent>();
     public static readonly string HeatSinkOfflineTagName = "offline";
     //public static Dictionary<string,List<ComponentToggle>>
@@ -959,6 +987,31 @@ namespace CustomActivatableEquipment {
       CustomActivatableEquipment.Log.InitLog();
       Core.Settings = JsonConvert.DeserializeObject<CustomActivatableEquipment.Settings>(settingsJson);
       CustomActivatableEquipment.Log.LogWrite("Initing... " + directory + "\n");
+      /*try {
+        string apath = Path.Combine(directory, "assets");
+        Log.LogWrite("additional assets:" + Core.Settings.AdditionalAssets.Count + "\n");
+        foreach (string assetName in Core.Settings.AdditionalAssets) {
+          string path = Path.Combine(apath, assetName);
+          if (File.Exists(path)) {
+            var assetBundle = AssetBundle.LoadFromFile(path);
+            if (assetBundle != null) {
+              Log.LogWrite("asset " + path + ":" + assetBundle.name + " loaded\n");
+              UnityEngine.GameObject[] objects = assetBundle.LoadAllAssets<GameObject>();
+              Log.LogWrite("FX objects:\n");
+              foreach (var obj in objects) {
+                Log.LogWrite(" " + obj.name + "\n");
+                AdditinalFXObjects.Add(obj.name, obj);
+              }
+            } else {
+              Log.LogWrite("fail to load:" + path + "\n");
+            }
+          } else {
+            Log.LogWrite("not exists:" + path + "\n");
+          }
+        }
+      } catch (Exception e) {
+        Log.LogWrite(e.ToString() + "\n");
+      }*/
       try {
         CustomComponents.Registry.RegisterSimpleCustomComponents(Assembly.GetExecutingAssembly());
         var harmony = HarmonyInstance.Create("io.mission.activatablecomponents");
