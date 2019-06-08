@@ -68,6 +68,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AIHelper.cs" />
     <Compile Include="ComponentVFXHelper.cs" />
     <Compile Include="ExplodeComponent.cs" />
     <Compile Include="Main.cs" />

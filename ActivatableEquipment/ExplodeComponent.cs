@@ -230,6 +230,13 @@ namespace CustomActivatableEquipment {
         AoEDamage[index].target.HandleDeath(component.parent.GUID);
         Mech mech = AoEDamage[index].target as Mech;
         if(mech != null) {
+          if (AoEDamage[index].HeatDamage > Core.Epsilon) {
+            mech.AddExternalHeat("AoE Component explosion", Mathf.RoundToInt(AoEDamage[index].HeatDamage));
+            mech.GenerateAndPublishHeatSequence(-1, true, false, component.parent.GUID);
+          }
+          if (AoEDamage[index].StabDamage > Core.Epsilon) {
+            mech.AddAbsoluteInstability(AoEDamage[index].StabDamage, StabilityChangeSource.Effect, component.parent.GUID);
+          }
           mech.HandleKnockdown(-1, component.parent.GUID, Vector2.one, (SequenceFinished)null);
         }
       }

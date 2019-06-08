@@ -135,7 +135,7 @@ namespace CustomActivatablePatches {
       foreach (MechComponent component in __instance.allComponents) {
         ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
         if (activatable == null) { continue; }
-        if(activatable.CanBeactivatedManualy()) {continue;}
+        if(activatable.CanBeactivatedManualy) {continue;}
         float OverheatLevel = (float)__instance.CurrentHeat / (float)__instance.OverheatLevel;
         if (ActivatableComponent.isComponentActivated(component)) {
           Log.LogWrite(" "+component.defId+" active "+__instance.CurrentHeat+"/"+ activatable.AutoDeactivateOnHeat + "\n");
@@ -249,6 +249,7 @@ namespace CustomActivatableEquipment {
     public int FailRoundsStart { get; set; }
     public float FailChancePerTurn { get; set; }
     public float FailISDamage { get; set; }
+    public float FailStabDamage { get; set; }
     public int FailPilotingBase { get; set; }
     public float FailPilotingMult { get; set; }
     public bool FailCrit { get; set; }
@@ -270,10 +271,17 @@ namespace CustomActivatableEquipment {
     public EffectData[] statusEffects { get; set; }
     public VFXInfo presistantVFX { get; set; }
     public VFXInfo activateVFX { get; set; }
+    public VFXInfo destroyedVFX { get; set; }
     public AoEExplosion Explosion { get; set; }
+    public bool CanNotBectivatedManualy { get; set; }
+    public bool ExplodeOnFail { get; set; }
+    public bool AlwaysFail { get; set; }
+    public bool ExplodeOnDamage { get; set; }
+    public float FailChancePerActivation { get; set; }
     public ActivatableComponent() {
       ButtonName = "NotSet";
       FailFlatChance = 0f;
+      FailStabDamage = 0f;
       FailChancePerTurn = 0f;
       FailISDamage = 0f;
       FailRoundsStart = 0;
@@ -295,7 +303,13 @@ namespace CustomActivatableEquipment {
       ChargesCount = 0;
       presistantVFX = new VFXInfo();
       activateVFX = new VFXInfo();
+      destroyedVFX = new VFXInfo();
       Explosion = new AoEExplosion();
+      CanNotBectivatedManualy = false;
+      ExplodeOnFail = false;
+      ExplodeOnDamage = false;
+      AlwaysFail = true;
+      FailChancePerActivation = 0f;
       Log.LogWrite("ActivatableComponent constructor\n");
     }
     
@@ -325,10 +339,12 @@ namespace CustomActivatableEquipment {
         component.StatCollection.Set<int>(ActivatableComponent.CAEComponentChargesCount, charges);
       }
     }
-    public bool CanBeactivatedManualy() {
-      if (this.AutoActivateOnHeat > CustomActivatableEquipment.Core.Epsilon) { return false; }
-      if (this.AutoActivateOnOverheatLevel > CustomActivatableEquipment.Core.Epsilon) { return false; }
-      return true;
+    public bool CanBeactivatedManualy {
+      get {
+        //if (this.AutoActivateOnHeat > CustomActivatableEquipment.Core.Epsilon) { return false; }
+        //if (this.AutoActivateOnOverheatLevel > CustomActivatableEquipment.Core.Epsilon) { return false; }
+        return !this.CanNotBectivatedManualy;
+      }
     }
     public static void critComponent(Mech mech,MechComponent componentInSlot, ChassisLocations location, ref WeaponHitInfo hitInfo) {
       Weapon weapon1 = componentInSlot as Weapon;
@@ -435,6 +451,10 @@ namespace CustomActivatableEquipment {
       //}
       Log.LogWrite(" chance:"+chance+"\n");
       float roll = Random.Range(0f, 1f);
+      if (activatable.AlwaysFail) {
+        roll = -1f;
+        Log.LogWrite(" always fail\n");
+      }
       Log.LogWrite(" roll:" + roll + "\n");
       if(roll < chance) {
         /*ObjectSpawnDataSelf activateEffect = component.ActivateVFX();
@@ -466,6 +486,9 @@ namespace CustomActivatableEquipment {
           Log.LogWrite(" apply crit to self\n");
           ActivatableComponent.critComponent(owner, component, MechStructureRules.GetChassisLocationFromArmorLocation((ArmorLocation)component.Location), ref fakeHit);
         }
+        if(activatable.FailStabDamage > Core.Epsilon) {
+          owner.AddAbsoluteInstability(activatable.FailStabDamage, StabilityChangeSource.Effect, owner.GUID);
+        }
         Log.LogWrite(" owner status. Death:"+owner.IsFlaggedForDeath+" Knockdown:"+owner.IsFlaggedForKnockdown+"\n");
         bool needToDone = false;
         if (owner.IsFlaggedForDeath || owner.IsFlaggedForKnockdown) {
@@ -481,6 +504,9 @@ namespace CustomActivatableEquipment {
         if (needToDone) {
           Log.LogWrite(" done with actor\n");
           owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage(owner.DoneWithActor()));
+        }
+        if (activatable.ExplodeOnFail) {
+          component.AoEExplodeComponent();
         }
         return false;
       }
@@ -560,6 +586,10 @@ namespace CustomActivatableEquipment {
         Log.LogWrite(" already activated\n");
         return;
       };
+      if (ActivatableComponent.isOutOfCharges(component)) {
+        Log.LogWrite(" out of charges\n");
+        return;
+      }
       if (autoActivate == false) {
         if (ActivatableComponent.rollFail(component, true) == false) {
           Log.LogWrite(" fail to activate\n");
@@ -590,6 +620,12 @@ namespace CustomActivatableEquipment {
       } else {
         component.StatCollection.Set<int>(ActivatableComponent.CAEComponentActiveRounds, 0);
       }
+      if(activatable.FailChancePerActivation > Core.Epsilon) {
+        float curFailChance = ActivatableComponent.getComponentFailChance(component);
+        curFailChance += activatable.FailChancePerActivation;
+        if (curFailChance < activatable.FailFlatChance) { curFailChance = activatable.FailFlatChance; };
+        ActivatableComponent.setComponentFailChance(component,curFailChance);
+      }
       if (activatable.statusEffects == null) {
         Log.LogWrite(" no activatable effects\n");
         return;
@@ -615,6 +651,8 @@ namespace CustomActivatableEquipment {
         (activatable.ActivationIsBuff) ? FloatieMessage.MessageNature.Buff : FloatieMessage.MessageNature.Debuff
       ));
       component.parent.ResetPathing(false);
+      ObjectSpawnDataSelf activeVFX = component.ActivateVFX();
+      if (activeVFX != null) { activeVFX.SpawnSelf(component.parent.Combat); }
       Log.LogWrite(" sprint:" + component.parent.MaxSprintDistance + "\n");
       Log.LogWrite(" walk:" + component.parent.MaxWalkDistance + "\n");
     }
@@ -655,6 +693,8 @@ namespace CustomActivatableEquipment {
         component.Description.UIName + " "+activatable.DeactivationMessage,
         (activatable.ActivationIsBuff)?FloatieMessage.MessageNature.Debuff: FloatieMessage.MessageNature.Buff
       ));
+      ObjectSpawnDataSelf activeVFX = component.ActivateVFX();
+      if (activeVFX != null) { activeVFX.CleanupSelf(); }
     }
     public static void toggleComponentActivation(MechComponent component) {
       Log.LogWrite("toggleComponentActivation "+component.defId+"\n");
@@ -754,10 +794,22 @@ namespace CustomActivatableEquipment {
   }
   public class Settings {
     public bool debug { get; set; }
+    public float AIComponentUsefullModifyer { get; set; }
+    public float AIComponentExtreamlyUsefulModifyer { get; set; }
+    public float AIOffenceUsefullCoeff { get; set; }
+    public float AIDefenceUsefullCoeff { get; set; }
+    public float AIHeatCoeffCoeff { get; set; }
+    public float AIOverheatCoeffCoeff { get; set; }
     public List<string> AdditionalAssets { get; set; }
     public Settings() {
       debug = true;
       AdditionalAssets = new List<string>();
+      AIComponentUsefullModifyer = 0.4f;
+      AIComponentExtreamlyUsefulModifyer = 0.6f;
+      AIOffenceUsefullCoeff = 0.2f;
+      AIDefenceUsefullCoeff = 0.2f;
+      AIHeatCoeffCoeff = 0.9f;
+      AIOverheatCoeffCoeff = 0.8f;
     }
   }
   public class ComponentToggle {
@@ -942,7 +994,7 @@ namespace CustomActivatableEquipment {
         }
         if (ActivatableComponent.isComponentActivated(component)) {
           text.Append(" " + actComps[index].activatable.ActivationMessage + " ");
-          if (actComps[index].activatable.CanBeactivatedManualy() == false) {
+          if (actComps[index].activatable.CanBeactivatedManualy == false) {
             if (component.parent is Mech) {
               float neededHeat = (actComps[index].activatable.AutoDeactivateOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? actComps[index].activatable.AutoDeactivateOverheatLevel * (float)(component.parent as Mech).OverheatLevel : actComps[index].activatable.AutoDeactivateOnHeat;
               text.Append("HEAT:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
@@ -970,7 +1022,7 @@ namespace CustomActivatableEquipment {
       if (HUD.SelectedTarget == null) {
         for (int index = 0; index < activatables.Count; ++index) {
           if (actComps[index].component.IsFunctional == false) { continue; };
-          if (actComps[index].activatable.CanBeactivatedManualy()) {
+          if (actComps[index].activatable.CanBeactivatedManualy) {
             if (ActivatableComponent.isOutOfCharges(actComps[index].component) == false) {
               popup.AddButton(activatables[index], new Action(actComps[index].toggle), true, (PlayerAction)null);
             }
