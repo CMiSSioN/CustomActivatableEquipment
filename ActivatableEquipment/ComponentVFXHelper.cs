@@ -13,8 +13,71 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(Transform) })]
   public static class Mech_InitGameRep {
-    public static void Postfix(Mech __instance, Transform parentTransform) {
+    public static void Postfix(Mech __instance) {
+      try {
+        __instance.registerComponentsForVFX();
+      }catch(Exception e) {
+        Log.LogWrite(e.ToString()+"\n");
+      }
+    }
+  }
+  [HarmonyPatch(typeof(Vehicle))]
+  [HarmonyPatch("InitGameRep")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(Transform) })]
+  public static class Vehicle_InitGameRep {
+    public static void Postfix(Vehicle __instance) {
+      Log.LogWrite("Vehicle.InitGameRep " + (__instance != null?"not null":"null") + "\n");
       __instance.registerComponentsForVFX();
+    }
+  }
+  [HarmonyPatch(typeof(Turret))]
+  [HarmonyPatch("InitGameRep")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(Transform) })]
+  public static class Turret_InitGameRep {
+    public static void Postfix(Turret __instance) {
+      __instance.registerComponentsForVFX();
+    }
+  }
+  [HarmonyPatch(typeof(AbstractActor))]
+  [HarmonyPatch("HandleDeath")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(string) })]
+  public static class AbstractActor_HandleDeath {
+    public static void Postfix(AbstractActor __instance) {
+      if (__instance.IsDead) {
+        foreach(MechComponent component in __instance.allComponents) {
+          VFXObjects vfxObjects = component.VFXObjects();
+          if (vfxObjects != null) { vfxObjects.CleanOnDead(); };
+        }
+      }
+    }
+  }
+  [HarmonyPatch(typeof(PilotableActorRepresentation))]
+  [HarmonyPatch("OnPlayerVisibilityChanged")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(VisibilityLevel) })]
+  public static class PilotableActorRepresentation_OnPlayerVisibilityChanged {
+    public static void Postfix(PilotableActorRepresentation __instance, VisibilityLevel newLevel) {
+      Log.LogWrite("PilotableActorRepresentation.OnPlayerVisibilityChanged " + __instance.parentCombatant.DisplayName + " "+newLevel+"\n");
+      foreach(MechComponent component in __instance.parentActor.allComponents) {
+        ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+        if (activatable == null) { continue; };
+        if ((activatable.activateVFXOutOfLOSHide == false) && (activatable.presistantVFXOutOfLOSHide == false)) { continue; }
+        if (activatable.activateVFXOutOfLOSHide == true) {
+          ObjectSpawnDataSelf activeVFX = component.ActivateVFX();
+          if (activeVFX != null) {
+            if (newLevel != VisibilityLevel.LOSFull) {activeVFX.Hide();} else { activeVFX.Show(); }
+          }
+        }
+        if (activatable.presistantVFXOutOfLOSHide == true) {
+          ObjectSpawnDataSelf presistantVFX = component.PresitantVFX();
+          if (presistantVFX != null) {
+            if (newLevel != VisibilityLevel.LOSFull) { presistantVFX.Hide(); } else { presistantVFX.Show(); }
+          }
+        }
+      }
     }
   }
   [HarmonyPatch(typeof(MechComponent))]
@@ -31,7 +94,7 @@ namespace CustomActivatableEquipment {
           __state = true;
         }
       }
-      return false;
+      return true;
     }
     public static void Postfix(MechComponent __instance, WeaponHitInfo hitInfo, ComponentDamageLevel damageLevel, bool applyEffects, ref bool __state) {
       if (__state) {
@@ -47,6 +110,7 @@ namespace CustomActivatableEquipment {
         VFX = __instance.DestroyedVFX();
         if (VFX != null) { VFX.SpawnSelf(__instance.parent.Combat); };
         if (activatable.ExplodeOnDamage) { __instance.AoEExplodeComponent(); };
+        __instance.playDestroySound();
       } else {
         Log.LogWrite(" no additional processing\n");
       }
@@ -58,13 +122,20 @@ namespace CustomActivatableEquipment {
     public ObjectSpawnDataSelf presitantObject;
     public ObjectSpawnDataSelf activateObject;
     public ObjectSpawnDataSelf destroyedObject;
+    public ObjectSpawnDataSelf explodeObject;
     public void Clean() {
       if (this.presitantObject != null) { this.presitantObject.CleanupSelf(); }
       if (this.activateObject != null) { this.activateObject.CleanupSelf(); }
       if (this.destroyedObject != null) { this.destroyedObject.CleanupSelf(); }
+      if (this.explodeObject != null) { this.explodeObject.CleanupSelf(); }
+    }
+    public void CleanOnDead() {
+      if (this.presitantObject != null) { this.presitantObject.CleanupSelf(); }
+      if (this.activateObject != null) { this.activateObject.CleanupSelf(); }
     }
     public VFXObjects(MechComponent p) {
       this.parent = p;
+      this.explodeObject = null;
       ActivatableComponent activatable = this.parent.componentDef.GetComponent<ActivatableComponent>();
       if (activatable != null) {
         GameObject parentObject = p.parent.GameRep.gameObject;
@@ -75,6 +146,7 @@ namespace CustomActivatableEquipment {
           }
         }
         Log.LogWrite(p.defId + " is activatable \n");
+        //PilotableActorRepresentation rep = parent.parent.GameRep as PilotableActorRepresentation;
         if (activatable.presistantVFX.isInited) {
           try {
             Log.LogWrite(p.defId + " spawning " + activatable.presistantVFX.VFXPrefab + " \n");
@@ -82,6 +154,11 @@ namespace CustomActivatableEquipment {
               new Vector3(activatable.presistantVFX.VFXOffsetX, activatable.presistantVFX.VFXOffsetY, activatable.presistantVFX.VFXOffsetZ),
               new Vector3(activatable.presistantVFX.VFXScaleX, activatable.presistantVFX.VFXScaleY, activatable.presistantVFX.VFXScaleZ), true, false);
             presitantObject.SpawnSelf(parent.parent.Combat);
+            //if(rep != null) {
+            //  if (activatable.presistantVFXOutOfLOSHide == true) {
+            //    if (rep.VisibleToPlayer == false) { presitantObject.Hide(); }
+            //  }
+            //}
           } catch (Exception e) {
             Log.LogWrite(" Fail to spawn vfx " + e.ToString() + "\n");
           }
@@ -110,6 +187,18 @@ namespace CustomActivatableEquipment {
 
   public static class ComponentVFXHelper {
     public static Dictionary<string, VFXObjects> componentsVFXObjects = new Dictionary<string, VFXObjects>();
+    public static void playActivateSound(this MechComponent component) {
+      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+      if (activatable != null) { activatable.playActivateSound(component.parent.GameRep.audioObject); }
+    }
+    public static void playDeactivateSound(this MechComponent component) {
+      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+      if (activatable != null) { activatable.playDeactivateSound(component.parent.GameRep.audioObject); }
+    }
+    public static void playDestroySound(this MechComponent component) {
+      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+      if (activatable != null) { activatable.playDestroySound(component.parent.GameRep.audioObject); }
+    }
     public static void registerComponentsForVFX(this AbstractActor unit) {
       Log.LogWrite("registerComponentsForVFX "+unit.DisplayName+":"+unit.GUID+"\n");
       foreach (MechComponent component in unit.allComponents) {
@@ -166,6 +255,19 @@ namespace CustomActivatableEquipment {
       }
       return null;
     }
+    public static VFXObjects VFXObjects(this MechComponent component) {
+      string wGUID;
+      if (CustomAmmoCategories.checkExistance(component.StatCollection, CustomAmmoCategories.GUIDStatisticName) == false) {
+        wGUID = Guid.NewGuid().ToString();
+        component.StatCollection.AddStatistic<string>(CustomAmmoCategories.GUIDStatisticName, wGUID);
+      } else {
+        wGUID = component.StatCollection.GetStatistic(CustomAmmoCategories.GUIDStatisticName).Value<string>();
+      }
+      if (ComponentVFXHelper.componentsVFXObjects.ContainsKey(wGUID)) {
+        return ComponentVFXHelper.componentsVFXObjects[wGUID];
+      }
+      return null;
+    }
   }
 
   public class VFXInfo {
@@ -200,6 +302,18 @@ namespace CustomActivatableEquipment {
     public CombatGameState Combat;
     public GameObject parentObject;
     public Vector3 localPos;
+    public void Hide() {
+      if (this.spawnedObject != null) {
+        Log.LogWrite("ObjectSpawnDataSelf.Hide "+this.spawnedObject.name+"\n");
+        this.spawnedObject.SetActive(false);
+      }
+    }
+    public void Show() {
+      if (this.spawnedObject != null) {
+        Log.LogWrite("ObjectSpawnDataSelf.Show " + this.spawnedObject.name + "\n");
+        this.spawnedObject.SetActive(true);
+      }
+    }
     public ObjectSpawnDataSelf(string prefabName,GameObject parent, Vector3 localPosition, Vector3 scale, bool playFX, bool autoPoolObject) :
       base(prefabName, Vector3.zero, Quaternion.identity, playFX, autoPoolObject) {
       keepPrefabRotation = false;
@@ -280,6 +394,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { })]
   public static class CombatGameState_OnCombatGameDestroyedMap {
     public static bool Prefix(CombatGameState __instance) {
+      RepairHelper.Clear();
       HashSet<string> clearComponents = new HashSet<string>();
       foreach (var avfx in ComponentVFXHelper.componentsVFXObjects) {
         clearComponents.Add(avfx.Key);

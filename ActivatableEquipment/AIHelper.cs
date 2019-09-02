@@ -5,6 +5,7 @@ using System;
 using CustomComponents;
 using UnityEngine;
 using System.Collections.Generic;
+using Random = UnityEngine.Random;
 
 namespace CustomActivatablePatches {
   [HarmonyPatch(typeof(AbstractActor))]
@@ -15,6 +16,7 @@ namespace CustomActivatablePatches {
     public static bool Prefix(AbstractActor __instance) {
       Log.LogWrite("AbstractActor.OnNewRound(" + __instance.DisplayName + ":" + __instance.GUID + ")\n");
       CAEAIHelper.AIActivatableProc(__instance);
+      __instance.CommitCAEDamageData();
       return true;
     }
   }
@@ -34,6 +36,28 @@ namespace CustomActivatablePatches {
 
 namespace CustomActivatableEquipment {
   public static class CAEAIHelper {
+    public static readonly string AIRollPassStatName = "CAEAIFailRollPassed";
+    public static bool isAIRollPassed(this MechComponent component) {
+      if(Core.checkExistance(component.StatCollection, AIRollPassStatName) == false) {
+        component.StatCollection.AddStatistic<bool>(AIRollPassStatName,false);
+      }
+      return component.StatCollection.GetStatistic(AIRollPassStatName).Value<bool>();
+    }
+    public static bool setAIRollPassed(this MechComponent component,bool val) {
+      if (Core.checkExistance(component.StatCollection, AIRollPassStatName) == false) {
+        component.StatCollection.AddStatistic<bool>(AIRollPassStatName, false);
+      }
+      return component.StatCollection.Set<bool>(AIRollPassStatName, val);
+    }
+    public static bool AICheatRoll(this AbstractActor actor) {
+      if (actor.isAIUnit() == false) { return false; }
+      float roll = Random.Range(0f, 1f);
+      if (roll < Core.Settings.AIActivatableCheating) { return true; }
+      return false;
+    }
+    public static bool isAIUnit(this AbstractActor actor) {
+      return actor.TeamId != actor.Combat.LocalPlayerTeamGuid;
+    }
     public static void AIActivatableProc(AbstractActor unit) {
       try {
         if (unit.IsDead) { return; }
@@ -160,9 +184,18 @@ namespace CustomActivatableEquipment {
               needToBeActivated = true;
             } else {
               Log.LogWrite("  FailChance:" + component.FailChance() + "\n");
-              if (component.FailChance() < Core.Settings.AIComponentExtreamlyUsefulModifyer) {
-                needToBeActivated = true;
-                Log.LogWrite("  not big danger. Can be activated\n");
+              if ((component.isDamaged() == false)||(isAnyLocationExposed == true)) {
+                if (component.FailChance() < Core.Settings.AIComponentExtreamlyUsefulModifyer) {
+                  needToBeActivated = true;
+                  Log.LogWrite("  not big danger. Can be activated\n");
+                }
+              } else {
+                Log.LogWrite("  component is damaged and have no exposed locations. Danger level increase\n");
+                if (component.FailChance() < Core.Settings.AIComponentUsefullModifyer) {
+                  needToBeActivated = true;
+                  Log.LogWrite("  not big danger. Can be activated\n");
+                }
+
               }
             }
           }
@@ -173,22 +206,45 @@ namespace CustomActivatableEquipment {
               needToBeActivated = true;
             } else {
               Log.LogWrite("  FailChance:" + component.FailChance() + "\n");
-              if (component.FailChance() < Core.Settings.AIComponentUsefullModifyer) {
-                needToBeActivated = true;
-                Log.LogWrite("  not big danger. Can be activated\n");
+              if ((component.isDamaged() == false) || (isAnyLocationExposed == true)) {
+                if (component.FailChance() < Core.Settings.AIComponentUsefullModifyer) {
+                  needToBeActivated = true;
+                  Log.LogWrite("  not big danger. Can be activated\n");
+                }
+              } else {
+                Log.LogWrite("  component is damaged and have no exposed locations. Danger level increase will not activate.\n");
               }
             }
           }
           if (needToBeActivated) {
             if (ActivatableComponent.isComponentActivated(component)) {
               Log.LogWrite("  already active\n");
+              if (unit.AICheatRoll()) {
+                bool isSuccess = ActivatableComponent.rollFail(component, false, true);
+                if (isSuccess == false) {
+                  Log.LogWrite("  deactivating due to high possible fail\n");
+                  ActivatableComponent.deactivateComponent(component);
+                } else {
+                  component.setAIRollPassed(true);
+                }
+              }
             } else {
               Log.LogWrite("  activating\n");
-              ActivatableComponent.activateComponent(component);
+              if (unit.AICheatRoll()) {
+                bool isSuccess = ActivatableComponent.rollFail(component, false, true);
+                if (isSuccess == false) {
+                  Log.LogWrite("  not activate due to high possible fail\n");
+                } else {
+                  component.setAIRollPassed(true);
+                  ActivatableComponent.activateComponent(component, false, false);
+                }
+              } else {
+                ActivatableComponent.activateComponent(component, false, false);
+              }
             }
           } else {
             if (ActivatableComponent.isComponentActivated(component)) {
-              Log.LogWrite("  not active active\n");
+              Log.LogWrite("  not active\n");
             } else {
               Log.LogWrite("  deactivating\n");
               ActivatableComponent.deactivateComponent(component);
@@ -245,8 +301,10 @@ namespace CustomActivatableEquipment {
     }
     public static bool CanBeActivated(this MechComponent component) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+      if (component.DamageLevel >= ComponentDamageLevel.Destroyed) { return false; }
       if (activatable == null) { return false; };
       if (activatable.CanBeactivatedManualy == false) { return false; }
+      if (activatable.ChargesCount == -1) { return true; };
       if (activatable.ChargesCount > 0) { if (activatable.ChargesCount <= component.ChargesCount()) { return false; }; };
       return true;
     }
@@ -256,6 +314,9 @@ namespace CustomActivatableEquipment {
         if (overheatCoeff > Core.Settings.AIOverheatCoeffCoeff) { return false; }
       }
       return true;
+    }
+    public static bool isDamaged(this MechComponent component) {
+      return ((component.DamageLevel > ComponentDamageLevel.Functional) && (component.DamageLevel < ComponentDamageLevel.Destroyed));
     }
     public static bool isOffence(this MechComponent component) {
       return component.ComponentTags().Contains("cae_ai_offence");
@@ -279,6 +340,9 @@ namespace CustomActivatableEquipment {
       return component.ComponentTags().Contains("cae_ai_sensors");
     }
     public static float FailChance(this MechComponent component) {
+      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+      if (activatable == null) { return 0f; };
+      if (activatable.AlwaysFail) { return 1f; };
       return ActivatableComponent.getEffectiveComponentFailChance(component);
     }
     public static bool isFailDanger(this MechComponent component) {

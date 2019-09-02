@@ -68,11 +68,18 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ActivatableEquipmentSlot.cs" />
     <Compile Include="AIHelper.cs" />
+    <Compile Include="AudioHelper.cs" />
+    <Compile Include="AuraUpdateHelper.cs" />
+    <Compile Include="ComponentsMenu.cs" />
     <Compile Include="ComponentVFXHelper.cs" />
+    <Compile Include="ComponetnsLinkage.cs" />
     <Compile Include="ExplodeComponent.cs" />
     <Compile Include="Main.cs" />
+    <Compile Include="MechStartup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RepairHelper.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
