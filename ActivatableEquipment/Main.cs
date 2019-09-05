@@ -1395,12 +1395,15 @@ namespace CustomActivatableEquipment {
         text.Append(" FAIL:" + Math.Round(failChance * 100f) + "%");
       }
       if (HUD.SelectedTarget != null) {
-        text.Append("\nYou can't activate/deactivate equipment while having target selected");
+        text.Append("__/CAE.SelectedTargetForbidden/__");
+      }
+      if (mech.IsAvailableThisPhase == false) {
+        text.Append("__/CAE.NotAvaibleThisPhase/__");
       }
       GenericPopupBuilder popup = GenericPopupBuilder.Create("Components", text.ToString());
 
       popup.AddButton("Done", (Action)null, true, (PlayerAction)null);
-      if (HUD.SelectedTarget == null) {
+      if ((HUD.SelectedTarget == null)&&(mech.IsAvailableThisPhase)) {
         for (int index = 0; index < activatables.Count; ++index) {
           if (actComps[index].component.IsFunctional == false) { continue; };
           if (actComps[index].activatable.CanBeactivatedManualy) {

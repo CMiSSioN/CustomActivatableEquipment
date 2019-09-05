@@ -149,7 +149,7 @@ namespace CustomActivatableEquipment {
           }
         }
         if (!Mathf.Approximately((float)FcurrentAuraRange.GetValue(__instance), b)) {
-          Log.LogWrite("Updating currentAuraRange"+b+"\n");
+          //Log.LogWrite("Updating currentAuraRange"+b+"\n");
           auraRangeScaledObject.transform.localScale = new Vector3(b * 2f, 1f, b * 2f);
           FcurrentAuraRange.SetValue(__instance, b);
           //__instance.currentAuraRange = b;
@@ -291,7 +291,7 @@ namespace CustomActivatableEquipment {
     }
     public static void Prefix(AuraCache __instance, AbstractActor fromActor, AbstractActor movingActor, Vector3 movingActorPos, MechComponent auraComponent, float distSquared, EffectTriggerType triggerSource, bool skipECMCheck) {
       AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
-      Log.LogWrite("AuraCache.UpdateAura prefix owner:" + Owner.DisplayName + ":" + Owner.GUID + " from: " + fromActor.DisplayName + ":" + fromActor.GUID + " component:" + auraComponent.defId + "\n");
+      //Log.LogWrite("AuraCache.UpdateAura prefix owner:" + Owner.DisplayName + ":" + Owner.GUID + " from: " + fromActor.DisplayName + ":" + fromActor.GUID + " component:" + auraComponent.defId + "\n");
     }
     static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
       Log.LogWrite("AuraCache.UpdateAura transpliter\n");
@@ -424,16 +424,16 @@ namespace CustomActivatableEquipment {
       ActivatableComponent activatable = auraComponent.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) { return; }
       if (activatable.baseEffects.Contains(effectData)) {
-        Log.LogWrite(" base effect\n");
+        //Log.LogWrite(" base effect\n");
         return;
       };
       bool componentActive = ActivatableComponent.isComponentActivated(auraComponent);
       if (activatable.onlineEffects.Contains(effectData) && (componentActive == false)) {
-        Log.LogWrite(" online effect but not actiavted\n");
+        //Log.LogWrite(" online effect but not actiavted\n");
         __result = false;
       } else
       if (activatable.offlineEffects.Contains(effectData) && (componentActive == true)) {
-        Log.LogWrite(" offline effect but actiavted\n");
+        //Log.LogWrite(" offline effect but actiavted\n");
         __result = false;
       };
     }

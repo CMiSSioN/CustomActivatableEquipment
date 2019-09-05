@@ -58,7 +58,7 @@ namespace CustomActivatablePatches {
       float absentLegs = 0f;
       if (mech.IsLocationDestroyed(ChassisLocations.LeftLeg)) { absentLegs += 1f; }
       if (mech.IsLocationDestroyed(ChassisLocations.RightLeg)) { absentLegs += 1f; }
-      Log.LogWrite(" destroyed arms:" + result + " + " + absentLegs + "x" + Core.Settings.LegAbsenceStoodUpMod + " = ");
+      Log.LogWrite(" destroyed legs:" + result + " + " + absentLegs + "x" + Core.Settings.LegAbsenceStoodUpMod + " = ");
       result += (absentLegs * Core.Settings.LegAbsenceStoodUpMod);
       Log.LogWrite(result + "\n");
       return result;
@@ -75,13 +75,14 @@ namespace CustomActivatablePatches {
         Log.LogWrite("Mech stoodup roll\n");
         float limit = actorByGuid.StoodUpRoll();
         float roll = Random.Range(0f, 1f);
-        Log.LogWrite(" roll = "+roll+"\n");
+        Log.LogWrite(" roll = "+roll+" against "+limit+"\n");
         if (roll < limit) {
+          Log.LogWrite(" success\n");
+          return true;
+        } else {
           Log.LogWrite(" fail to stand up\n");
           combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(__instance.MechGUID, __instance.MechGUID, "FAIL TO STAND UP", FloatieMessage.MessageNature.Buff));
           combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage(actorByGuid.DoneNoAnimation()));
-        } else {
-          return true;
         }
         return false;
       } catch (Exception e) {

@@ -60,23 +60,35 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(VisibilityLevel) })]
   public static class PilotableActorRepresentation_OnPlayerVisibilityChanged {
     public static void Postfix(PilotableActorRepresentation __instance, VisibilityLevel newLevel) {
-      Log.LogWrite("PilotableActorRepresentation.OnPlayerVisibilityChanged " + __instance.parentCombatant.DisplayName + " "+newLevel+"\n");
-      foreach(MechComponent component in __instance.parentActor.allComponents) {
-        ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
-        if (activatable == null) { continue; };
-        if ((activatable.activateVFXOutOfLOSHide == false) && (activatable.presistantVFXOutOfLOSHide == false)) { continue; }
-        if (activatable.activateVFXOutOfLOSHide == true) {
-          ObjectSpawnDataSelf activeVFX = component.ActivateVFX();
-          if (activeVFX != null) {
-            if (newLevel != VisibilityLevel.LOSFull) {activeVFX.Hide();} else { activeVFX.Show(); }
+      try {
+        Log.LogWrite("PilotableActorRepresentation.OnPlayerVisibilityChanged " + __instance.parentCombatant.DisplayName + " " + newLevel + "\n");
+        if (__instance.parentActor == null) {
+          Log.LogWrite(" are you fucking seriously?? parentActor is null\n", true);
+          return;
+        }
+        foreach (MechComponent component in __instance.parentActor.allComponents) {
+          try {
+            ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+            if (activatable == null) { continue; };
+            if ((activatable.activateVFXOutOfLOSHide == false) && (activatable.presistantVFXOutOfLOSHide == false)) { continue; }
+            if (activatable.activateVFXOutOfLOSHide == true) {
+              ObjectSpawnDataSelf activeVFX = component.ActivateVFX();
+              if (activeVFX != null) {
+                if (newLevel != VisibilityLevel.LOSFull) { activeVFX.Hide(); } else { activeVFX.Show(); }
+              }
+            }
+            if (activatable.presistantVFXOutOfLOSHide == true) {
+              ObjectSpawnDataSelf presistantVFX = component.PresitantVFX();
+              if (presistantVFX != null) {
+                if (newLevel != VisibilityLevel.LOSFull) { presistantVFX.Hide(); } else { presistantVFX.Show(); }
+              }
+            }
+          } catch (Exception e) {
+            Log.LogWrite(e.ToString() + "\n", true);
           }
         }
-        if (activatable.presistantVFXOutOfLOSHide == true) {
-          ObjectSpawnDataSelf presistantVFX = component.PresitantVFX();
-          if (presistantVFX != null) {
-            if (newLevel != VisibilityLevel.LOSFull) { presistantVFX.Hide(); } else { presistantVFX.Show(); }
-          }
-        }
+      }catch(Exception e) {
+        Log.LogWrite(e.ToString() + "\n", true);
       }
     }
   }
