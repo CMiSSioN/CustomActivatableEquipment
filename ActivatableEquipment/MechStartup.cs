@@ -81,7 +81,7 @@ namespace CustomActivatablePatches {
           return true;
         } else {
           Log.LogWrite(" fail to stand up\n");
-          combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(__instance.MechGUID, __instance.MechGUID, "FAIL TO STAND UP", FloatieMessage.MessageNature.Buff));
+          combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(__instance.MechGUID, __instance.MechGUID, "__/CAE.StandUpFail/__", FloatieMessage.MessageNature.Buff));
           combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage(actorByGuid.DoneNoAnimation()));
         }
         return false;
@@ -110,7 +110,7 @@ namespace CustomActivatablePatches {
           return true;
         }
         if (actorByGuid.CurrentHeatAsRatio >= Core.Settings.StartupMinHeatRatio) {
-          combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(__instance.MechGUID, __instance.MechGUID, "REACTOR IS TOO HOT FOR STARTUP", FloatieMessage.MessageNature.Buff));
+          combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(__instance.MechGUID, __instance.MechGUID, "__/CAE.ReactroTooHot/__", FloatieMessage.MessageNature.Buff));
           combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage(actorByGuid.DoneNoAnimation()));
         } else {
           return true;

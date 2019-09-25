@@ -187,10 +187,10 @@ namespace CustomActivatablePatches {
         if (failChance < Core.Settings.ToolTipWarningFailChance) { continue; };
         if (result.Length > 0) { result.Append("\n"); };
         if (failChance >= Core.Settings.ToolTipAlertFailChance) { result.Append("<color=#FF0000FF>"); } else { result.Append("<color=#FFA500FF>"); }
-        result.Append(component.Description.UIName+" FAIL:");
+        result.Append(component.Description.UIName+ " __/CAE.FAIL/__:");
         result.Append(Mathf.RoundToInt(failChance*100f)+"%</color>");
       }
-      MoveStatusPreview_DisplayPreviewStatus.setAdditionalStringMoving(actor, "COMPONENTS", result.ToString());
+      MoveStatusPreview_DisplayPreviewStatus.setAdditionalStringMoving(actor, "__/CAE.COMPONENTS/__", result.ToString());
     }
     public static void Postfix(TurnDirector __instance) {
       CustomActivatableEquipment.Log.LogWrite("TurnDirector.EndCurrentRound\n");
@@ -1147,6 +1147,12 @@ namespace CustomActivatableEquipment {
       //mechlab.MechLab.activeMechDef.
     }
   }
+  public enum AuraUpdateFix {
+    None,
+    Never,
+    Time,
+    Position
+  };
   public class Settings {
     public bool debug { get; set; }
     public float AIComponentUsefullModifyer { get; set; }
@@ -1165,6 +1171,9 @@ namespace CustomActivatableEquipment {
     public float LegAbsenceStoodUpMod { get; set; }
     public List<string> AdditionalAssets { get; set; }
     public float AIActivatableCheating { get; set; }
+    public AuraUpdateFix auraUpdateFix { get; set; }
+    public float auraUpdateMinTimeDelta { get; set; }
+    public float auraUpdateMinPosDelta { get; set; }
     public Settings() {
       debug = true;
       AdditionalAssets = new List<string>();
@@ -1183,6 +1192,9 @@ namespace CustomActivatableEquipment {
       DefaultArmsAbsenceStoodUpMod = -0.1f;
       LegAbsenceStoodUpMod = -0.1f;
       AIActivatableCheating = 0.8f;
+      auraUpdateFix = AuraUpdateFix.None;
+      auraUpdateMinTimeDelta = 1f;
+      auraUpdateMinPosDelta = 20f;
     }
   }
   public class ComponentToggle {
@@ -1352,32 +1364,32 @@ namespace CustomActivatableEquipment {
         }
       }
       StringBuilder text = new StringBuilder();
-      text.Append("Active components(" + activatables.Count + "):");
+      //text.Append("Active components(" + activatables.Count + "):");
       for (int index = 0; index < activatables.Count; ++index) {
         MechComponent component = actComps[index].component;
         text.Append("\n" + component.UIName);
-        text.Append(" STATE:");
+        text.Append(" __/CAE.STATE/__:");
         if (component.IsFunctional == false) {
-          text.Append(" NON FUNCTIONAL");
+          text.Append(" __/CAE.NonFunctional/__");
           continue;
         }
         if (ActivatableComponent.isOutOfCharges(component)) {
-          text.Append(" OUT OF CHARGES");
+          text.Append(" __/CAE.OutOfCharges/__");
           continue;
         }
         if (actComps[index].activatable.ChargesCount == -1) {
-          text.Append(" OPERATIONAL");
+          text.Append(" __/CAE.OPERATIONAL/__");
           continue;
         }
         if (actComps[index].activatable.ChargesCount > 0) {
-          text.Append(" CHARGES:" + ActivatableComponent.getChargesCount(component));
+          text.Append(" __/CAE.CHARGES/__:" + ActivatableComponent.getChargesCount(component));
         }
         if (ActivatableComponent.isComponentActivated(component)) {
           text.Append(" " + actComps[index].activatable.ActivationMessage + " ");
           if (actComps[index].activatable.CanBeactivatedManualy == false) {
             if (component.parent is Mech) {
               float neededHeat = (actComps[index].activatable.AutoDeactivateOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? actComps[index].activatable.AutoDeactivateOverheatLevel * (float)(component.parent as Mech).OverheatLevel : actComps[index].activatable.AutoDeactivateOnHeat;
-              text.Append("HEAT:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
+              text.Append("__/CAE.HEAT/__:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
             }
           }
         } else {
@@ -1385,14 +1397,14 @@ namespace CustomActivatableEquipment {
           if (actComps[index].activatable.AutoActivateOnHeat > CustomActivatableEquipment.Core.Epsilon) {
             if (component.parent is Mech) {
               float neededHeat = (actComps[index].activatable.AutoActivateOnOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? actComps[index].activatable.AutoActivateOnOverheatLevel * (float)(component.parent as Mech).OverheatLevel : actComps[index].activatable.AutoActivateOnHeat;
-              text.Append("HEAT:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
+              text.Append("__/CAE.HEAT/__:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
             }
           }
         }
         float failChance = ActivatableComponent.getEffectiveComponentFailChance(component);
         //ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
         //if (failChance < activatable.FailFlatChance) { failChance = activatable.FailFlatChance; };
-        text.Append(" FAIL:" + Math.Round(failChance * 100f) + "%");
+        text.Append(" __/CAE.FAIL/__:" + Math.Round(failChance * 100f) + "%");
       }
       if (HUD.SelectedTarget != null) {
         text.Append("__/CAE.SelectedTargetForbidden/__");
@@ -1400,9 +1412,9 @@ namespace CustomActivatableEquipment {
       if (mech.IsAvailableThisPhase == false) {
         text.Append("__/CAE.NotAvaibleThisPhase/__");
       }
-      GenericPopupBuilder popup = GenericPopupBuilder.Create("Components", text.ToString());
+      GenericPopupBuilder popup = GenericPopupBuilder.Create("__/CAE.Components/__", text.ToString());
 
-      popup.AddButton("Done", (Action)null, true, (PlayerAction)null);
+      popup.AddButton("__/CAE.Done/__", (Action)null, true, (PlayerAction)null);
       if ((HUD.SelectedTarget == null)&&(mech.IsAvailableThisPhase)) {
         for (int index = 0; index < activatables.Count; ++index) {
           if (actComps[index].component.IsFunctional == false) { continue; };

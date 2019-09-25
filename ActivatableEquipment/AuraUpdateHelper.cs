@@ -438,6 +438,111 @@ namespace CustomActivatableEquipment {
       };
     }
   }
+  [HarmonyPatch(typeof(AbstractActor))]
+  [HarmonyPatch("OnPositionUpdate")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(Vector3), typeof(Quaternion), typeof(int), typeof(bool), typeof(List<DesignMaskDef>), typeof(bool) })]
+  public static class AbstractActor_OnPositionUpdate {
+    private class AuraUpdatePositionRecord {
+      private static readonly float TIMEDELTA = 1f;
+      private static readonly float DISTANCEDELTA = 20f;
+      public float t { get; set; }
+      public Vector3 p { get; set; }
+      public AuraUpdatePositionRecord(AbstractActor unit) {
+        t = 0f;
+        p = unit.CurrentPosition;
+      }
+      public bool Update(AbstractActor unit) {
+        if(Core.Settings.auraUpdateFix == AuraUpdateFix.Time) {
+          this.t += Time.deltaTime;
+          if(this.t >= Core.Settings.auraUpdateMinTimeDelta) {
+            this.t = 0f;
+            return true;
+          }
+        }else
+        if(Core.Settings.auraUpdateFix == AuraUpdateFix.Position) {
+          float distance = Vector3.Distance(p,unit.CurrentPosition);
+          if(distance >= Core.Settings.auraUpdateMinPosDelta) {
+            p = unit.CurrentPosition;
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+    private static Dictionary<AbstractActor, AuraUpdatePositionRecord> auraUpdateData = new Dictionary<AbstractActor, AuraUpdatePositionRecord>();
+    public static void RemoveAuraUpdateData(this AbstractActor unit) {
+      if (auraUpdateData.ContainsKey(unit)) { auraUpdateData.Remove(unit); };
+    }
+    public static bool IsNeedUpdateAura(this AbstractActor unit) {
+      if (Core.Settings.auraUpdateFix == AuraUpdateFix.None) { return true; }
+      if (Core.Settings.auraUpdateFix == AuraUpdateFix.Never) { return false; }
+      if (auraUpdateData.ContainsKey(unit) == false) {
+        auraUpdateData.Add(unit, new AuraUpdatePositionRecord(unit));
+        return false;
+      }
+      return auraUpdateData[unit].Update(unit);
+    }
+    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+      Log.LogWrite("AbstractActor.OnPositionUpdate transpliter\n",true);
+      MethodInfo UpdateAurasToActor = AccessTools.Method(typeof(AuraCache), "UpdateAurasToActor");
+      if (UpdateAurasToActor != null) {
+        Log.LogWrite(" source method found\n",true);
+      } else {
+        return instructions;
+      }
+      MethodInfo replacementMethod = AccessTools.Method(typeof(AbstractActor_OnPositionUpdate), nameof(UpdateAurasToActor));
+      if (replacementMethod != null) {
+        Log.LogWrite("target method found\n",true);
+      } else {
+        return instructions;
+      }
+      return Transpilers.MethodReplacer(instructions, UpdateAurasToActor, replacementMethod);
+    }
+    public static void UpdateAurasToActor(List<AbstractActor> actors, AbstractActor movingActor, Vector3 movingActorPosition, EffectTriggerType triggerSource, bool forceUpdate) {
+      //switch (Core.Settings.auraUpdateFix) {
+        //case AuraUpdateFix.None: AuraCache.UpdateAurasToActor(actors, movingActor, movingActorPosition, triggerSource, forceUpdate); return;
+      //}
+      if (movingActor.IsNeedUpdateAura()) {
+        AuraCache.UpdateAurasToActor(actors, movingActor, movingActorPosition, triggerSource, forceUpdate);
+      }
+      //Log.LogWrite("AbstractActor.OnPositionUpdate.UpdateAurasToActor\n");
+    }
+  }
+  [HarmonyPatch(typeof(ActorMovementSequence))]
+  [HarmonyPatch("CompleteMove")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { })]
+  public static class ActorMovementSequence_CompleteMoveAura {
+    public static void Postfix(ActorMovementSequence __instance) {
+      if (__instance.owningActor == null) { return; }
+      switch (Core.Settings.auraUpdateFix) {
+        case AuraUpdateFix.Never:
+        case AuraUpdateFix.Position:
+        case AuraUpdateFix.Time:
+          __instance.owningActor.RemoveAuraUpdateData();
+          AuraCache.UpdateAurasToActor(__instance.owningActor.Combat.AllActors, __instance.owningActor, __instance.owningActor.CurrentPosition, EffectTriggerType.Passive, false);
+          break;
+      }
+    }
+  }
+  [HarmonyPatch(typeof(MechJumpSequence))]
+  [HarmonyPatch("CompleteJump")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { })]
+  public static class MechJumpSequence_CompleteJumpAura {
+    public static void Postfix(MechJumpSequence __instance) {
+      if (__instance.OwningMech == null) { return;  }
+      switch (Core.Settings.auraUpdateFix) {
+        case AuraUpdateFix.Never:
+        case AuraUpdateFix.Position:
+        case AuraUpdateFix.Time:
+          __instance.OwningMech.RemoveAuraUpdateData();
+          AuraCache.UpdateAurasToActor(__instance.OwningMech.Combat.AllActors, __instance.OwningMech, __instance.owningActor.CurrentPosition, EffectTriggerType.Passive, false);
+          break;
+      }
+    }
+  }
 
   public static class AuraUpdateHelper {
     public static void AurasActivateOnline(this ActivatableComponent activatable, MechComponent component) {

@@ -1,10 +1,26 @@
 ﻿using BattleTech;
+using BattleTech.UI;
 using CustomComponents;
 using Harmony;
 using System;
 using System.Collections.Generic;
 
 namespace CustomActivatableEquipment {
+  [HarmonyPatch(typeof(CombatHUD))]
+  [HarmonyPatch("Init")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(CombatGameState) })]
+  public static class CombatHUD_InitReapair {
+    public static void Postfix(CombatHUD __instance, CombatGameState Combat) {
+      try {
+        foreach (AbstractActor unit in Combat.AllActors) {
+
+        }
+      } catch (Exception e) {
+        Log.LogWrite(e.ToString() + "\n", true);
+      }
+    }
+  }
   [HarmonyPatch(typeof(Mech))]
   [HarmonyPatch("TakeWeaponDamage")]
   [HarmonyPatch(MethodType.Normal)]
@@ -286,7 +302,7 @@ namespace CustomActivatableEquipment {
         }
       }
       if((armorReparied || structureReparied)&&(isFloatieMessage)) {
-        string text = component.Description.UIName + " REPAIRED" + (armorReparied ? " ARMOR" : " ") + (structureReparied ? " STRUCTURE" : "");
+        string text = component.Description.UIName + " __/CAE.REPAIRED/__" + (armorReparied ? " __/CAE.REPAIRARMOR/__" : " ") + (structureReparied ? " __/CAE.REPAIRSTRUCTURE/__" : "");
         component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID,text, FloatieMessage.MessageNature.Buff));
       }
     }

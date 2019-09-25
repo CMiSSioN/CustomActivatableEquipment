@@ -22,7 +22,7 @@ namespace CustomActivatableEquipment {
       }
     }
     public void Render() {
-      GenericPopupBuilder builder = GenericPopupBuilder.Create("Components",this.BuildText());
+      GenericPopupBuilder builder = GenericPopupBuilder.Create("__/CAE.Components/__", this.BuildText());
       builder.AddButton("X", null, true);
       builder.AddButton("+", new Action(this.Left), false);
       builder.AddButton("<-", new Action(this.Up), false);
@@ -45,19 +45,19 @@ namespace CustomActivatableEquipment {
         MechComponent component = components[index];
         builder.Append(component.UIName);
         if (component.IsFunctional == false) {
-          builder.Append(" !NOT FUNCTIONAL!");continue;
+          builder.Append(" !__/CAE.NonFunctional/__!");continue;
         }
         if (component.DamageLevel >= ComponentDamageLevel.Penalized) {
-          builder.Append(" !DAMAGED!");
+          builder.Append(" !__/CAE.Damaged/__!");
         }
         if (ActivatableComponent.isOutOfCharges(components[index])) {
-          builder.Append(" OUT OF CHARGES");
+          builder.Append(" !__/CAE.OutOfCharges/__!");
           continue;
         }
         ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
         if (activatable.ChargesCount != 0) {
           if (activatable.ChargesCount > 0) {
-            builder.Append(" CHARGES:" + ActivatableComponent.getChargesCount(component));
+            builder.Append(" __/CAE.CHARGES/__:" + ActivatableComponent.getChargesCount(component));
           }
         }
         if (ActivatableComponent.isComponentActivated(component)) {
@@ -65,7 +65,7 @@ namespace CustomActivatableEquipment {
           if (activatable.CanBeactivatedManualy == false) {
             if (component.parent is Mech) {
               float neededHeat = (activatable.AutoDeactivateOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? activatable.AutoDeactivateOverheatLevel * (float)(component.parent as Mech).OverheatLevel : activatable.AutoDeactivateOnHeat;
-              builder.Append("HEAT:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
+              builder.Append("__/CAE.HEAT/__:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
             }
           }
         } else {
@@ -73,13 +73,13 @@ namespace CustomActivatableEquipment {
           if (activatable.AutoActivateOnHeat > CustomActivatableEquipment.Core.Epsilon) {
             if (component.parent is Mech) {
               float neededHeat = (activatable.AutoActivateOnOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? activatable.AutoActivateOnOverheatLevel * (float)(component.parent as Mech).OverheatLevel : activatable.AutoActivateOnHeat;
-              builder.Append("HEAT:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
+              builder.Append("__/CAE.HEAT/__:" + (component.parent as Mech).CurrentHeat + "/" + neededHeat);
             }
           }
         }
         float failChance = ActivatableComponent.getEffectiveComponentFailChance(component);
         if (failChance > Core.Epsilon) {
-          builder.Append(" FAIL:" + Math.Round(failChance * 100f) + "%");
+          builder.Append(" __/CAE.FAIL/__:" + Math.Round(failChance * 100f) + "%");
         }
       }
       return builder.ToString();
