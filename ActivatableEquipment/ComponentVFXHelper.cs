@@ -50,6 +50,7 @@ namespace CustomActivatableEquipment {
         foreach(MechComponent component in __instance.allComponents) {
           VFXObjects vfxObjects = component.VFXObjects();
           if (vfxObjects != null) { vfxObjects.CleanOnDead(); };
+          component.UpdateAuras();
         }
       }
     }
@@ -126,6 +127,7 @@ namespace CustomActivatableEquipment {
       } else {
         Log.LogWrite(" no additional processing\n");
       }
+      __instance.UpdateAuras();
     }
   }
 
@@ -417,6 +419,7 @@ namespace CustomActivatableEquipment {
         }
       }
       ComponentVFXHelper.componentsVFXObjects.Clear();
+      CAEAuraHelper.ClearBubbles();
       return true;
     }
   }

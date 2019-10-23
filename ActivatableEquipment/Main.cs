@@ -16,6 +16,7 @@ using Random = UnityEngine.Random;
 using Localize;
 using CustomActivatableEquipment;
 using CustomAmmoCategoriesPatches;
+using CustAmmoCategoriesPatches;
 
 namespace CustomActivatablePatches {
   [HarmonyPatch(typeof(CombatHUDButtonBase))]
@@ -744,8 +745,9 @@ namespace CustomActivatableEquipment {
     }
     public static bool isComponentActivated(MechComponent component) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
-      if (activatable == null) { return false; }
-      if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentActiveStatName) == false) {
+      if(component.IsFunctional == false) { return false; }
+      if (activatable == null) { return true; }
+      if (Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentActiveStatName) == false) {
         return false;
       }
       return component.StatCollection.GetStatistic(ActivatableComponent.CAEComponentActiveStatName).Value<bool>();
@@ -885,6 +887,8 @@ namespace CustomActivatableEquipment {
       } catch (Exception) {
       }
       component.playActivateSound();
+      component.UpdateAuras(false);
+      CAEAuraHelper.ClearAuraPreviewCache();
       if (activatable.ExplodeOnSuccess) { component.AoEExplodeComponent(); }
       component.LinkageActivate(isInital);
     }
@@ -912,11 +916,11 @@ namespace CustomActivatableEquipment {
           }
         }
         component.parent.ResetPathing(false);
-        if (isInital == false) {
-          Log.LogWrite(" Updating auras\n");
-          AuraCache.UpdateAurasToActor(component.parent.Combat.AllActors, component.parent, component.parent.CurrentPosition, EffectTriggerType.TurnUpdate, true);
-          AuraCache.RefreshECMStates(component.parent.Combat.AllActors, EffectTriggerType.TurnUpdate);
-        }
+        //if (isInital == false) {
+        //  Log.LogWrite(" Updating auras\n");
+        //  AuraCache.UpdateAurasToActor(component.parent.Combat.AllActors, component.parent, component.parent.CurrentPosition, EffectTriggerType.TurnUpdate, true);
+        //  AuraCache.RefreshECMStates(component.parent.Combat.AllActors, EffectTriggerType.TurnUpdate);
+        //}
         Log.LogWrite(" sprint:" + component.parent.MaxSprintDistance + "\n");
         Log.LogWrite(" walk:" + component.parent.MaxWalkDistance + "\n");
       }
@@ -944,11 +948,11 @@ namespace CustomActivatableEquipment {
           }
         }
         component.parent.ResetPathing(false);
-        if (isInital == false) {
-          Log.LogWrite(" Updating auras\n");
-          AuraCache.UpdateAurasToActor(component.parent.Combat.AllActors, component.parent, component.parent.CurrentPosition, EffectTriggerType.TurnUpdate, true);
-          AuraCache.RefreshECMStates(component.parent.Combat.AllActors, EffectTriggerType.TurnUpdate);
-        }
+        //if (isInital == false) {
+        //  Log.LogWrite(" Updating auras\n");
+        //  AuraCache.UpdateAurasToActor(component.parent.Combat.AllActors, component.parent, component.parent.CurrentPosition, EffectTriggerType.TurnUpdate, true);
+        //  AuraCache.RefreshECMStates(component.parent.Combat.AllActors, EffectTriggerType.TurnUpdate);
+        //}
         Log.LogWrite(" sprint:" + component.parent.MaxSprintDistance + "\n");
         Log.LogWrite(" walk:" + component.parent.MaxWalkDistance + "\n");
       }
@@ -1049,6 +1053,8 @@ namespace CustomActivatableEquipment {
       ObjectSpawnDataSelf activeVFX = component.ActivateVFX();
       if (activeVFX != null) { activeVFX.CleanupSelf(); }
       component.playDeactivateSound();
+      component.UpdateAuras(false);
+      CAEAuraHelper.ClearAuraPreviewCache();
       component.LinkageDectivate(false);
     }
     public static void toggleComponentActivation(MechComponent component) {
@@ -1174,6 +1180,7 @@ namespace CustomActivatableEquipment {
     public AuraUpdateFix auraUpdateFix { get; set; }
     public float auraUpdateMinTimeDelta { get; set; }
     public float auraUpdateMinPosDelta { get; set; }
+    public AuraDef sensorsAura { get; set; }
     public Settings() {
       debug = true;
       AdditionalAssets = new List<string>();
@@ -1195,6 +1202,7 @@ namespace CustomActivatableEquipment {
       auraUpdateFix = AuraUpdateFix.None;
       auraUpdateMinTimeDelta = 1f;
       auraUpdateMinPosDelta = 20f;
+      sensorsAura = new AuraDef();
     }
   }
   public class ComponentToggle {
@@ -1437,6 +1445,11 @@ namespace CustomActivatableEquipment {
       CustomActivatableEquipment.Log.InitLog();
       Core.Settings = JsonConvert.DeserializeObject<CustomActivatableEquipment.Settings>(settingsJson);
       CustomActivatableEquipment.Log.LogWrite("Initing... " + directory + " version: " + Assembly.GetExecutingAssembly().GetName().Version + "\n", true);
+      for(int layer1 = 8; layer1 < 32; ++layer1) {
+        for (int layer2 = 8; layer2 < 32; ++layer2) {
+          Log.LogWrite(LayerMask.LayerToName(layer1)+"->"+LayerMask.LayerToName(layer2)+" ignore collisions:"+ Physics.GetIgnoreLayerCollision(layer1,layer2)+"\n");
+        }
+      }
       /*try {
         string apath = Path.Combine(directory, "assets");
         Log.LogWrite("additional assets:" + Core.Settings.AdditionalAssets.Count + "\n");
@@ -1466,6 +1479,9 @@ namespace CustomActivatableEquipment {
         CustomComponents.Registry.RegisterSimpleCustomComponents(Assembly.GetExecutingAssembly());
         var harmony = HarmonyInstance.Create("io.mission.activatablecomponents");
         harmony.PatchAll(Assembly.GetExecutingAssembly());
+        harmony.Patch(
+          typeof(Weapon).Assembly.GetType("AreAnyHostilesInWeaponRangeNode").GetMethod("Tick", BindingFlags.Instance | BindingFlags.NonPublic), 
+          new HarmonyMethod(typeof(AreAnyHostilesInWeaponRangeNode_Tick).GetMethod("Prefix")));
       } catch (Exception e) {
         CustomActivatableEquipment.Log.LogWrite(e.ToString() + "\n");
       }

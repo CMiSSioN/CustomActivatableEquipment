@@ -944,7 +944,11 @@ namespace CustomActivatableEquipment {
                       (object) (int) Mathf.Max(1f, AOEHitRecord.Value.Damage)
             }), component.parent.Combat.Constants.CombatUIConstants.floatieSizeMedium, FloatieMessage.MessageNature.ArmorDamage, AOEHitRecord.Value.hitPosition.x, AOEHitRecord.Value.hitPosition.y, AOEHitRecord.Value.hitPosition.z));
           }
-          AoEDamage[index].target.TakeWeaponDamage(fakeHit,AOEHitRecord.Key,fakeWeapon, AOEHitRecord.Value.Damage,0,DamageType.AmmoExplosion);
+#if BT1_8
+          AoEDamage[index].target.TakeWeaponDamage(fakeHit,AOEHitRecord.Key,fakeWeapon, AOEHitRecord.Value.Damage, 0f,0,DamageType.AmmoExplosion);
+#else
+          AoEDamage[index].target.TakeWeaponDamage(fakeHit, AOEHitRecord.Key, fakeWeapon, AOEHitRecord.Value.Damage, 0, DamageType.AmmoExplosion);
+#endif
         }
         AoEDamage[index].target.HandleDeath(component.parent.GUID);
         Mech mech = AoEDamage[index].target as Mech;

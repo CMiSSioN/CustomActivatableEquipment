@@ -90,7 +90,7 @@ namespace CustomActivatableEquipment {
       return true;
     }
   }
-  [HarmonyPatch(typeof(CombatAuraReticle))]
+  /*[HarmonyPatch(typeof(CombatAuraReticle))]
   [HarmonyPatch("RefreshAuraRange")]
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(ButtonState) })]
@@ -157,7 +157,7 @@ namespace CustomActivatableEquipment {
       }
       return false;
     }
-  }
+  }*/
   /*[HarmonyPatch(typeof(AbstractActor))]
   [HarmonyPatch("CreateEffect")]
   [HarmonyPatch(MethodType.Normal)]
@@ -281,19 +281,44 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(AbstractActor), typeof(AbstractActor), typeof(Vector3), typeof(MechComponent), typeof(float), typeof(EffectTriggerType), typeof(bool) })]
   public static class AuraCache_UpdateAura {
     public static MethodInfo FOwner;
+    public static MethodInfo mAddEffectIfNotPresent;
+    public static MethodInfo mRemoveEffectIfPresent;
     public static bool Prepare() {
       FOwner = typeof(AuraCache).GetProperty("Owner", BindingFlags.Instance | BindingFlags.NonPublic).GetGetMethod(true);
+      mAddEffectIfNotPresent = typeof(AuraCache).GetMethod("AddEffectIfNotPresent", BindingFlags.Instance | BindingFlags.NonPublic);
+      mRemoveEffectIfPresent = typeof(AuraCache).GetMethod("RemoveEffectIfPresent", BindingFlags.Instance | BindingFlags.NonPublic);
       if (FOwner == null) {
         Log.LogWrite("ERROR!:Can't find Owner property\n", true);
         return false;
       }
       return true;
     }
-    public static void Prefix(AuraCache __instance, AbstractActor fromActor, AbstractActor movingActor, Vector3 movingActorPos, MechComponent auraComponent, float distSquared, EffectTriggerType triggerSource, bool skipECMCheck) {
+    public static void AddEffectIfNotPresent(this AuraCache instance, AbstractActor fromActor, AbstractActor movingActor, Vector3 movingActorPos, string effectCreatorId, EffectData effect, ref List<string> existingEffectIDs, EffectTriggerType triggerSource) {
+      object[] args = new object[7] { fromActor, movingActor, movingActorPos, effectCreatorId, effect, existingEffectIDs, triggerSource};
+      mAddEffectIfNotPresent.Invoke(instance, args);
+      existingEffectIDs = (List<string>)args[5];
+    }
+    public static void RemoveEffectIfPresent(this AuraCache instance, AbstractActor fromActor, string effectCreatorId, EffectData effect, List<Effect> existingEffects, EffectTriggerType triggerSource) {
+      object[] args = new object[5] { fromActor, effectCreatorId, effect, existingEffects, triggerSource };
+      mRemoveEffectIfPresent.Invoke(instance, args);
+    }
+    public static bool Prefix(AuraCache __instance, AbstractActor fromActor, AbstractActor movingActor, Vector3 movingActorPos, MechComponent auraComponent, float distSquared, EffectTriggerType triggerSource, bool skipECMCheck) {
       AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
+      List<Effect> all = Owner.Combat.EffectManager.GetAllEffectsCreatedBy(fromActor.GUID).FindAll((Predicate<Effect>)(x => x.targetID == Owner.GUID));
+      for (int index = 0; index < auraComponent.componentDef.statusEffects.Length; ++index) {
+        if (__instance.ShouldAffectThisActor(fromActor, auraComponent.componentDef.statusEffects[index], triggerSource)) {
+          if (!skipECMCheck && (auraComponent.componentDef.statusEffects[index].targetingData.auraEffectType == AuraEffectType.ECM_GHOST || auraComponent.componentDef.statusEffects[index].targetingData.auraEffectType == AuraEffectType.ECM_GENERAL))
+            Owner.Combat.FlagECMStateNeedsRefreshing();
+          else if (__instance.AuraConditionsPassed(fromActor, auraComponent, auraComponent.componentDef.statusEffects[index], distSquared, triggerSource))
+            __instance.AddEffectIfNotPresent(fromActor, movingActor, movingActorPos, auraComponent.componentDef.Description.Id, auraComponent.componentDef.statusEffects[index], ref auraComponent.createdEffectIDs, triggerSource);
+          else
+            __instance.RemoveEffectIfPresent(fromActor, auraComponent.componentDef.Description.Id, auraComponent.componentDef.statusEffects[index], all, triggerSource);
+        }
+      }
+      return false;
       //Log.LogWrite("AuraCache.UpdateAura prefix owner:" + Owner.DisplayName + ":" + Owner.GUID + " from: " + fromActor.DisplayName + ":" + fromActor.GUID + " component:" + auraComponent.defId + "\n");
     }
-    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+    /*static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
       Log.LogWrite("AuraCache.UpdateAura transpliter\n");
       List<CodeInstruction> result = instructions.ToList();
       MethodInfo get_statusEffects = AccessTools.Property(typeof(MechComponentDef), "statusEffects").GetGetMethod(false);
@@ -331,7 +356,7 @@ namespace CustomActivatableEquipment {
         Log.LogWrite(" "+t + "\t" + result[t].opcode + "\t" + (result[t].operand == null ? "null" : result[t].operand) + "\n");
       }
       return result;
-    }
+    }*/
     public static EffectData[] get_statusEffects(this MechComponent component) {
       //if (component == null) { return new EffectData[0] { }; };
       //Log.LogWrite("AuraCache_UpdateAura.get_statusEffects(" + component.defId + ")\n");
@@ -351,19 +376,53 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(AbstractActor), typeof(MechComponent), typeof(float) })]
   public static class AuraCache_PreviewAura {
     public static MethodInfo FOwner;
+    private static MethodInfo mShouldAffectThisActor;
+    private static MethodInfo mAuraConditionsPassed;
     public static bool Prepare() {
       FOwner = typeof(AuraCache).GetProperty("Owner", BindingFlags.Instance | BindingFlags.NonPublic).GetGetMethod(true);
+      mShouldAffectThisActor = typeof(AuraCache).GetMethod("ShouldAffectThisActor", BindingFlags.Instance | BindingFlags.NonPublic);
+      mAuraConditionsPassed = typeof(AuraCache).GetMethod("AuraConditionsPassed", BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(AbstractActor) , typeof(MechComponent) , typeof(EffectData) , typeof(float) , typeof(EffectTriggerType)  },null);
       if (FOwner == null) {
         Log.LogWrite("ERROR!:Can't find Owner property\n", true);
         return false;
       }
       return true;
     }
-    public static void Prefix(AuraCache __instance, AbstractActor fromActor, MechComponent auraComponent, float distSquared) {
+    public static bool isActive(this MechComponent component) {
+      return ActivatableComponent.isComponentActivated(component);
+    }
+    public static bool ShouldAffectThisActor(this AuraCache instance, AbstractActor fromActor, EffectData effect, EffectTriggerType triggerSource) {
+      return (bool)mShouldAffectThisActor.Invoke(instance, new object[] { fromActor, effect, triggerSource });
+    }
+    public static bool AuraConditionsPassed(this AuraCache instance, AbstractActor fromActor, MechComponent auraComponent, EffectData effectData, float distSquared, EffectTriggerType triggerSource) {
+      return (bool)mAuraConditionsPassed.Invoke(instance, new object[] {  fromActor, auraComponent,  effectData,  distSquared,  triggerSource });
+    }
+    public static bool Prefix(AuraCache __instance, AbstractActor fromActor, MechComponent auraComponent, float distSquared, ref List<EffectData> __result) {
       AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
+      List<EffectData> effectDataList = new List<EffectData>();
+      for (int index = 0; index < auraComponent.componentDef.statusEffects.Length; ++index) {
+        if (__instance.ShouldAffectThisActor(fromActor, auraComponent.componentDef.statusEffects[index], EffectTriggerType.Preview) && __instance.AuraConditionsPassed(fromActor, auraComponent, auraComponent.componentDef.statusEffects[index], distSquared, EffectTriggerType.Preview))
+          effectDataList.Add(auraComponent.componentDef.statusEffects[index]);
+      }
+      ActivatableComponent activatable = auraComponent.componentDef.GetComponent<ActivatableComponent>();
+      if (activatable != null) {
+        if (auraComponent.isActive()) {
+          for (int index = 0; index < activatable.statusEffects.Length; ++index) {
+            if (__instance.ShouldAffectThisActor(fromActor, activatable.statusEffects[index], EffectTriggerType.Preview) && __instance.AuraConditionsPassed(fromActor, auraComponent, activatable.statusEffects[index], distSquared, EffectTriggerType.Preview))
+              effectDataList.Add(activatable.statusEffects[index]);
+          }
+        } else {
+          for (int index = 0; index < activatable.offlineStatusEffects.Length; ++index) {
+            if (__instance.ShouldAffectThisActor(fromActor, activatable.offlineStatusEffects[index], EffectTriggerType.Preview) && __instance.AuraConditionsPassed(fromActor, auraComponent, activatable.offlineStatusEffects[index], distSquared, EffectTriggerType.Preview))
+              effectDataList.Add(activatable.offlineStatusEffects[index]);
+          }
+        }
+      }
+      __result = effectDataList;
+      return false;
       //Log.LogWrite("AuraCache.PreviewAura prefix owner:" + Owner.DisplayName + ":" + Owner.GUID + " from: " + fromActor.DisplayName + ":" + fromActor.GUID + " component:" + auraComponent.defId + "\n");
     }
-    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+    /*static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
       Log.LogWrite("AuraCache.PreviewAura transpliter\n");
       List<CodeInstruction> result = instructions.ToList();
       MethodInfo get_statusEffects = AccessTools.Property(typeof(MechComponentDef), "statusEffects").GetGetMethod(false);
@@ -401,7 +460,7 @@ namespace CustomActivatableEquipment {
         Log.LogWrite(" " + t + "\t" + result[t].opcode + "\t" + (result[t].operand == null ? "null" : result[t].operand) + "\n");
       }
       return result;
-    }
+    }*/
   }
   [HarmonyPatch(typeof(AuraCache))]
   [HarmonyPatch("AuraConditionsPassed")]
@@ -418,7 +477,7 @@ namespace CustomActivatableEquipment {
       return true;
     }
     public static void Postfix(AuraCache __instance, AbstractActor fromActor, MechComponent auraComponent, EffectData effectData, float distSquared, EffectTriggerType triggerSource, ref bool __result) {
-      AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
+      /*AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
       //Log.LogWrite("AuraCache.AuraConditionsPassed prefix owner:" + Owner.DisplayName + ":"+Owner.GUID+" from: "+fromActor.DisplayName+":"+fromActor.GUID+" component:"+auraComponent.defId+" effect:"+effectData.Description.Id+" res:"+__result+"\n");
       if (__result == false) { return; }
       ActivatableComponent activatable = auraComponent.componentDef.GetComponent<ActivatableComponent>();
@@ -435,7 +494,7 @@ namespace CustomActivatableEquipment {
       if (activatable.offlineEffects.Contains(effectData) && (componentActive == true)) {
         //Log.LogWrite(" offline effect but actiavted\n");
         __result = false;
-      };
+      };*/
     }
   }
   [HarmonyPatch(typeof(AbstractActor))]
@@ -444,8 +503,8 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(Vector3), typeof(Quaternion), typeof(int), typeof(bool), typeof(List<DesignMaskDef>), typeof(bool) })]
   public static class AbstractActor_OnPositionUpdate {
     private class AuraUpdatePositionRecord {
-      private static readonly float TIMEDELTA = 1f;
-      private static readonly float DISTANCEDELTA = 20f;
+      //private static readonly float TIMEDELTA = 1f;
+      //private static readonly float DISTANCEDELTA = 20f;
       public float t { get; set; }
       public Vector3 p { get; set; }
       public AuraUpdatePositionRecord(AbstractActor unit) {
@@ -483,7 +542,7 @@ namespace CustomActivatableEquipment {
       }
       return auraUpdateData[unit].Update(unit);
     }
-    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+    /*static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
       Log.LogWrite("AbstractActor.OnPositionUpdate transpliter\n",true);
       MethodInfo UpdateAurasToActor = AccessTools.Method(typeof(AuraCache), "UpdateAurasToActor");
       if (UpdateAurasToActor != null) {
@@ -507,7 +566,7 @@ namespace CustomActivatableEquipment {
         AuraCache.UpdateAurasToActor(actors, movingActor, movingActorPosition, triggerSource, forceUpdate);
       }
       //Log.LogWrite("AbstractActor.OnPositionUpdate.UpdateAurasToActor\n");
-    }
+    }*/
   }
   [HarmonyPatch(typeof(ActorMovementSequence))]
   [HarmonyPatch("CompleteMove")]
@@ -515,7 +574,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { })]
   public static class ActorMovementSequence_CompleteMoveAura {
     public static void Postfix(ActorMovementSequence __instance) {
-      if (__instance.owningActor == null) { return; }
+      /*if (__instance.owningActor == null) { return; }
       switch (Core.Settings.auraUpdateFix) {
         case AuraUpdateFix.Never:
         case AuraUpdateFix.Position:
@@ -523,7 +582,7 @@ namespace CustomActivatableEquipment {
           __instance.owningActor.RemoveAuraUpdateData();
           AuraCache.UpdateAurasToActor(__instance.owningActor.Combat.AllActors, __instance.owningActor, __instance.owningActor.CurrentPosition, EffectTriggerType.Passive, false);
           break;
-      }
+      }*/
     }
   }
   [HarmonyPatch(typeof(MechJumpSequence))]
@@ -532,7 +591,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { })]
   public static class MechJumpSequence_CompleteJumpAura {
     public static void Postfix(MechJumpSequence __instance) {
-      if (__instance.OwningMech == null) { return;  }
+      /*if (__instance.OwningMech == null) { return;  }
       switch (Core.Settings.auraUpdateFix) {
         case AuraUpdateFix.Never:
         case AuraUpdateFix.Position:
@@ -540,7 +599,7 @@ namespace CustomActivatableEquipment {
           __instance.OwningMech.RemoveAuraUpdateData();
           AuraCache.UpdateAurasToActor(__instance.OwningMech.Combat.AllActors, __instance.OwningMech, __instance.owningActor.CurrentPosition, EffectTriggerType.Passive, false);
           break;
-      }
+      }*/
     }
   }
 

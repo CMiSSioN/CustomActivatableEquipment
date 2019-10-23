@@ -86,7 +86,12 @@
     <Compile Include="ActivatableEquipmentSlot.cs" />
     <Compile Include="AIHelper.cs" />
     <Compile Include="AudioHelper.cs" />
+    <Compile Include="AuraAISupport.cs" />
+    <Compile Include="AuraDef.cs" />
+    <Compile Include="AuraPreviewCache.cs" />
+    <Compile Include="Auras.cs" />
     <Compile Include="AuraUpdateHelper.cs" />
+    <Compile Include="CombatAuraReticle.cs" />
     <Compile Include="ComponentsMenu.cs" />
     <Compile Include="ComponentVFXHelper.cs" />
     <Compile Include="ComponetnsLinkage.cs" />
@@ -95,6 +100,8 @@
     <Compile Include="MechStartup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RepairHelper.cs" />
+    <Compile Include="StealthPipsPreviewFromActorMovement.cs" />
+    <Compile Include="VanillaAurasDisable.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
