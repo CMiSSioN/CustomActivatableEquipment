@@ -41,6 +41,7 @@ namespace CustomActivatableEquipment {
     public float Range { get; set; }
     public string RangeStatistic { get; set; }
     public bool RemoveOnSensorLock { get; set; }
+    public bool HideOnNotSelected { get; set; }
     public bool ApplySelf { get; set; }
     public AuraState State { get; set; }
     public StealthAffection AllyStealthAffection { get; set; }
@@ -80,6 +81,7 @@ namespace CustomActivatableEquipment {
       removeOwnerSFX = new List<string>();
       removeTargetSFX = new List<string>();
       statusEffects = new List<EffectData>();
+      HideOnNotSelected = false;
     }
   }
 }

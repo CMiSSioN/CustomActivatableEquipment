@@ -48,9 +48,10 @@ namespace CustomActivatableEquipment {
       List<AuraBubble> auras = body.affectedAurasEffects.Keys.ToList();
       foreach(AuraBubble aura in auras) {
         if (aura.Def.RemoveOnSensorLock) {
-          body.RemoveAuraEffects(aura);
+          body.RemoveAuraEffects(aura,false);
         }
       }
+      body.ReapplyAllEffects();
     }
   }
   [HarmonyPatch(typeof(AbstractActor))]
@@ -64,9 +65,10 @@ namespace CustomActivatableEquipment {
       List<AuraBubble> auras = body.affectedAurasEffects.Keys.ToList();
       foreach (AuraBubble aura in auras) {
         if (aura.Def.RemoveOnSensorLock) {
-          body.RemoveAuraEffects(aura);
+          body.RemoveAuraEffects(aura, false);
         }
       }
+      body.ReapplyAllEffects();
     }
   }
   [HarmonyPatch(typeof(AbstractActor))]
@@ -97,12 +99,14 @@ namespace CustomActivatableEquipment {
       componentAuraBubbles.Clear();
       List<GameObject> objToDestroy = new List<GameObject>();
       foreach(AuraBubble aura in allAuras) {
+        if (aura == null) { continue; }
         aura.affectedTo.Clear();
-        objToDestroy.Add(aura.gameObject);
+        try { objToDestroy.Add(aura.gameObject); } finally {};
         foreach(var bVFX in aura.bubblesVFX) {
-          objToDestroy.Add(bVFX.Key.gameObject);
+          if (bVFX.Key == null) { continue; }
+          try { objToDestroy.Add(bVFX.Key.gameObject); } finally { };
         }
-        objToDestroy.Add(aura.reticle.gameObject);
+        try { objToDestroy.Add(aura.reticle.gameObject); } finally { };
         aura.bubblesVFX.Clear();
       }
       foreach (var body in actorAuraBodies) {
@@ -175,14 +179,54 @@ namespace CustomActivatableEquipment {
       body.SetActive(true);
       unit.RegisterAuraBody(body.gameObject.GetComponent<AuraActorBody>());
     }
+    public static void UnregisterAura(this AuraBubble aura) {
+      foreach(var body in actorAuraBodies) {
+        if (body.Value.affectedAurasEffects.ContainsKey(aura)) {
+          body.Value.RemoveAuraEffects(aura,true);
+        }
+      }
+      aura.affectedTo.Clear();
+      aura.owner.actorAuras().Remove(aura);
+      if (aura.owner != null) {
+        if (actorsSensorsBubbles.ContainsKey(aura.owner)) {
+          if (actorsSensorsBubbles[aura.owner] == aura) {
+            actorsSensorsBubbles.Remove(aura.owner);
+          }
+        }
+      }
+      if (aura.reticle != null) {
+        if (reticleAuraBubbles.ContainsKey(aura.reticle)) {
+          if (reticleAuraBubbles[aura.reticle] == aura) {
+            reticleAuraBubbles.Remove(aura.reticle);
+          }
+        }
+        if (mainSensorsBubbles.ContainsKey(aura.reticle)) {
+          if (mainSensorsBubbles[aura.reticle] == aura) {
+            mainSensorsBubbles.Remove(aura.reticle);
+          }
+        }
+      }
+      if(aura.source != null) {
+        if (componentAuraBubbles.ContainsKey(aura.source)) {
+          componentAuraBubbles[aura.source].Remove(aura);
+        }
+      }
+      allAuras.Remove(aura);
+      GameObject go = null;
+      try { go = aura.gameObject; } finally { };
+      GameObject.Destroy(aura);
+      if (go != null) { GameObject.Destroy(go); };
+    }
     public static void RegisterAuraBubble(this AbstractActor unit, MechComponent source, CombatAuraReticle reticle, AuraBubble aura) {
       if (actorAuraBubbles.ContainsKey(unit) == false) { actorAuraBubbles.Add(unit, new List<AuraBubble>()); };
       actorAuraBubbles[unit].Add(aura);
       if (source != null) {
         if (componentAuraBubbles.ContainsKey(source) == false) { componentAuraBubbles.Add(source, new List<AuraBubble>()); };
         componentAuraBubbles[source].Add(aura);
+        if (reticleAuraBubbles.ContainsKey(reticle)) { reticleAuraBubbles[reticle].UnregisterAura(); }
         reticleAuraBubbles.Add(reticle, aura);
       } else {
+        if (mainSensorsBubbles.ContainsKey(reticle)) { mainSensorsBubbles[reticle].UnregisterAura(); }
         mainSensorsBubbles.Add(reticle, aura);
         actorsSensorsBubbles.Add(unit, aura);
       }
@@ -212,7 +256,7 @@ namespace CustomActivatableEquipment {
     public AbstractActor owner { get; set; }
     public SphereCollider collider { get; set; }
     //public Dictionary<string, int> aurasVFXes { get; set; }
-    public Dictionary<AuraBubble, List<string>> affectedAurasEffects { get; set; }
+    public Dictionary<AuraBubble, HashSet<string>> affectedAurasEffects { get; set; }
     public void ApplyAuraEffects(AuraBubble aura) {
       bool isAlly = false;
       AuraDef def = aura.Def;
@@ -222,7 +266,7 @@ namespace CustomActivatableEquipment {
         isAlly = owner.team.IsFriendly(auraOwner.team);
       }
       if (affectedAurasEffects.ContainsKey(aura) == false) {
-        affectedAurasEffects.Add(aura, new List<string>());
+        affectedAurasEffects.Add(aura, new HashSet<string>());
         aura.affectedTo.Add(this);
       };
       Log.LogWrite("Apply aura " + aura.Def.Id + " from " + aura.owner.DisplayName + " to " + this.owner.DisplayName + " ally:" + isAlly + "\n");
@@ -243,9 +287,11 @@ namespace CustomActivatableEquipment {
           if (((isAlly == true) && (statusEffect.targetingData.effectTargetType == EffectTargetType.AlliesWithinRange))
             || ((isAlly == false) && (statusEffect.targetingData.effectTargetType == EffectTargetType.EnemiesWithinRange))) {
             string effectID = string.Format("AuraEffect_{0}_{1}_{2}_{3}_{4}", auraOwner.GUID, owner.GUID, def.Id, statusEffect.Description.Id, i);
-            List<Effect> createdEffects = owner.Combat.EffectManager.CreateEffect(statusEffect, effectID, -1, (ICombatant)auraOwner, owner, new WeaponHitInfo(), 0, false);
-            affectedAurasEffects[aura].Add(effectID);
-            Log.LogWrite(" Applied effect:" + effectID + ":" + createdEffects.Count + "\n");
+            if (affectedAurasEffects[aura].Contains(effectID) == false) {
+              List<Effect> createdEffects = owner.Combat.EffectManager.CreateEffect(statusEffect, effectID, -1, (ICombatant)auraOwner, owner, new WeaponHitInfo(), 0, false);
+              affectedAurasEffects[aura].Add(effectID);
+              Log.LogWrite(" Applied effect:" + effectID + ":" + createdEffects.Count + "\n");
+            }
           }
         }
       }
@@ -261,7 +307,40 @@ namespace CustomActivatableEquipment {
         owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(aura.owner.GUID, owner.GUID, new Text("{0} {1}", aura.Def.Name, action), nature));
       }
     }
-    public void RemoveAuraEffects(AuraBubble aura) {
+    public void ReapplyAllEffects() {
+      foreach(var aura in affectedAurasEffects) {
+        HashSet<string> effectsIds = affectedAurasEffects[aura.Key];
+        foreach (string effectId in effectsIds) {
+          List<Effect> allEffectsWithId = owner.Combat.EffectManager.GetAllEffectsWithID(effectId);
+          for (int t = 0; t < allEffectsWithId.Count; ++t) {
+            owner.CancelEffect(allEffectsWithId[t], false);
+          }
+        }
+      }
+      foreach (var aura in affectedAurasEffects) {
+        bool isAlly = false;
+        AuraDef def = aura.Key.Def;
+        AbstractActor auraOwner = aura.Key.owner;
+        if (owner.GUID == auraOwner.GUID) { isAlly = true; } else
+          if (owner.TeamId == auraOwner.TeamId) { isAlly = true; } else {
+          isAlly = owner.team.IsFriendly(auraOwner.team);
+        }
+        if ((owner.GUID == auraOwner.GUID) && (def.ApplySelf == false)) { continue; };
+        for (int i = 0; i < def.statusEffects.Count; ++i) {
+          EffectData statusEffect = def.statusEffects[i];
+          if (statusEffect.targetingData.effectTriggerType == EffectTriggerType.Passive) {
+            if (((isAlly == true) && (statusEffect.targetingData.effectTargetType == EffectTargetType.AlliesWithinRange))
+              || ((isAlly == false) && (statusEffect.targetingData.effectTargetType == EffectTargetType.EnemiesWithinRange))) {
+              string effectID = string.Format("AuraEffect_{0}_{1}_{2}_{3}_{4}", auraOwner.GUID, owner.GUID, def.Id, statusEffect.Description.Id, i);
+              if (aura.Value.Contains(effectID)) {
+                List<Effect> createdEffects = owner.Combat.EffectManager.CreateEffect(statusEffect, effectID, -1, (ICombatant)auraOwner, owner, new WeaponHitInfo(), 0, false);
+              }
+            }
+          }
+        }
+      }
+    }
+    public void RemoveAuraEffects(AuraBubble aura, bool reApplyEffects) {
       if (affectedAurasEffects.ContainsKey(aura) == false) { return; }
       //foreach (string VFX in aura.Def.targetVFX) {
       //  if (aurasVFXes.ContainsKey(VFX) == false) { continue; };
@@ -278,7 +357,7 @@ namespace CustomActivatableEquipment {
       foreach (string SFX in aura.Def.removeTargetSFX) {
         int num2 = (int)WwiseManager.PostEvent(SFX, owner.GameRep.audioObject, (AkCallbackManager.EventCallback)null, (object)null);
       }
-      List<string> effectsIds = affectedAurasEffects[aura];
+      HashSet<string> effectsIds = affectedAurasEffects[aura];
       Log.LogWrite("Remove aura " + aura.Def.Id + " from " + aura.owner.DisplayName + " to " + this.owner.DisplayName +"\n");
       if (effectsIds.Count > 0) {
         foreach (string effectId in effectsIds) {
@@ -309,9 +388,10 @@ namespace CustomActivatableEquipment {
       }
       affectedAurasEffects.Remove(aura);
       aura.affectedTo.Remove(this);
+      if (reApplyEffects) { ReapplyAllEffects(); };
     }
     public AuraActorBody() {
-      affectedAurasEffects = new Dictionary<AuraBubble, List<string>>();
+      affectedAurasEffects = new Dictionary<AuraBubble, HashSet<string>>();
       //aurasVFXes = new Dictionary<string, int>();
     }
     void Awake() {
@@ -334,7 +414,7 @@ namespace CustomActivatableEquipment {
       AuraBubble aura = other.gameObject.GetComponent<AuraBubble>();
       if (aura == null) { return; }
       if (affectedAurasEffects.ContainsKey(aura) == false) { return; }
-      RemoveAuraEffects(aura);
+      RemoveAuraEffects(aura,true);
       //aura.owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(owner.GUID, owner.GUID,
       //"AURA FROM " + aura.owner.DisplayName + " REMOVE",
       //FloatieMessage.MessageNature.Debuff
@@ -515,7 +595,7 @@ namespace CustomActivatableEquipment {
         List<AuraActorBody> restBodies = this.affectedTo.ToList();
         collider.enabled = false;
         foreach (AuraActorBody body in restBodies) {
-          body.RemoveAuraEffects(this);
+          body.RemoveAuraEffects(this,true);
         }
         this.StopOnlineFX();
       };

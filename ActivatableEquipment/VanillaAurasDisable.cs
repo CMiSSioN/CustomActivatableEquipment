@@ -216,7 +216,7 @@ namespace CustomActivatablePatches {
   [HarmonyPatch("InitGameRep")]
   [HarmonyPatch(MethodType.Normal)]
   public static class Turret_InitGameRep_ECMREmove {
-    public static void Postfix(Mech __instance) {
+    public static void Postfix(Turret __instance) {
       __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_loop");
       __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_opponent_loop");
       __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECMcarrierAura_loop");
