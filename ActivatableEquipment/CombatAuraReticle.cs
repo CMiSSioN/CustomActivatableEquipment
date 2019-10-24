@@ -14,7 +14,7 @@ namespace CustomActivatablePatches {
   public static class CombatAuraReticle_DesiredAuraProjectionState {
     private static FieldInfo fOwner;
     public static bool Prepare() {
-      fOwner = typeof(CombatAuraReticle).GetField("owner",BindingFlags.Instance|BindingFlags.NonPublic);
+      fOwner = typeof(CombatAuraReticle).GetField("owner", BindingFlags.Instance | BindingFlags.NonPublic);
       return true;
     }
     public static AbstractActor owner(this CombatAuraReticle reticle) {
@@ -27,8 +27,8 @@ namespace CustomActivatablePatches {
         return unit.Combat.LocalPlayerTeam.VisibilityToTarget((ICombatant)unit) == VisibilityLevel.LOSFull;
       return true;
     }
-    public static bool Prefix(CombatAuraReticle __instance,ref ButtonState __result, ref AbstractActor ___owner, ref CombatHUD ___HUD) {
-      if (CombatHUD_Update_HideReticlesHotKey.hideReticles) { __result = ButtonState.Disabled; return false; };
+    public static bool Prefix(CombatAuraReticle __instance, ref ButtonState __result, ref AbstractActor ___owner, ref CombatHUD ___HUD) {
+      if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.HideAll) { __result = ButtonState.Disabled; return false; };
       if ((___owner.IsVisibleToPlayer() == false) || (___owner.IsOperational == false)) {
         __result = ButtonState.Disabled; return false;
       }
@@ -38,7 +38,8 @@ namespace CustomActivatablePatches {
         __result = ButtonState.Enabled; return false;
       }
       AuraBubble aura = __instance.AuraBubble();
-      if(aura != null) {
+      if (aura != null) {
+        if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.ShowAll) { __result = ButtonState.Enabled; return false; }
         if (aura.Def.HideOnNotSelected) {
           if (___HUD.SelectedActor != null) {
             if (___HUD.SelectedActor.GUID == ___owner.GUID) {
@@ -85,7 +86,7 @@ namespace CustomActivatablePatches {
         return false;
       }
       AuraBubble auraBubble = __instance.AuraBubble();
-      if(auraBubble != null) {
+      if (auraBubble != null) {
         auraRangeScaledObject.SetActive(true);
         float b = auraBubble.collider.radius;
         if (!Mathf.Approximately(___currentAuraRange, b)) {
@@ -104,7 +105,7 @@ namespace CustomActivatablePatches {
   public static class CombatAuraReticle_RefreshActiveProbeState {
     public static Vector3 dbgPos = Vector3.zero;
     public static bool Prefix(CombatAuraReticle __instance, ref AbstractActor ___owner, ref float ___currentAuraRange, ref CombatHUD ___HUD, ref Transform ___thisTransform, ref bool __result) {
-      if (CombatHUD_Update_HideReticlesHotKey.hideReticles) { __result = false; return false; };
+      if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.HideAll) { __result = false; return false; };
       AuraBubble aura = __instance.AuraBubble();
       if (aura != null) {
         __result = false; return false;
@@ -118,26 +119,33 @@ namespace CustomActivatablePatches {
   [HarmonyPriority(Priority.Last)]
   public static class CombatAuraReticle_UpdatePosition {
     public static Vector3 dbgPos = Vector3.zero;
-    public static void Postfix(CombatAuraReticle __instance, ref AbstractActor ___owner, ref float ___currentAuraRange,ref CombatHUD ___HUD,ref Transform ___thisTransform) {
+    public static void Postfix(CombatAuraReticle __instance, ref AbstractActor ___owner, ref float ___currentAuraRange, ref CombatHUD ___HUD, ref Transform ___thisTransform) {
       //if(___HUD.SelectedActor != null && ___HUD.SelectionHandler.ActiveState is SelectionStateMoveBase && ___owner.GUID == ___HUD.SelectedActor.GUID) {
-        //AuraPreviewRecord preview = 
+      //AuraPreviewRecord preview = 
       //}
     }
   }
+  public enum AuraShowState { Default, ShowAll, HideAll }
   [HarmonyPatch(typeof(CombatHUD))]
   [HarmonyPatch("Update")]
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPriority(Priority.Last)]
   public static class CombatHUD_Update_HideReticlesHotKey {
     public static bool keypressed = false;
-    public static bool hideReticles = false;
+    public static AuraShowState hideReticles = AuraShowState.Default;
     public static void Postfix(CombatHUD __instance) {
       bool key = Input.GetKey(KeyCode.A);
       bool mod = Input.GetKey(KeyCode.LeftControl);
       bool res = key && mod;
-      if(keypressed != res) {
+      if (keypressed != res) {
         keypressed = res;
-        if (keypressed) { hideReticles = !hideReticles; };
+        if (keypressed) {
+          switch (hideReticles) {
+            case AuraShowState.Default: hideReticles = AuraShowState.HideAll; break;
+            case AuraShowState.HideAll: hideReticles = AuraShowState.ShowAll; break;
+            case AuraShowState.ShowAll: hideReticles = AuraShowState.Default; break;
+          }
+        };
       }
     }
   }

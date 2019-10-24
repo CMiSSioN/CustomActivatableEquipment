@@ -81,7 +81,7 @@ namespace CustomActivatableEquipment {
       removeOwnerSFX = new List<string>();
       removeTargetSFX = new List<string>();
       statusEffects = new List<EffectData>();
-      HideOnNotSelected = false;
+      HideOnNotSelected = true;
     }
   }
 }
