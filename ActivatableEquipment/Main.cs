@@ -1181,6 +1181,8 @@ namespace CustomActivatableEquipment {
     public float auraUpdateMinTimeDelta { get; set; }
     public float auraUpdateMinPosDelta { get; set; }
     public AuraDef sensorsAura { get; set; }
+    public string unaffectedByHeadHitStatName { get; set; }
+    public float auraStartupTime { get; set; }
     public Settings() {
       debug = true;
       AdditionalAssets = new List<string>();
@@ -1202,7 +1204,9 @@ namespace CustomActivatableEquipment {
       auraUpdateFix = AuraUpdateFix.None;
       auraUpdateMinTimeDelta = 1f;
       auraUpdateMinPosDelta = 20f;
+      auraStartupTime = 10f;
       sensorsAura = new AuraDef();
+      unaffectedByHeadHitStatName = "unaffectedByHeadHit";
     }
   }
   public class ComponentToggle {
@@ -1420,10 +1424,13 @@ namespace CustomActivatableEquipment {
       if (mech.IsAvailableThisPhase == false) {
         text.Append("__/CAE.NotAvaibleThisPhase/__");
       }
+      if (mech.HasMovedThisRound) {
+        text.Append("\nCan't activate/deactivate equipment after move");
+      }
       GenericPopupBuilder popup = GenericPopupBuilder.Create("__/CAE.Components/__", text.ToString());
 
       popup.AddButton("__/CAE.Done/__", (Action)null, true, (PlayerAction)null);
-      if ((HUD.SelectedTarget == null)&&(mech.IsAvailableThisPhase)) {
+      if ((HUD.SelectedTarget == null)&&(mech.IsAvailableThisPhase)&&(mech.HasMovedThisRound == false)) {
         for (int index = 0; index < activatables.Count; ++index) {
           if (actComps[index].component.IsFunctional == false) { continue; };
           if (actComps[index].activatable.CanBeactivatedManualy) {

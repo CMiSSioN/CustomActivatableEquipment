@@ -52,6 +52,7 @@ namespace CustomActivatableEquipment {
           if (vfxObjects != null) { vfxObjects.CleanOnDead(); };
           component.UpdateAuras();
         }
+        __instance.RemoveAllAuras();
       }
     }
   }
@@ -379,9 +380,20 @@ namespace CustomActivatableEquipment {
           return;
         }
       }
+      Log.LogWrite("SpawnSelf: "+ this.prefabName+"\n");
+      Component[] components = gameObject.GetComponentsInChildren<Component>();
+      foreach(Component component in components) {
+        Log.LogWrite(" " + component.name + ":"+component.GetType().ToString()+"\n");
+        ParticleSystem ps = component as ParticleSystem;
+        if(ps != null) {
+          var main = ps.main;
+          main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+          Log.LogWrite("  " + ps.main.scalingMode.ToString() + "\n");
+        }
+      }
       gameObject.transform.SetParent(this.parentObject.transform);
       gameObject.transform.localPosition = this.localPos;
-      gameObject.transform.localScale.Set(scale.x, scale.y, scale.z);
+      gameObject.transform.localScale = new Vector3(scale.x, scale.y, scale.z);
       if (!this.keepPrefabRotation)
         gameObject.transform.rotation = this.worldRotation;
       if (this.playFX) {

@@ -15,6 +15,7 @@ namespace CustomActivatablePatches {
   public static class AbstractActor_OnNewRound {
     public static bool Prefix(AbstractActor __instance) {
       Log.LogWrite("AbstractActor.OnNewRound(" + __instance.DisplayName + ":" + __instance.GUID + ")\n");
+      if (__instance.IsDead) { return true; };
       CAEAIHelper.AIActivatableProc(__instance);
       __instance.CommitCAEDamageData();
       return true;

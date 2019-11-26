@@ -4,6 +4,8 @@ using CustomActivatableEquipment;
 using System.Reflection;
 using BattleTech;
 using UnityEngine;
+using CustAmmoCategories;
+using System;
 
 namespace CustomActivatablePatches {
 
@@ -28,28 +30,59 @@ namespace CustomActivatablePatches {
       return true;
     }
     public static bool Prefix(CombatAuraReticle __instance, ref ButtonState __result, ref AbstractActor ___owner, ref CombatHUD ___HUD) {
-      if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.HideAll) { __result = ButtonState.Disabled; return false; };
-      if ((___owner.IsVisibleToPlayer() == false) || (___owner.IsOperational == false)) {
-        __result = ButtonState.Disabled; return false;
-      }
-      AuraBubble mainSensorsBubble = __instance.MainSensors();
-      //Log.LogWrite("CombatAuraReticle.DesiredAuraProjectionState " + (mainSensorsBubble == null ? "null" : mainSensorsBubble.collider.radius.ToString()) + "\n");
-      if (mainSensorsBubble != null) {
-        __result = ButtonState.Enabled; return false;
-      }
-      AuraBubble aura = __instance.AuraBubble();
-      if (aura != null) {
-        if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.ShowAll) { __result = ButtonState.Enabled; return false; }
-        if (aura.Def.HideOnNotSelected) {
-          if (___HUD.SelectedActor != null) {
-            if (___HUD.SelectedActor.GUID == ___owner.GUID) {
-              __result = ButtonState.Enabled; return false;
-            }
-          }
+      try {
+        if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.HideAll) { __result = ButtonState.Disabled; return false; };
+        if ((___owner.IsVisibleToPlayer() == false) || (___owner.IsOperational == false)) {
           __result = ButtonState.Disabled; return false;
-        } else {
+        }
+        AuraBubble mainSensorsBubble = __instance.MainSensors();
+        //Log.LogWrite("CombatAuraReticle.DesiredAuraProjectionState " + (mainSensorsBubble == null ? "null" : mainSensorsBubble.collider.radius.ToString()) + "\n");
+        if (mainSensorsBubble != null) {
           __result = ButtonState.Enabled; return false;
         }
+        AuraBubble aura = __instance.AuraBubble();
+        if (aura != null) {
+          if (aura.source != null) {
+            Weapon weapon = aura.source as Weapon;
+            if ((weapon == null) || (aura.Def.Id != "AMS")) {
+              if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.ShowAll) { __result = ButtonState.Enabled; return false; }
+              if (aura.Def.NotShowOnSelected) { __result = ButtonState.Disabled; return false; };
+              if (aura.Def.HideOnNotSelected) {
+                if (___HUD.SelectedActor != null) {
+                  if (___HUD.SelectedActor.GUID == ___owner.GUID) {
+                    __result = ButtonState.Enabled; return false;
+                  }
+                }
+                __result = ButtonState.Disabled; return false;
+              } else {
+                __result = ButtonState.Enabled; return false;
+              }
+            } else {
+              if (weapon.isAMS() == false) {
+                __result = ButtonState.Disabled; return false;
+              }
+              if (weapon.IsEnabled == false) {
+                __result = ButtonState.Disabled; return false;
+              }
+              if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.ShowAll) { __result = ButtonState.Enabled; return false; }
+              if (aura.Def.NotShowOnSelected) { __result = ButtonState.Disabled; return false; };
+              if (aura.Def.HideOnNotSelected) {
+                if (___HUD.SelectedActor != null) {
+                  if (___HUD.SelectedActor.GUID == ___owner.GUID) {
+                    __result = ButtonState.Enabled; return false;
+                  }
+                }
+                __result = ButtonState.Disabled; return false;
+              } else {
+                __result = ButtonState.Enabled; return false;
+              }
+            }
+          } else {
+            __result = ButtonState.Disabled; return false;
+          }
+        }
+      }catch(Exception e) {
+        Log.LogWrite(e.ToString() + "\n");
       }
       return true;
       //__instance.GameRep.PlayVFXAt(__instance.GameRep.thisTransform, Vector3.zero, "vfxPrfPrtl_ECM_loop", true, Vector3.zero, false, -1f);
@@ -69,31 +102,35 @@ namespace CustomActivatablePatches {
       return (GameObject)pAuraRangeScaledObject.GetValue(instance);
     }
     public static bool Prefix(CombatAuraReticle __instance, ButtonState auraProjectionState, ref AbstractActor ___owner, ref float ___currentAuraRange) {
-      GameObject auraRangeScaledObject = __instance.auraRangeScaledObject();
-      if (auraProjectionState == ButtonState.Disabled) {
-        auraRangeScaledObject.SetActive(false);
-        return false;
-      }
-      AuraBubble mainSensorsBubble = __instance.MainSensors();
-      //Log.LogWrite("CombatAuraReticle.RefreshAuraRange " + (mainSensorsBubble == null ? "null" : mainSensorsBubble.collider.radius.ToString()) + "\n");
-      if (mainSensorsBubble != null) {
-        auraRangeScaledObject.SetActive(true);
-        float b = mainSensorsBubble.collider.radius;
-        if (!Mathf.Approximately(___currentAuraRange, b)) {
-          auraRangeScaledObject.transform.localScale = new Vector3(b * 2f, 1f, b * 2f);
+      try {
+        GameObject auraRangeScaledObject = __instance.auraRangeScaledObject();
+        if (auraProjectionState == ButtonState.Disabled) {
+          auraRangeScaledObject.SetActive(false);
+          return false;
         }
-        ___currentAuraRange = b;
-        return false;
-      }
-      AuraBubble auraBubble = __instance.AuraBubble();
-      if (auraBubble != null) {
-        auraRangeScaledObject.SetActive(true);
-        float b = auraBubble.collider.radius;
-        if (!Mathf.Approximately(___currentAuraRange, b)) {
-          auraRangeScaledObject.transform.localScale = new Vector3(b * 2f, 1f, b * 2f);
+        AuraBubble mainSensorsBubble = __instance.MainSensors();
+        //Log.LogWrite("CombatAuraReticle.RefreshAuraRange " + (mainSensorsBubble == null ? "null" : mainSensorsBubble.collider.radius.ToString()) + "\n");
+        if (mainSensorsBubble != null) {
+          auraRangeScaledObject.SetActive(true);
+          float b = mainSensorsBubble.collider.radius;
+          if (!Mathf.Approximately(___currentAuraRange, b)) {
+            auraRangeScaledObject.transform.localScale = new Vector3(b * 2f, 1f, b * 2f);
+          }
+          ___currentAuraRange = b;
+          return false;
         }
-        ___currentAuraRange = b;
-        return false;
+        AuraBubble auraBubble = __instance.AuraBubble();
+        if (auraBubble != null) {
+          auraRangeScaledObject.SetActive(true);
+          float b = auraBubble.collider.radius;
+          if (!Mathf.Approximately(___currentAuraRange, b)) {
+            auraRangeScaledObject.transform.localScale = new Vector3(b * 2f, 1f, b * 2f);
+          }
+          ___currentAuraRange = b;
+          return false;
+        }
+      }catch(Exception e) {
+        Log.LogWrite(e.ToString() + "\n", true);
       }
       return true;
     }
@@ -105,10 +142,14 @@ namespace CustomActivatablePatches {
   public static class CombatAuraReticle_RefreshActiveProbeState {
     public static Vector3 dbgPos = Vector3.zero;
     public static bool Prefix(CombatAuraReticle __instance, ref AbstractActor ___owner, ref float ___currentAuraRange, ref CombatHUD ___HUD, ref Transform ___thisTransform, ref bool __result) {
-      if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.HideAll) { __result = false; return false; };
-      AuraBubble aura = __instance.AuraBubble();
-      if (aura != null) {
-        __result = false; return false;
+      try {
+        if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.HideAll) { __result = false; return false; };
+        AuraBubble aura = __instance.AuraBubble();
+        if (aura != null) {
+          __result = false; return false;
+        }
+      }catch(Exception e) {
+        Log.LogWrite(e.ToString() + "\n");
       }
       return true;
     }

@@ -122,7 +122,11 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(typeof(CombatMovementReticle))]
   [HarmonyPatch("UpdateReticle")]
   [HarmonyPatch(MethodType.Normal)]
+#if BT1_8
+  [HarmonyPatch(new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(bool), typeof(bool), typeof(bool), typeof(bool) })]
+#else
   [HarmonyPatch(new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(bool), typeof(bool), typeof(bool) })]
+#endif
   [HarmonyPriority(Priority.First)]
   public static class CombatMovementReticle_UpdateReticle {
     public static Vector3 prevResultDestination = Vector3.zero;

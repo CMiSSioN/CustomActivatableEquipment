@@ -14,6 +14,7 @@ namespace CustomActivatableEquipment {
     Offline,
     Persistent
   }
+
   public class AuraBubbleVFXDef {
     public string VFXname { get; set; }
     public bool scale { get; set; }
@@ -42,6 +43,8 @@ namespace CustomActivatableEquipment {
     public string RangeStatistic { get; set; }
     public bool RemoveOnSensorLock { get; set; }
     public bool HideOnNotSelected { get; set; }
+    public bool NotShowOnSelected { get; set; }
+    public bool FloatieAtEndOfMove { get; set; }
     public bool ApplySelf { get; set; }
     public AuraState State { get; set; }
     public StealthAffection AllyStealthAffection { get; set; }
@@ -82,6 +85,8 @@ namespace CustomActivatableEquipment {
       removeTargetSFX = new List<string>();
       statusEffects = new List<EffectData>();
       HideOnNotSelected = true;
+      NotShowOnSelected = false;
+      FloatieAtEndOfMove = true;
     }
   }
 }
@@ -102,13 +107,55 @@ namespace CustAmmoCategoriesPatches {
             JToken jauras = content["Auras"];
             foreach (JObject jaura in jauras) {
               AuraDef aura = JsonConvert.DeserializeObject<AuraDef>(jaura.ToString());
-              if (jaura["statusEffects"].Type == JTokenType.Array) {
-                JToken statusEffects = jaura["statusEffects"];
-                aura.statusEffects = new List<EffectData>();
-                foreach (JObject statusEffect in statusEffects) {
-                  EffectData effect = new EffectData();
-                  JSONSerializationUtility.FromJSON<EffectData>(effect, statusEffect.ToString());
-                  aura.statusEffects.Add(effect);
+              if (jaura["statusEffects"] != null) {
+                if (jaura["statusEffects"].Type == JTokenType.Array) {
+                  JToken statusEffects = jaura["statusEffects"];
+                  aura.statusEffects = new List<EffectData>();
+                  foreach (JObject statusEffect in statusEffects) {
+                    EffectData effect = new EffectData();
+                    JSONSerializationUtility.FromJSON<EffectData>(effect, statusEffect.ToString());
+                    aura.statusEffects.Add(effect);
+                  }
+                }
+              }
+              auras.Add(aura);
+            }
+            __instance.AddAuras(auras);
+          }
+          content.Remove("Auras");
+        }
+        json = content.ToString();
+      } catch (Exception e) {
+        Log.LogWrite("Error:" + e.ToString() + "\n");
+        Log.LogWrite("IN:" + json + "\n");
+      }
+    }
+  }
+  [HarmonyPatch(typeof(WeaponDef))]
+  [HarmonyPatch("FromJSON")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPriority(Priority.First)]
+  [HarmonyPatch(new Type[] { typeof(string) })]
+  public static class WeaponDef_FromJSONAuras {
+    public static void Prefix(MechComponentDef __instance, ref string json) {
+      try {
+        JObject content = JObject.Parse(json);
+        if (content["Auras"] != null) {
+          Log.LogWrite("Auras WeaponDef:"+ content["Description"]["Id"]+"\n");
+          if (content["Auras"].Type == JTokenType.Array) {
+            List<AuraDef> auras = new List<AuraDef>();
+            JToken jauras = content["Auras"];
+            foreach (JObject jaura in jauras) {
+              AuraDef aura = JsonConvert.DeserializeObject<AuraDef>(jaura.ToString());
+              if (jaura["statusEffects"] != null) {
+                if (jaura["statusEffects"].Type == JTokenType.Array) {
+                  JToken statusEffects = jaura["statusEffects"];
+                  aura.statusEffects = new List<EffectData>();
+                  foreach (JObject statusEffect in statusEffects) {
+                    EffectData effect = new EffectData();
+                    JSONSerializationUtility.FromJSON<EffectData>(effect, statusEffect.ToString());
+                    aura.statusEffects.Add(effect);
+                  }
                 }
               }
               auras.Add(aura);
