@@ -218,7 +218,7 @@ namespace CustomActivatableEquipment {
       Log.LogWrite("registerComponentsForVFX "+unit.DisplayName+":"+unit.GUID+"\n");
       foreach (MechComponent component in unit.allComponents) {
         string wGUID;
-        if (CustomAmmoCategories.checkExistance(component.StatCollection, CustomAmmoCategories.GUIDStatisticName) == false) {
+        if (component.StatCollection.ContainsStatistic(CustomAmmoCategories.GUIDStatisticName) == false) {
           wGUID = Guid.NewGuid().ToString();
           component.StatCollection.AddStatistic<string>(CustomAmmoCategories.GUIDStatisticName, wGUID);
         } else {
@@ -230,7 +230,7 @@ namespace CustomActivatableEquipment {
     }
     public static ObjectSpawnDataSelf ActivateVFX(this MechComponent component) {
       string wGUID;
-      if (CustomAmmoCategories.checkExistance(component.StatCollection, CustomAmmoCategories.GUIDStatisticName) == false) {
+      if (component.StatCollection.ContainsStatistic(CustomAmmoCategories.GUIDStatisticName) == false) {
         wGUID = Guid.NewGuid().ToString();
         component.StatCollection.AddStatistic<string>(CustomAmmoCategories.GUIDStatisticName, wGUID);
       } else {
@@ -244,7 +244,7 @@ namespace CustomActivatableEquipment {
     }
     public static ObjectSpawnDataSelf PresitantVFX(this MechComponent component) {
       string wGUID;
-      if (CustomAmmoCategories.checkExistance(component.StatCollection, CustomAmmoCategories.GUIDStatisticName) == false) {
+      if (component.StatCollection.ContainsStatistic(CustomAmmoCategories.GUIDStatisticName) == false) {
         wGUID = Guid.NewGuid().ToString();
         component.StatCollection.AddStatistic<string>(CustomAmmoCategories.GUIDStatisticName, wGUID);
       } else {
@@ -258,7 +258,7 @@ namespace CustomActivatableEquipment {
     }
     public static ObjectSpawnDataSelf DestroyedVFX(this MechComponent component) {
       string wGUID;
-      if (CustomAmmoCategories.checkExistance(component.StatCollection, CustomAmmoCategories.GUIDStatisticName) == false) {
+      if (component.StatCollection.ContainsStatistic(CustomAmmoCategories.GUIDStatisticName) == false) {
         wGUID = Guid.NewGuid().ToString();
         component.StatCollection.AddStatistic<string>(CustomAmmoCategories.GUIDStatisticName, wGUID);
       } else {
@@ -272,7 +272,7 @@ namespace CustomActivatableEquipment {
     }
     public static VFXObjects VFXObjects(this MechComponent component) {
       string wGUID;
-      if (CustomAmmoCategories.checkExistance(component.StatCollection, CustomAmmoCategories.GUIDStatisticName) == false) {
+      if (component.StatCollection.ContainsStatistic(CustomAmmoCategories.GUIDStatisticName) == false) {
         wGUID = Guid.NewGuid().ToString();
         component.StatCollection.AddStatistic<string>(CustomAmmoCategories.GUIDStatisticName, wGUID);
       } else {

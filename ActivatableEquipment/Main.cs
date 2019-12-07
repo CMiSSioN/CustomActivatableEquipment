@@ -1335,8 +1335,10 @@ namespace CustomActivatableEquipment {
     //public static List<ActivatableComponent> currentActiveComponentsDlg = new List<ActivatableComponent>();
     public static readonly string HeatSinkOfflineTagName = "offline";
     //public static Dictionary<string,List<ComponentToggle>>
+    private static FieldInfo f_statCollection_stats = null;
     public static bool checkExistance(StatCollection statCollection, string statName) {
-      return ((Dictionary<string, Statistic>)typeof(StatCollection).GetField("stats", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(statCollection)).ContainsKey(statName);
+      if (f_statCollection_stats == null) { f_statCollection_stats = typeof(StatCollection).GetField("stats", BindingFlags.NonPublic | BindingFlags.Instance); }
+      return ((Dictionary<string, Statistic>)f_statCollection_stats.GetValue(statCollection)).ContainsKey(statName);
     }
     public static void ShowHeatDlg(Mech mech) {
       if (mech == null) {
