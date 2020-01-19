@@ -706,17 +706,16 @@ namespace CustomActivatableEquipment {
       int turns = component.AoEExplodeTempDesignMaskTurns();
       string vfx = component.AoEExplodeLongVFX();
       Vector3 scale = component.AoELongVFXScale();
-      int radius = component.AoEExplodeTempDesignMaskTurns();
+      int radius = component.AoEExplodeTempDesignMaskCellRadius();
       DesignMaskDef mask = component.AoEExplodeTempDesignMask();
-      if (mask == null) { return; };
       if (radius == 0) {
         cell.hexCell.addTempTerrainVFX(component.parent.Combat, vfx, turns, scale);
-        DynamicMapHelper.addDesignMaskAsync(cell.hexCell, mask, turns);
+        if (mask != null) DynamicMapHelper.addDesignMaskAsync(cell.hexCell, mask, turns);
       } else {
         List<MapTerrainHexCell> affectedHexCells = MapTerrainHexCell.listHexCellsByCellRadius(cell, radius);
         foreach (MapTerrainHexCell hexCell in affectedHexCells) {
           hexCell.addTempTerrainVFX(component.parent.Combat, vfx, turns, scale);
-          DynamicMapHelper.addDesignMaskAsync(hexCell, mask, turns);
+          if (mask != null) DynamicMapHelper.addDesignMaskAsync(hexCell, mask, turns);
         }
       }
     }

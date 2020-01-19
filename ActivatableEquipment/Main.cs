@@ -28,7 +28,7 @@ namespace CustomActivatablePatches {
     public static bool Prefix(CombatHUDActionButton __instance) {
       CustomActivatableEquipment.Log.LogWrite("CombatHUDActionButton.ExecuteClick '" + __instance.GUID + "'/'" + CombatHUD.ButtonID_Move + "' " + (__instance.GUID == CombatHUD.ButtonID_Move) + "\n");
       CombatHUD HUD = (CombatHUD)typeof(CombatHUDActionButton).GetProperty("HUD", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance, null);
-      if (__instance.GUID == CombatHUD.ButtonID_Move) {
+      /*if (__instance.GUID == CombatHUD.ButtonID_Move) {
         CustomActivatableEquipment.Log.LogWrite(" button is move\n");
         bool modifyers = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
         if (modifyers) {
@@ -42,7 +42,7 @@ namespace CustomActivatablePatches {
           }
           return false;
         }
-      } else
+      } else*/
       if (__instance.GUID == CombatHUD.ButtonID_DoneWithMech) {
         CustomActivatableEquipment.Log.LogWrite(" button is brase\n");
         bool modifyers = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
@@ -178,6 +178,7 @@ namespace CustomActivatablePatches {
     public static void CollectDangerComponents(this AbstractActor actor) {
       StringBuilder result = new StringBuilder();
       foreach (MechComponent component in actor.allComponents) {
+        CombatHUDEquipmentSlotEx.ClearCache(component);
         ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
         if (activatable == null) { continue; }
         if (activatable.CanBeactivatedManualy == false) { continue; };
@@ -288,6 +289,7 @@ namespace CustomActivatableEquipment {
   public static class Log {
     //private static string m_assemblyFile;
     private static string m_logfile;
+    private static StreamWriter m_fs = null;
     private static readonly Mutex mutex = new Mutex();
     public static string BaseDirectory;
     public static void InitLog() {
@@ -295,12 +297,38 @@ namespace CustomActivatableEquipment {
       Log.m_logfile = Path.Combine(BaseDirectory, "ActivatableComponents.log");
       //Log.m_logfile = Path.Combine(Log.m_logfile, "CustomAmmoCategories.log");
       File.Delete(Log.m_logfile);
+      m_fs = new StreamWriter(m_logfile);
+      m_fs.AutoFlush = true;
+    }
+    public static void W(string line, bool isCritical = false) {
+      LogWrite(line, isCritical);
+    }
+    public static void WL(string line, bool isCritical = false) {
+      line += "\n"; W(line, isCritical);
+    }
+    public static void W(int initiation, string line, bool isCritical = false) {
+      string init = new string(' ', initiation);
+      line = init + line; W(line, isCritical);
+    }
+    public static void WL(int initiation, string line, bool isCritical = false) {
+      string init = new string(' ', initiation);
+      line = init + line; WL(line, isCritical);
+    }
+    public static void TW(int initiation, string line, bool isCritical = false) {
+      string init = new string(' ', initiation);
+      line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
+      W(line, isCritical);
+    }
+    public static void TWL(int initiation, string line, bool isCritical = false) {
+      string init = new string(' ', initiation);
+      line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
+      WL(line, isCritical);
     }
     public static void LogWrite(string line, bool isCritical = false) {
       try {
         if ((Core.Settings.debug) || (isCritical)) {
           if (Log.mutex.WaitOne(1000)) {
-            File.AppendAllText(Log.m_logfile, line);
+            m_fs.Write(line);
             Log.mutex.ReleaseMutex();
           }
         }
@@ -536,25 +564,36 @@ namespace CustomActivatableEquipment {
         FDestroySound.play(soundObject);
       }
     }
+    private static Dictionary<MechComponent, int> chargesCache = new Dictionary<MechComponent, int>();
+    public static void Clear() { chargesCache.Clear(); }
+    private static void ClearChargesCache(MechComponent component) { chargesCache.Remove(component); }
+    private static void CacheCharges(MechComponent component, int value) { if (chargesCache.ContainsKey(component)) { chargesCache[component] = value; } else { chargesCache.Add(component, value); }; }
     public static bool isOutOfCharges(MechComponent component) {
       if (component == null) { return false; };
+      if (chargesCache.TryGetValue(component, out int charges)) { return charges == 0; };
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
-      if (activatable == null) { return false; }
-      if (activatable.ChargesCount == 0) { return false; };
-      if (activatable.ChargesCount == -1) { return false; };
-      if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentChargesCount) == false) { return false; }
-      int charges = component.StatCollection.GetStatistic(ActivatableComponent.CAEComponentChargesCount).Value<int>();
-      if (charges > 0) { return false; };
+      if (activatable == null) { CacheCharges(component, -1); return false; }
+      if (activatable.ChargesCount == 0) { CacheCharges(component, -1); return false; };
+      if (activatable.ChargesCount == -1) { CacheCharges(component, -1); return false; };
+      if (Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentChargesCount) == false) { CacheCharges(component, -1); return false; }
+      charges = component.StatCollection.GetStatistic(ActivatableComponent.CAEComponentChargesCount).Value<int>();
+      if (charges > 0) { CacheCharges(component, charges); return false; };
+      CacheCharges(component, 0);
       return true;
     }
     public static int getChargesCount(MechComponent component) {
-      if (component == null) { return 0; };
+      if (component == null) { return -1; };
+      if (chargesCache.TryGetValue(component, out int charges)) { return charges; };
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
-      if (activatable == null) { return 0; }
-      if (activatable.ChargesCount == -1) { return -1; };
-      if (activatable.ChargesCount <= 0) { return 0; };
-      if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentChargesCount) == false) { return activatable.ChargesCount; }
-      int charges = component.StatCollection.GetStatistic(ActivatableComponent.CAEComponentChargesCount).Value<int>();
+      if (activatable == null) { CacheCharges(component, -1); return -1; }
+      if (activatable.ChargesCount == -1) { CacheCharges(component, -1); return -1; };
+      if (activatable.ChargesCount <= 0) { CacheCharges(component, 0); return 0; };
+      if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentChargesCount) == false) {
+        CacheCharges(component, activatable.ChargesCount);
+        return activatable.ChargesCount;
+      }
+      charges = component.StatCollection.GetStatistic(ActivatableComponent.CAEComponentChargesCount).Value<int>();
+      CacheCharges(component, charges);
       return charges;
     }
     public static void setChargesCount(MechComponent component, int charges) {
@@ -563,6 +602,7 @@ namespace CustomActivatableEquipment {
       } else {
         component.StatCollection.Set<int>(ActivatableComponent.CAEComponentChargesCount, charges);
       }
+      CacheCharges(component, charges);
     }
     public bool CanBeactivatedManualy {
       get {
@@ -804,6 +844,7 @@ namespace CustomActivatableEquipment {
       }
     }
     public static void activateComponent(MechComponent component, bool autoActivate, bool isInital) {
+      CombatHUDEquipmentSlotEx.ClearCache(component);
       Log.LogWrite("activateComponent " + component.defId + "\n");
       if (component.IsFunctional == false) {
         Log.LogWrite(" not functional\n");
@@ -1027,6 +1068,7 @@ namespace CustomActivatableEquipment {
       }
     }
     public static void deactivateComponent(MechComponent component) {
+      CombatHUDEquipmentSlotEx.ClearCache(component);
       if (component.IsFunctional == false) { return; };
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) { return; }
@@ -1058,6 +1100,7 @@ namespace CustomActivatableEquipment {
       component.LinkageDectivate(false);
     }
     public static void toggleComponentActivation(MechComponent component) {
+      CombatHUDEquipmentSlotEx.ClearCache(component);
       Log.LogWrite("toggleComponentActivation " + component.defId + "\n");
       if (component.IsFunctional == false) {
         Log.LogWrite(" not functional\n");
@@ -1355,7 +1398,9 @@ namespace CustomActivatableEquipment {
       }
     }
     public static void ShowEquipmentDlg(Mech mech, CombatHUD HUD) {
-      List<string> activatables = new List<string>();
+      ActivatebleDialogHelper.CreateDialog(mech, HUD);
+      return;
+      /*List<string> activatables = new List<string>();
       List<ComponentToggle> actComps = new List<ComponentToggle>();
       //Core.currentActiveComponentsDlg.Clear();
       foreach (MechComponent component in mech.allComponents) {
@@ -1445,7 +1490,7 @@ namespace CustomActivatableEquipment {
       Log.LogWrite("Rendering popup:" + text.ToString() + "\n");
       popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
       //ComponentsMenu menu = new ComponentsMenu(mech);
-      //menu.Render();
+      //menu.Render();*/
     }
 
     public static Settings Settings = new Settings();
@@ -1489,8 +1534,9 @@ namespace CustomActivatableEquipment {
         var harmony = HarmonyInstance.Create("io.mission.activatablecomponents");
         harmony.PatchAll(Assembly.GetExecutingAssembly());
         harmony.Patch(
-          typeof(Weapon).Assembly.GetType("AreAnyHostilesInWeaponRangeNode").GetMethod("Tick", BindingFlags.Instance | BindingFlags.NonPublic), 
-          new HarmonyMethod(typeof(AreAnyHostilesInWeaponRangeNode_Tick).GetMethod("Prefix")));
+        typeof(Weapon).Assembly.GetType("AreAnyHostilesInWeaponRangeNode").GetMethod("Tick", BindingFlags.Instance | BindingFlags.NonPublic), 
+        new HarmonyMethod(typeof(AreAnyHostilesInWeaponRangeNode_Tick).GetMethod("Prefix")));
+        ActivatebleDialogHelper.Init();
       } catch (Exception e) {
         CustomActivatableEquipment.Log.LogWrite(e.ToString() + "\n");
       }

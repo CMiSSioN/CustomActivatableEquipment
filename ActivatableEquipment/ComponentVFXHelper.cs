@@ -310,6 +310,17 @@ namespace CustomActivatableEquipment {
     public VFXInfo ActiveVFX { get; set; }
 
   }
+  public class ObjectAncor : MonoBehaviour {
+    public Transform ancor { get; set; }
+    private Vector3 offset { get; set; }
+    public void Awake() {
+      offset = Vector3.zero;
+      ancor = null;
+    }
+    public void Update() {
+      if (ancor != null) { this.transform.position = ancor.position + offset; }
+    }
+  }
   public class ObjectSpawnDataSelf : ObjectSpawnData {
     public bool keepPrefabRotation;
     public Vector3 scale;
@@ -383,6 +394,7 @@ namespace CustomActivatableEquipment {
       Log.LogWrite("SpawnSelf: "+ this.prefabName+"\n");
       Component[] components = gameObject.GetComponentsInChildren<Component>();
       foreach(Component component in components) {
+        if (component == null) { continue; };
         Log.LogWrite(" " + component.name + ":"+component.GetType().ToString()+"\n");
         ParticleSystem ps = component as ParticleSystem;
         if(ps != null) {
@@ -391,20 +403,22 @@ namespace CustomActivatableEquipment {
           Log.LogWrite("  " + ps.main.scalingMode.ToString() + "\n");
         }
       }
-      gameObject.transform.SetParent(this.parentObject.transform);
-      gameObject.transform.localPosition = this.localPos;
+      //gameObject.transform.SetParent(this.parentObject.transform);
+      gameObject.transform.position = parentObject.transform.position;
+      ObjectAncor ancor = gameObject.AddComponent<ObjectAncor>();
+      ancor.ancor = parentObject.transform;
       gameObject.transform.localScale = new Vector3(scale.x, scale.y, scale.z);
       if (!this.keepPrefabRotation)
         gameObject.transform.rotation = this.worldRotation;
       if (this.playFX) {
         ParticleSystem component = gameObject.GetComponent<ParticleSystem>();
         if (component != null) {
-          component.transform.localScale.Set(scale.x, scale.y, scale.z);
+          //component.transform.localScale.Set(scale.x, scale.y, scale.z);
           gameObject.SetActive(true);
           component.Stop(true);
           component.Clear(true);
-          component.transform.transform.SetParent(this.parentObject.transform);
-          component.transform.localPosition = this.localPos;
+          //component.transform.transform.SetParent(this.parentObject.transform);
+          //component.transform.localPosition = this.localPos;
           if (!this.keepPrefabRotation)
             component.transform.rotation = this.worldRotation;
           BTCustomRenderer.SetVFXMultiplier(component);
@@ -432,6 +446,11 @@ namespace CustomActivatableEquipment {
       }
       ComponentVFXHelper.componentsVFXObjects.Clear();
       CAEAuraHelper.ClearBubbles();
+      CombatHUDWeaponPanelExHelper.Clear();
+      CombatHUDEquipmentPanel.Clear();
+      ActivatableComponent.Clear();
+      CombatHUDEquipmentSlotEx.Clear();
+      CombatHUDEquipmentPanel.Clear();
       return true;
     }
   }
