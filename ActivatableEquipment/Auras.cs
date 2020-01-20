@@ -407,6 +407,7 @@ namespace CustomActivatableEquipment {
                 List<Effect> createdEffects = owner.Combat.EffectManager.CreateEffect(statusEffect, effectID, -1, (ICombatant)auraOwner, owner, new WeaponHitInfo(), 0, false);
                 affectedAurasEffects[aura].Add(effectID);
                 Log.LogWrite(" Applied effect:" + effectID + ":" + createdEffects.Count + "\n");
+                this.owner.Combat.MessageCenter.PublishMessage(new AuraAddedMessage(aura.owner.GUID, this.owner.GUID, effectID, statusEffect));
               }
             }
           }
@@ -495,6 +496,7 @@ namespace CustomActivatableEquipment {
             Log.LogWrite(" Removed effect:" + effectId + ":" + allEffectsWithId.Count + "\n");
             for (int t = 0; t < allEffectsWithId.Count; ++t) {
               owner.CancelEffect(allEffectsWithId[t], false);
+              this.owner.Combat.MessageCenter.PublishMessage(new AuraRemovedMessage(aura.owner.GUID, this.owner.GUID, effectId, allEffectsWithId[t].EffectData));
             }
           }
           if (this.StealthPipsPrev != owner.StealthPipsCurrent) {

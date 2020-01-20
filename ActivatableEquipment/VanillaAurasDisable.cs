@@ -21,6 +21,22 @@ namespace CustomActivatablePatches {
   public static class AuraCache_HasAlreadyChecked_Disable {
     public static bool Prefix(AuraCache __instance,ref bool __result) { __result = true; return false; }
   }
+  [HarmonyPatch(typeof(AbstractActor))]
+  [HarmonyPatch("OnAuraAdded")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPriority(Priority.First)]
+  //[HarmonyPatch(new Type[] { typeof(AbstractActor), typeof(Vector3) })]
+  public static class AbstractActor_OnAuraAdded {
+    public static bool Prefix(AbstractActor __instance) { return false; }
+  }
+  [HarmonyPatch(typeof(AbstractActor))]
+  [HarmonyPatch("OnAuraRemoved")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPriority(Priority.First)]
+  //[HarmonyPatch(new Type[] { typeof(AbstractActor), typeof(Vector3) })]
+  public static class AbstractActor_OnAuraRemoved {
+    public static bool Prefix(AbstractActor __instance) { return false; }
+  }
   [HarmonyPatch(typeof(AuraCache))]
   [HarmonyPatch("UpdateAllAuras")]
   [HarmonyPatch(MethodType.Normal)]
