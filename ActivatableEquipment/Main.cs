@@ -340,7 +340,9 @@ namespace CustomActivatableEquipment {
 }
 
 namespace CustomActivatableEquipment {
-  public class AoEExplosion {
+    using Newtonsoft.Json.Linq;
+
+    public class AoEExplosion {
     public static Dictionary<ICombatant, Dictionary<string, List<EffectData>>> ExposionStatusEffects = new Dictionary<ICombatant, Dictionary<string, List<EffectData>>>();
     public float Range { get; set; }
     public float Damage { get; set; }
@@ -1498,7 +1500,28 @@ namespace CustomActivatableEquipment {
       CustomActivatableEquipment.Log.BaseDirectory = directory;
       CustomActivatableEquipment.Log.InitLog();
       Core.Settings = JsonConvert.DeserializeObject<CustomActivatableEquipment.Settings>(settingsJson);
-      CustomActivatableEquipment.Log.LogWrite("Initing... " + directory + " version: " + Assembly.GetExecutingAssembly().GetName().Version + "\n", true);
+
+        var settingsObject = (JObject)JsonConvert.DeserializeObject(settingsJson);
+        var sensorAura = settingsObject["sensorsAura"];
+        var statusEffects = (JArray)sensorAura?["statusEffects"];
+        var firstStatusEffect = statusEffects?[0];
+        var description = firstStatusEffect?["Description"];
+
+        if (description != null)
+        {
+            var id = description["Id"].ToString();
+            var name = description["Name"].ToString();
+            var details = description["Details"].ToString();
+            var icon = description["Icon"].ToString();
+            Core.Settings.sensorsAura.statusEffects.First().Description =
+                new BaseDescriptionDef(id, name, details, icon);
+        }
+
+        CustomActivatableEquipment.Log.LogWrite("Initing... " + directory + " version: " + Assembly.GetExecutingAssembly().GetName().Version + "\n"
+                                              + "Settings = [" + JsonConvert.SerializeObject(Core.Settings, Formatting.Indented, new JsonSerializerSettings()
+                                                                                                                                     {
+                                                                                                                                         ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                                                                                                                                     }) + "]", true);
       for(int layer1 = 8; layer1 < 32; ++layer1) {
         for (int layer2 = 8; layer2 < 32; ++layer2) {
           Log.LogWrite(LayerMask.LayerToName(layer1)+"->"+LayerMask.LayerToName(layer2)+" ignore collisions:"+ Physics.GetIgnoreLayerCollision(layer1,layer2)+"\n");
