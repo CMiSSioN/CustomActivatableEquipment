@@ -4,6 +4,7 @@ using Harmony;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Reflection.Emit;
 using UnityEngine;
 
 namespace CustAmmoCategoriesPatches {
@@ -57,6 +58,10 @@ namespace CustAmmoCategoriesPatches {
   public static class AITeam_GetUnitThatCanReachECM {
     private static MethodInfo mCanEntireEnemyTeamBeGhosted;
     private static MethodInfo mGetBehaviorVariableValue;
+    private delegate bool CanEntireEnemyTeamBeGhostedDelegate(AITeam instance);
+    private delegate BehaviorVariableValue GetBehaviorVariableValueDelegate(BehaviorTree instance, BehaviorVariableName name);
+    private static CanEntireEnemyTeamBeGhostedDelegate CanEntireEnemyTeamBeGhostedInvoker = null;
+    private static GetBehaviorVariableValueDelegate GetBehaviorVariableValueInvoker = null;
     public static bool Prepare() {
       mCanEntireEnemyTeamBeGhosted = typeof(AITeam).GetMethod("CanEntireEnemyTeamBeGhosted", BindingFlags.NonPublic | BindingFlags.Instance);
       if(mCanEntireEnemyTeamBeGhosted == null) {
@@ -68,13 +73,26 @@ namespace CustAmmoCategoriesPatches {
         Log.LogWrite("Can't find BehaviorTree.GetBehaviorVariableValue\n",true);
         return false;
       }
+      var dm = new DynamicMethod("CAECanEntireEnemyTeamBeGhosted", typeof(bool), new Type[] { typeof(AITeam) }, typeof(AITeam));
+      var gen = dm.GetILGenerator();
+      gen.Emit(OpCodes.Ldarg_0);
+      gen.Emit(OpCodes.Call, mCanEntireEnemyTeamBeGhosted);
+      gen.Emit(OpCodes.Ret);
+      CanEntireEnemyTeamBeGhostedInvoker = (CanEntireEnemyTeamBeGhostedDelegate)dm.CreateDelegate(typeof(CanEntireEnemyTeamBeGhostedDelegate));
+      var dm1 = new DynamicMethod("CAEGetBehaviorVariableValue", typeof(BehaviorVariableValue), new Type[] { typeof(BehaviorTree), typeof(BehaviorVariableName) }, typeof(BehaviorTree));
+      var gen1 = dm1.GetILGenerator();
+      gen1.Emit(OpCodes.Ldarg_0);
+      gen1.Emit(OpCodes.Ldarg_1);
+      gen1.Emit(OpCodes.Call, mGetBehaviorVariableValue);
+      gen1.Emit(OpCodes.Ret);
+      GetBehaviorVariableValueInvoker = (GetBehaviorVariableValueDelegate)dm1.CreateDelegate(typeof(GetBehaviorVariableValueDelegate));
       return true;
     }
     public static bool CanEntireEnemyTeamBeGhosted(this AITeam instance) {
-      return (bool)mCanEntireEnemyTeamBeGhosted.Invoke(instance,new object[] { });
+      return CanEntireEnemyTeamBeGhostedInvoker(instance);
     }
     public static BehaviorVariableValue GetBehaviorVariableValue(this BehaviorTree instance, BehaviorVariableName name) {
-      return (BehaviorVariableValue)mGetBehaviorVariableValue.Invoke(instance, new object[] { name });
+      return GetBehaviorVariableValueInvoker(instance,name);
     }
     public static bool Prefix(AITeam __instance, List<AbstractActor> unusedUnits, ref AbstractActor __result) {
       try {

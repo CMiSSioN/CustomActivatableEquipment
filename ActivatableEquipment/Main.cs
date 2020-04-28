@@ -575,7 +575,11 @@ namespace CustomActivatableEquipment {
       if (activatable == null) { CacheCharges(component, -1); return false; }
       if (activatable.ChargesCount == 0) { CacheCharges(component, -1); return false; };
       if (activatable.ChargesCount == -1) { CacheCharges(component, -1); return false; };
-      if (Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentChargesCount) == false) { CacheCharges(component, -1); return false; }
+      if (Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentChargesCount) == false) {
+        component.StatCollection.AddStatistic<int>(ActivatableComponent.CAEComponentChargesCount, activatable.ChargesCount);
+        CacheCharges(component, activatable.ChargesCount);
+        return false;
+      }
       charges = component.StatCollection.GetStatistic(ActivatableComponent.CAEComponentChargesCount).Value<int>();
       if (charges > 0) { CacheCharges(component, charges); return false; };
       CacheCharges(component, 0);
@@ -589,6 +593,7 @@ namespace CustomActivatableEquipment {
       if (activatable.ChargesCount == -1) { CacheCharges(component, -1); return -1; };
       if (activatable.ChargesCount <= 0) { CacheCharges(component, 0); return 0; };
       if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentChargesCount) == false) {
+        component.StatCollection.AddStatistic<int>(ActivatableComponent.CAEComponentChargesCount, activatable.ChargesCount);
         CacheCharges(component, activatable.ChargesCount);
         return activatable.ChargesCount;
       }
@@ -1494,6 +1499,14 @@ namespace CustomActivatableEquipment {
     }
 
     public static Settings Settings = new Settings();
+    public static void FinishedLoading(List<string> loadOrder) {
+      Log.TWL(0, "FinishedLoading", true);
+      try {
+        //ExtendedDescriptionHelper.DetectMechEngineer();
+      } catch (Exception e) {
+        Log.TWL(0, e.ToString(), true);
+      }
+    }
     public static void Init(string directory, string settingsJson) {
       CustomActivatableEquipment.Log.BaseDirectory = directory;
       CustomActivatableEquipment.Log.InitLog();

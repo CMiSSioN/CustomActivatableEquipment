@@ -14,7 +14,7 @@ namespace CustomActivatableEquipment {
     Offline,
     Persistent
   }
-
+  public enum AuraLineType { Dashes, Dots }
   public class AuraBubbleVFXDef {
     public string VFXname { get; set; }
     public bool scale { get; set; }
@@ -27,6 +27,8 @@ namespace CustomActivatableEquipment {
   public class AuraDef {
     public string Id { get; set; }
     public string Name { get; set; }
+    public AuraLineType LineType { get; set; }
+    public bool isSpining { get; set; }
     public Color AuraColor { get; private set; }
     public string ReticleColor {
       set {
@@ -87,6 +89,8 @@ namespace CustomActivatableEquipment {
       HideOnNotSelected = true;
       NotShowOnSelected = false;
       FloatieAtEndOfMove = true;
+      LineType = AuraLineType.Dashes;
+      isSpining = false;
     }
   }
 }

@@ -2,17 +2,75 @@
 using BattleTech.UI;
 using BattleTech.UI.TMProWrapper;
 using CustomComponents;
+using CustomComponents.ExtendedDetails;
 using Harmony;
 using HBS;
+using Newtonsoft.Json;
 using SVGImporter;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Reflection.Emit;
+using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace CustomActivatableEquipment {
+  /*public class BonusDescriptionContent {
+    public string template { get; set; }
+    public string elements { get; set; }
+    public BonusDescriptionContent() { template = string.Empty; elements = string.Empty; }
+
+  }
+  public class ExtendedDescription {
+    public List<BonusDescriptionContent> Traits { get; set; }
+    public Dictionary<UnitType, List<BonusDescriptionContent>> CriticalEffects { get; set; }
+    public string Description { get; set; }
+    public ExtendedDescription() {
+      CriticalEffects = new Dictionary<UnitType, List<BonusDescriptionContent>>();
+      Traits = new List<BonusDescriptionContent>();
+      Description = string.Empty;
+    }
+  }
+  public static class ExtendedDescriptionHelper {
+    //public static MethodInfo GetExtendedDescription { get; private set; } = null;
+    private delegate string GetExtendedDescriptionInvoker(string defId);
+    private static GetExtendedDescriptionInvoker GetExtendedDescriptionDelegate = null;
+    public static void DetectMechEngineer() {
+      Log.TWL(0, "DetectMechEngineer");
+      Assembly[] asseblies = AppDomain.CurrentDomain.GetAssemblies();
+      foreach (Assembly assembly in asseblies) {
+        Log.WL(1, assembly.FullName);
+        if (assembly.FullName.Contains("MechEngineer")) {
+          Type helper = assembly.GetType("MechEngineer.Features.OverrideDescriptions.DescriptionsHelper");
+          if(helper != null) {
+            Log.WL(2, "helper class found");
+            MethodInfo method = helper.GetMethod("GetExtendedDescription", BindingFlags.Static | BindingFlags.Public);
+            if(method != null) {
+              Log.WL(3, "method found");
+              var dm = new DynamicMethod("CAEGetExtendedDescription", typeof(string), new Type[] { typeof(string) }, helper);
+              var gen = dm.GetILGenerator();
+              gen.Emit(OpCodes.Ldarg_0);
+              gen.Emit(OpCodes.Call, method);
+              gen.Emit(OpCodes.Ret);
+              GetExtendedDescriptionDelegate = (GetExtendedDescriptionInvoker)dm.CreateDelegate(typeof(GetExtendedDescriptionInvoker));
+            }
+          }
+          break;
+        }
+      }
+    }
+    public static ExtendedDescription GetExtendedDescription(this MechComponent component) {
+      if (GetExtendedDescriptionDelegate == null) { return null; }
+      string serialData = GetExtendedDescriptionDelegate(component.defId);
+      Log.TWL(0, "GetExtendedDescription: " + component.defId + ":" + serialData);
+      if (string.IsNullOrEmpty(serialData)) { return null; }
+      ExtendedDescription obj = JsonConvert.DeserializeObject<ExtendedDescription>(serialData);
+      Log.WL(0,JsonConvert.SerializeObject(obj,Formatting.Indented));
+      return obj;
+    }
+  }*/
   public class WeaponSlotsLabelsToggle : EventTrigger {
     private bool hovered = false;
     private bool inited = false;
@@ -447,9 +505,29 @@ namespace CustomActivatableEquipment {
       this.component = component;
       this.activeDef = component.componentDef.GetComponent<ActivatableComponent>();
       this.hoverSidePanel.Title = new Localize.Text(component.Description.UIName);
-      this.hoverSidePanel.Description = new Localize.Text(component.Description.Details);
-      float offHeat = (activeDef.AutoDeactivateOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? activeDef.AutoDeactivateOverheatLevel * (float)(component.parent as Mech).OverheatLevel : activeDef.AutoDeactivateOnHeat;
-      float onHeat = (activeDef.AutoActivateOnOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? activeDef.AutoActivateOnOverheatLevel * (float)(component.parent as Mech).OverheatLevel : activeDef.AutoActivateOnHeat;
+      Log.TWL(0, "CombatHUDEquipmentSlotEx.Init "+component.defId);
+      ExtendedDetails extDescr = component.componentDef.GetComponent<ExtendedDetails>();
+      if (extDescr == null) {
+        this.hoverSidePanel.Description = new Localize.Text(component.Description.Details);
+        Log.WL(1, "no extended description:"+ this.hoverSidePanel.Description);
+      } else {
+        StringBuilder description = new StringBuilder();
+        Log.WL(1, "extended description:" + description);
+        foreach (ExtendedDetail detail in extDescr.GetDetails()) {
+          if (detail.UnitType != UnitType.UNDEFINED) { if (detail.UnitType != component.parent.UnitType) { continue; } };
+          Log.WL(2, "detail:" + detail.Identifier + ":"+detail.Text);
+          string addtext = new Localize.Text(detail.Text).ToString();
+          addtext = addtext.Replace("\n\n","\n");
+          description.Append("<size=80%>"+addtext+"</size>");
+        }
+        this.hoverSidePanel.Description = new Localize.Text(description.ToString());
+      }
+      float offHeat = 0f;
+      float onHeat = 0f;
+      if (activeDef != null) {
+        offHeat = (activeDef.AutoDeactivateOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? activeDef.AutoDeactivateOverheatLevel * (float)(component.parent as Mech).OverheatLevel : activeDef.AutoDeactivateOnHeat;
+        onHeat = (activeDef.AutoActivateOnOverheatLevel > CustomActivatableEquipment.Core.Epsilon) ? activeDef.AutoActivateOnOverheatLevel * (float)(component.parent as Mech).OverheatLevel : activeDef.AutoActivateOnHeat;
+      }
       if (onHeat > Core.Epsilon) {
         this.hoverSidePanel.Description.Append("\nAUTO ACTIVE ON:" + onHeat);
       }
@@ -524,26 +602,31 @@ namespace CustomActivatableEquipment {
       return result;
     }
     public void InitNewAbilitySlot() {
-      Transform slot = weaponPanel.gameObject.transform.Find("uixPrfPanl_ElectronicWarfareToggles");
-      if (slot != null) {
-        GameObject slot_ex = GameObject.Instantiate(slot.gameObject);
-        slot_ex.transform.SetParent(weaponPanel.transform);
-        slot_ex.transform.localScale = new Vector3(1f, 0.9f, 1f);
-        slot_ex.SetActive(false);
-        HorizontalLayoutGroup layout = slot_ex.GetComponent<HorizontalLayoutGroup>();
-        RectOffset tempPadding = new RectOffset(
-                layout.padding.left,
-                layout.padding.right,
-                layout.padding.top,
-                layout.padding.bottom);
-        tempPadding.left += 50;
-        layout.padding = tempPadding;
-        Log.TWL(0, "found uixPrfPanl_ElectronicWarfareToggles parent:" + slot_ex.transform.parent.name);
-        CombatHUDEquipmentSlot eqslot = slot_ex.transform.Find("equipmentButton_1").GetComponent<CombatHUDEquipmentSlot>();
-        if (eqslot != null) {
-          buttons.Add(eqslot);
-          Log.WL(1, "found CombatHUDEquipmentSlot parent:" + eqslot.transform.parent.name);
+      Log.TWL(0, "CombatHUDEquipmentSlotEx.InitNewAbilitySlot "+ this.component.defId);
+      try {
+        Transform slot = weaponPanel.gameObject.transform.Find("uixPrfPanl_ElectronicWarfareToggles");
+        if (slot != null) {
+          GameObject slot_ex = GameObject.Instantiate(slot.gameObject);
+          slot_ex.transform.SetParent(weaponPanel.transform);
+          slot_ex.transform.localScale = new Vector3(1f, 0.9f, 1f);
+          slot_ex.SetActive(false);
+          HorizontalLayoutGroup layout = slot_ex.GetComponent<HorizontalLayoutGroup>();
+          RectOffset tempPadding = new RectOffset(
+                  layout.padding.left,
+                  layout.padding.right,
+                  layout.padding.top,
+                  layout.padding.bottom);
+          tempPadding.left += 50;
+          layout.padding = tempPadding;
+          Log.TWL(0, "found uixPrfPanl_ElectronicWarfareToggles parent:" + slot_ex.transform.parent.name);
+          CombatHUDEquipmentSlot eqslot = slot_ex.transform.Find("equipmentButton_1").GetComponent<CombatHUDEquipmentSlot>();
+          if (eqslot != null) {
+            buttons.Add(eqslot);
+            Log.WL(1, "found CombatHUDEquipmentSlot parent:" + eqslot.transform.parent.name);
+          }
         }
+      }catch(Exception e) {
+        Log.TWL(0,e.ToString());
       }
     }
   }

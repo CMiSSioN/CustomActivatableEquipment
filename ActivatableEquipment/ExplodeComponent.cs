@@ -840,11 +840,14 @@ namespace CustomActivatableEquipment {
       foreach (ICombatant target in component.parent.Combat.GetAllLivingCombatants()) {
         if (target.GUID == component.parent.GUID) { continue; };
         if (target.IsDead) { continue; };
+        if (target.isDropshipNotLanded()) { continue; };
         Vector3 CurrentPosition = target.CurrentPosition + Vector3.up * target.AoEHeightFix();
         float distance = Vector3.Distance(CurrentPosition, component.parent.CurrentPosition);
+        if (CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range < CustomAmmoCategories.Epsilon) { CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range = 1f; }
+        distance /= CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range;
         if (distance > Range) { continue; };
         float HeatDamage = component.AoEExplodeHeat() * (Range - distance) / Range;
-        float Damage = AoEDmg * (Range - distance) / Range;
+        float Damage = AoEDmg * CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Damage * (Range - distance) / Range;
         float StabDamage = component.AoEExplodeStability() * (Range - distance) / Range;
         foreach (EffectData effect in effects) {
           string effectID = string.Format("OnComponentAoEExplosionEffect_{0}_{1}", (object)component.parent.GUID, (object)SequenceID);
@@ -923,7 +926,10 @@ namespace CustomActivatableEquipment {
         Log.LogWrite(" play explode sound\n");
         explodeSound.play(component.parent.GameRep.audioObject);
       }
-      var fakeHit = new WeaponHitInfo(-1, -1, -1, -1, component.parent.GUID, component.parent.GUID, -1, null, null, null, null, null, null, new AttackImpactQuality[1] { AttackImpactQuality.Solid }, new AttackDirection[1] { AttackDirection.FromArtillery }, null, null, null);
+      var fakeHit = new WeaponHitInfo(-1, -1, -1, -1, component.parent.GUID, component.parent.GUID, -1, null, null, null, null, null, null
+        , new AttackImpactQuality[1] { AttackImpactQuality.Solid }
+        , new AttackDirection[1] { AttackDirection.FromArtillery }
+        , new Vector3[1] { Vector3.zero }, null, null);
       for (int index = 0; index < AoEDamage.Count; ++index) {
         Log.LogWrite(" "+ AoEDamage[index].target.DisplayName+":"+ AoEDamage[index].target.GUID+"\n");
         Log.LogWrite(" Heat:" + AoEDamage[index].HeatDamage+ "\n");
@@ -943,6 +949,7 @@ namespace CustomActivatableEquipment {
                       (object) (int) Mathf.Max(1f, AOEHitRecord.Value.Damage)
             }), component.parent.Combat.Constants.CombatUIConstants.floatieSizeMedium, FloatieMessage.MessageNature.ArmorDamage, AOEHitRecord.Value.hitPosition.x, AOEHitRecord.Value.hitPosition.y, AOEHitRecord.Value.hitPosition.z));
           }
+          fakeHit.hitPositions[0] = AOEHitRecord.Value.hitPosition;
 #if BT1_8
           AoEDamage[index].target.TakeWeaponDamage(fakeHit,AOEHitRecord.Key,fakeWeapon, AOEHitRecord.Value.Damage, 0f,0,DamageType.AmmoExplosion);
 #else

@@ -85,9 +85,9 @@ namespace CustomActivatableEquipment {
       return true;
     }
     public static bool Prefix(AuraCache __instance, AbstractActor fromActor, AbstractActor movingActor, Vector3 movingActorPos, float distSquared, EffectTriggerType triggerSource, bool forceUpdate) {
-      AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
+      //AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
       //Log.LogWrite("AuraCache.UpdateAuras prefix owner:" + Owner.DisplayName + ":" + Owner.GUID + " from: " + fromActor.DisplayName + ":" + fromActor.GUID + " AuraComponents:" + fromActor.AuraComponents.Count + " forceUpdate:" + forceUpdate + "\n");
-      return true;
+      return false;
     }
   }
   /*[HarmonyPatch(typeof(CombatAuraReticle))]
@@ -271,7 +271,7 @@ namespace CustomActivatableEquipment {
       return true;
     }
     public static void Postfix(AuraCache __instance, AbstractActor fromActor, EffectData effect, EffectTriggerType triggerSource, ref bool __result) {
-      AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
+      //AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
       //Log.LogWrite("AuraCache.ShouldAffectThisActor postfix owner:" + Owner.DisplayName + ":" + Owner.GUID + " from: " + fromActor.DisplayName + ":" + fromActor.GUID + " Effect:" + effect.Description.Id + " result:" + __result + "\n");
     }
   }
@@ -293,7 +293,7 @@ namespace CustomActivatableEquipment {
       }
       return true;
     }
-    public static void AddEffectIfNotPresent(this AuraCache instance, AbstractActor fromActor, AbstractActor movingActor, Vector3 movingActorPos, string effectCreatorId, EffectData effect, ref List<string> existingEffectIDs, EffectTriggerType triggerSource) {
+    /*public static void AddEffectIfNotPresent(this AuraCache instance, AbstractActor fromActor, AbstractActor movingActor, Vector3 movingActorPos, string effectCreatorId, EffectData effect, ref List<string> existingEffectIDs, EffectTriggerType triggerSource) {
       object[] args = new object[7] { fromActor, movingActor, movingActorPos, effectCreatorId, effect, existingEffectIDs, triggerSource};
       mAddEffectIfNotPresent.Invoke(instance, args);
       existingEffectIDs = (List<string>)args[5];
@@ -301,9 +301,9 @@ namespace CustomActivatableEquipment {
     public static void RemoveEffectIfPresent(this AuraCache instance, AbstractActor fromActor, string effectCreatorId, EffectData effect, List<Effect> existingEffects, EffectTriggerType triggerSource) {
       object[] args = new object[5] { fromActor, effectCreatorId, effect, existingEffects, triggerSource };
       mRemoveEffectIfPresent.Invoke(instance, args);
-    }
+    }*/
     public static bool Prefix(AuraCache __instance, AbstractActor fromActor, AbstractActor movingActor, Vector3 movingActorPos, MechComponent auraComponent, float distSquared, EffectTriggerType triggerSource, bool skipECMCheck) {
-      AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
+      /*AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
       List<Effect> all = Owner.Combat.EffectManager.GetAllEffectsCreatedBy(fromActor.GUID).FindAll((Predicate<Effect>)(x => x.targetID == Owner.GUID));
       for (int index = 0; index < auraComponent.componentDef.statusEffects.Length; ++index) {
         if (__instance.ShouldAffectThisActor(fromActor, auraComponent.componentDef.statusEffects[index], triggerSource)) {
@@ -314,7 +314,7 @@ namespace CustomActivatableEquipment {
           else
             __instance.RemoveEffectIfPresent(fromActor, auraComponent.componentDef.Description.Id, auraComponent.componentDef.statusEffects[index], all, triggerSource);
         }
-      }
+      }*/
       return false;
       //Log.LogWrite("AuraCache.UpdateAura prefix owner:" + Owner.DisplayName + ":" + Owner.GUID + " from: " + fromActor.DisplayName + ":" + fromActor.GUID + " component:" + auraComponent.defId + "\n");
     }
@@ -391,14 +391,14 @@ namespace CustomActivatableEquipment {
     public static bool isActive(this MechComponent component) {
       return ActivatableComponent.isComponentActivated(component);
     }
-    public static bool ShouldAffectThisActor(this AuraCache instance, AbstractActor fromActor, EffectData effect, EffectTriggerType triggerSource) {
+    /*public static bool ShouldAffectThisActor(this AuraCache instance, AbstractActor fromActor, EffectData effect, EffectTriggerType triggerSource) {
       return (bool)mShouldAffectThisActor.Invoke(instance, new object[] { fromActor, effect, triggerSource });
     }
     public static bool AuraConditionsPassed(this AuraCache instance, AbstractActor fromActor, MechComponent auraComponent, EffectData effectData, float distSquared, EffectTriggerType triggerSource) {
       return (bool)mAuraConditionsPassed.Invoke(instance, new object[] {  fromActor, auraComponent,  effectData,  distSquared,  triggerSource });
-    }
+    }*/
     public static bool Prefix(AuraCache __instance, AbstractActor fromActor, MechComponent auraComponent, float distSquared, ref List<EffectData> __result) {
-      AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
+      /*AbstractActor Owner = (AbstractActor)FOwner.Invoke(__instance, new object[0] { });
       List<EffectData> effectDataList = new List<EffectData>();
       for (int index = 0; index < auraComponent.componentDef.statusEffects.Length; ++index) {
         if (__instance.ShouldAffectThisActor(fromActor, auraComponent.componentDef.statusEffects[index], EffectTriggerType.Preview) && __instance.AuraConditionsPassed(fromActor, auraComponent, auraComponent.componentDef.statusEffects[index], distSquared, EffectTriggerType.Preview))
@@ -418,7 +418,7 @@ namespace CustomActivatableEquipment {
           }
         }
       }
-      __result = effectDataList;
+      __result = effectDataList;*/
       return false;
       //Log.LogWrite("AuraCache.PreviewAura prefix owner:" + Owner.DisplayName + ":" + Owner.GUID + " from: " + fromActor.DisplayName + ":" + fromActor.GUID + " component:" + auraComponent.defId + "\n");
     }

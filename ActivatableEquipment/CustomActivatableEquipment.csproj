@@ -53,6 +53,7 @@
     <Reference Include="CustomComponents">
       <HintPath>..\..\Mods\CustomComponents\CustomComponents.dll</HintPath>
     </Reference>
+    <Reference Include="DOTweenPro, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
     <Reference Include="InControl">
       <HintPath>..\..\BattleTech_Data\Managed\InControl.dll</HintPath>
     </Reference>

@@ -30,6 +30,20 @@ namespace CustomActivatableEquipment {
       if (CombatHUDEquipmentPanel.Instance != null) { CombatHUDEquipmentPanel.Instance.RefreshDisplayedEquipment(__instance.DisplayedActor); };
     }
   }
+  [HarmonyPatch(typeof(TurnDirector))]
+  [HarmonyPatch("BeginNewRound")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(int) })]
+  public static class TurnDirector_BeginNewRound {
+    //public static bool Prepare() { return false; }
+    public static void Postfix(TurnDirector __instance) {
+      foreach(AbstractActor unit in __instance.Combat.AllActors) {
+        if (unit.IsShutDown) { continue; };
+        if (unit.IsDead) { continue; }
+        unit.UpdateAurasWithSensors();
+      }
+    }
+  }
   [HarmonyPatch(typeof(CombatHUDSidePanelHoverElement))]
   [HarmonyPatch("OnPointerClick")]
   [HarmonyPatch(MethodType.Normal)]
