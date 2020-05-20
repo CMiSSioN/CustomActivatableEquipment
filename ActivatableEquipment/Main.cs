@@ -257,32 +257,6 @@ namespace CustomActivatablePatches {
       __instance.ActiveDefaultComponents();
     }
   }*/
-  [HarmonyPatch(typeof(CombatHUD))]
-  [HarmonyPatch("Init")]
-  [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPatch(new Type[] { typeof(CombatGameState) })]
-  public static class CombatHUD_Init {
-    public static void ActiveDefaultComponents(this AbstractActor unit) {
-      foreach (MechComponent component in unit.allComponents) {
-        ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
-        if (activatable == null) { continue; }
-        if (activatable.ActiveByDefault == true) {
-          ActivatableComponent.activateComponent(component, true, true);
-        } else {
-          activatable.applyOfflineEffects(component,true);
-        }
-      }
-    }
-    public static void Postfix(CombatHUD __instance, CombatGameState Combat) {
-      try {
-        foreach (AbstractActor unit in Combat.AllActors) {
-          unit.ActiveDefaultComponents();
-        }
-      } catch (Exception e) {
-        Log.LogWrite(e.ToString()+"\n",true);
-      }
-    }
-  }
 }
 
 namespace CustomActivatableEquipment {
@@ -693,7 +667,7 @@ namespace CustomActivatableEquipment {
     }
 
     public static bool rollFail(MechComponent component, bool isInital = false, bool testRoll = false) {
-      Log.LogWrite("rollFail " + component.defId + "\n");
+      Log.TWL(0,"rollFail " + component.defId);
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) { return false; }
       if ((ActivatableComponent.isComponentActivated(component) == false) && (isInital == false)) {
@@ -767,6 +741,7 @@ namespace CustomActivatableEquipment {
         }
         Log.LogWrite(" owner status. Death:" + owner.IsFlaggedForDeath + " Knockdown:" + owner.IsFlaggedForKnockdown + "\n");
         bool needToDone = false;
+        owner.CheckPilotStatusFromAttack("Component Fail",-1,-1);
         if (owner.IsFlaggedForDeath || owner.IsFlaggedForKnockdown) {
           Log.LogWrite(" need done with actor\n");
           needToDone = true;
@@ -1058,6 +1033,7 @@ namespace CustomActivatableEquipment {
       }
       activatable.removeOnlineEffects(component);
       activatable.removeOfflineEffects(component);
+      component.UpdateAuras(false);
       ObjectSpawnDataSelf activeVFX = component.ActivateVFX();
       if (activeVFX != null) { activeVFX.CleanupSelf(); }
       Log.LogWrite(component.defId+" shutdown\n");
@@ -1071,6 +1047,7 @@ namespace CustomActivatableEquipment {
       } else {
         activatable.applyOfflineEffects(component, true);
       }
+      component.UpdateAuras(false);
     }
     public static void deactivateComponent(MechComponent component) {
       CombatHUDEquipmentSlotEx.ClearCache(component);

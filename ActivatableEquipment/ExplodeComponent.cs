@@ -1,6 +1,7 @@
 ﻿using BattleTech;
 using BattleTech.UI;
 using CustAmmoCategories;
+using CustomAmmoCategoriesPatches;
 using CustomComponents;
 using Harmony;
 using Localize;
@@ -856,9 +857,13 @@ namespace CustomActivatableEquipment {
         }
         Mech mech = target as Mech;
         Vehicle vehicle = target as Vehicle;
-        if (mech == null) {
+        if (target.isHasHeat()) {
           Damage += HeatDamage;
+          HeatDamage = 0f;
         };
+        if (target.isHasStability()) {
+          StabDamage = 0f;
+        }
         List<int> hitLocations = null;
         Dictionary<int, float> AOELocationDict = null;
         if (mech != null) {

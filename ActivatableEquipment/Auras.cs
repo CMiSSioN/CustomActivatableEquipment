@@ -1,5 +1,6 @@
 ﻿using BattleTech;
 using BattleTech.Rendering;
+using BattleTech.Rendering.UrbanWarfare;
 using BattleTech.UI;
 using CustomActivatablePatches;
 using CustomComponents;
@@ -19,6 +20,27 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace CustomActivatableEquipment {
+  [HarmonyPatch(typeof(DestructibleUrbanFlimsy))]
+  [HarmonyPatch("OnTriggerEnter")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(Collider) })]
+  public static class DestructibleUrbanFlimsy_OnTriggerEnter {
+    public static bool Prefix(DestructibleUrbanFlimsy __instance, Collider other) {
+      int instanceId = other.gameObject.GetInstanceID();
+      Log.LogWrite("DestructibleUrbanFlimsy.OnTriggerEnter Prefix " + other.gameObject.name + ":" + instanceId + "\n");
+      AuraActorBody body = other.GetComponent<AuraActorBody>();
+      if (body != null) {
+        Log.LogWrite(" aura body\n");
+        return false;
+      }
+      AuraBubble aura = other.GetComponent<AuraBubble>();
+      if (aura != null) {
+        Log.LogWrite(" aura bubble\n");
+        return false;
+      }
+      return true;
+    }
+  }
   [HarmonyPatch(typeof(AbstractActor))]
   [HarmonyPatch("InitEffectStats")]
   [HarmonyPatch(MethodType.Normal)]
@@ -349,7 +371,8 @@ namespace CustomActivatableEquipment {
     public int StealthPipsPrev { get; set; }
     //public Dictionary<string, int> aurasVFXes { get; set; }
     public Dictionary<AuraBubble, HashSet<string>> affectedAurasEffects { get; set; }
-    public Queue<AuraChangeRequest> changeQueue;
+    //public Queue<AuraChangeRequest> changeQueue;
+    public Dictionary<AuraBubble,bool> aurasToChange;
     public void ShowAddFloatie(AuraBubble aura) {
       bool isAlly = false;
       AuraDef def = aura.Def;
@@ -374,27 +397,47 @@ namespace CustomActivatableEquipment {
       }
     }
     public void ShowDelFloatie(AuraBubble aura) {
-      bool isAlly = false;
-      AuraDef def = aura.Def;
-      AbstractActor auraOwner = aura.owner;
-      if (owner.GUID == auraOwner.GUID) { isAlly = true; } else
-        if (owner.TeamId == auraOwner.TeamId) { isAlly = true; } else {
-        if (owner.team == null) {
-          isAlly = false;
-          Log.TWL(0, "!!!WARNING!!! " + new Text(owner.DisplayName).ToString() + " have no team. Fix this!!", true);
-        } else {
-          try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.TWL(0, e.ToString(), true); };
+      try {
+        bool isAlly = false;
+        AuraDef def = aura.Def;
+        AbstractActor auraOwner = aura.owner;
+        if (owner.GUID == auraOwner.GUID) { isAlly = true; } else
+          if (owner.TeamId == auraOwner.TeamId) { isAlly = true; } else {
+          if ((owner.team == null)||(auraOwner.team == null)) {
+            isAlly = false;
+            if (owner.team == null) {
+              Log.TWL(0, "!!!WARNING!!! " + new Text(owner.DisplayName).ToString() + "  have no team. Fix this!!", true);
+            } else {
+              Log.TWL(0, "!!!WARNING!!! " + new Text(auraOwner.DisplayName).ToString() + "  have no team. Fix this!!", true);
+            }
+          } else {
+            try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.TWL(0, e.ToString(), true); isAlly = false; };
+          }
         }
+        this.ShowDelFloatie(aura, isAlly);
+      } catch (Exception e) {
+        Log.TWL(0, e.ToString(), true);
       }
-      this.ShowDelFloatie(aura, isAlly);
     }
     public void ShowDelFloatie(AuraBubble aura, bool isAlly) {
-      FloatieMessage.MessageNature nature = FloatieMessage.MessageNature.NotSet;
-      string action = "";
-      if (isAlly && aura.Def.IsPositiveToAlly) { action = "REMOVED"; nature = FloatieMessage.MessageNature.Buff; } else if ((isAlly == false) && aura.Def.IsNegativeToEnemy) { action = "REMOVED"; nature = FloatieMessage.MessageNature.Debuff; } else if ((isAlly == false) && aura.Def.IsPositiveToEnemy) { action = "REMOVED"; nature = FloatieMessage.MessageNature.Buff; } else if ((isAlly == true) && aura.Def.IsNegativeToAlly) { action = "REMOVED"; nature = FloatieMessage.MessageNature.Debuff; }
-      if (this.owner.IsSensorLocked && aura.Def.RemoveOnSensorLock) { action = "SUPPRESSED"; }
-      if (nature != FloatieMessage.MessageNature.NotSet) {
-        owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(aura.owner.GUID, owner.GUID, new Text("{0} {1}", aura.Def.Name, action), nature));
+      try {
+        FloatieMessage.MessageNature nature = FloatieMessage.MessageNature.NotSet;
+        string action = "";
+        if (isAlly && aura.Def.IsPositiveToAlly) { action = "REMOVED"; nature = FloatieMessage.MessageNature.Buff; } else if ((isAlly == false) && aura.Def.IsNegativeToEnemy) { action = "REMOVED"; nature = FloatieMessage.MessageNature.Debuff; } else if ((isAlly == false) && aura.Def.IsPositiveToEnemy) { action = "REMOVED"; nature = FloatieMessage.MessageNature.Buff; } else if ((isAlly == true) && aura.Def.IsNegativeToAlly) { action = "REMOVED"; nature = FloatieMessage.MessageNature.Debuff; }
+        if (this.owner.IsSensorLocked && aura.Def.RemoveOnSensorLock) { action = "SUPPRESSED"; }
+        if (nature != FloatieMessage.MessageNature.NotSet) {
+          if (owner.Combat == null) {
+            Log.TWL(0, "This is reall fucking shit. Combatant without Combat inited", true);
+          } else {
+            if (owner.Combat.MessageCenter == null) {
+              owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(aura.owner.GUID, owner.GUID, new Text("{0} {1}", aura.Def.Name, action), nature));
+            } else {
+              Log.TWL(0, "This is reall fucking shit. Combat without message center", true);
+            }
+          }
+        }
+      }catch(Exception e) {
+        Log.TWL(0, e.ToString(), true);
       }
     }
     public void ApplyAuraEffects(AuraBubble aura, bool forcedFloatie) {
@@ -555,7 +598,8 @@ namespace CustomActivatableEquipment {
     }
     public AuraActorBody() {
       affectedAurasEffects = new Dictionary<AuraBubble, HashSet<string>>();
-      changeQueue = new Queue<AuraChangeRequest>();
+      aurasToChange = new Dictionary<AuraBubble, bool>();
+      //changeQueue = new Queue<AuraChangeRequest>();
       //aurasVFXes = new Dictionary<string, int>();
     }
     void Awake() {
@@ -569,7 +613,12 @@ namespace CustomActivatableEquipment {
       if (aura.owner.IsDead) { return; }
       if (affectedAurasEffects.ContainsKey(aura)) { return; }
       if (owner.IsSensorLocked && aura.Def.RemoveOnSensorLock) { return; };
-      changeQueue.Enqueue(new AuraChangeRequest(true, aura));
+      if (aurasToChange.TryGetValue(aura, out bool isAdd)) {
+        if (isAdd == true) { return; }
+        aurasToChange[aura] = true;
+      } else {
+        aurasToChange.Add(aura, true);
+      }
       //ApplyAuraEffects(aura, false);
       //aura.owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(owner.GUID, owner.GUID,
       //"AURA FROM " + aura.owner.DisplayName + " ADD",
@@ -581,7 +630,13 @@ namespace CustomActivatableEquipment {
       AuraBubble aura = other.gameObject.GetComponent<AuraBubble>();
       if (aura == null) { return; }
       if (affectedAurasEffects.ContainsKey(aura) == false) { return; }
-      changeQueue.Enqueue(new AuraChangeRequest(false, aura));
+      if (aurasToChange.TryGetValue(aura, out bool isAdd)) {
+        if (isAdd == false) { return; }
+        aurasToChange[aura] = false;
+      } else {
+        aurasToChange.Add(aura, false);
+      }
+      //changeQueue.Enqueue(new AuraChangeRequest(false, aura));
 
       //RemoveAuraEffects(aura, true, false);
       //aura.owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(owner.GUID, owner.GUID,
@@ -591,12 +646,18 @@ namespace CustomActivatableEquipment {
       Log.LogWrite("Collision exit " + owner.DisplayName + ":" + owner.GUID + " -> " + aura.owner.DisplayName + ":" + aura.owner.GUID + " r:" + aura.collider.radius + "/" + Vector3.Distance(owner.CurrentPosition, aura.owner.CurrentPosition) + "\n");
     }
     public void Update() {
-      if (changeQueue.Count == 0) { return; };
-      AuraChangeRequest request = changeQueue.Dequeue();
-      if (request.isAdd) {
-        ApplyAuraEffects(request.aura, false);
+      if (aurasToChange.Count == 0) { return; };
+      KeyValuePair<AuraBubble, bool> auraChangeRec = aurasToChange.First();
+      aurasToChange.Remove(auraChangeRec.Key);
+      //AuraChangeRequest request = changeQueue.Dequeue();
+      if (auraChangeRec.Value) {
+        if (affectedAurasEffects.ContainsKey(auraChangeRec.Key) == false) {
+          ApplyAuraEffects(auraChangeRec.Key, false);
+        }
       } else {
-        RemoveAuraEffects(request.aura, true, false);
+        if (affectedAurasEffects.ContainsKey(auraChangeRec.Key)) {
+          RemoveAuraEffects(auraChangeRec.Key, true, false);
+        }
       }
     }
   }
@@ -664,7 +725,7 @@ namespace CustomActivatableEquipment {
     }
     public void UpdateRadius(bool now = false) {
       float radius = this.GetRadius();
-      if (this.owner.IsDead) { radius = 0.1f; } else
+      if (this.owner.IsDead || this.owner.IsShutDown) { radius = 0.1f; } else
       if (source != null) {
         if (source.IsFunctional == false) { radius = 0.1f; } else {
           if (Def.State != AuraState.Persistent) {

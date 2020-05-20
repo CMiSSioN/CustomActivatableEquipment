@@ -2,6 +2,7 @@
 using BattleTech.UI;
 using CustomComponents;
 using Harmony;
+using Localize;
 using System;
 using System.Collections.Generic;
 
@@ -89,6 +90,21 @@ namespace CustomActivatableEquipment {
         DamagedStructureLocationsThisTurn.Add(unit, new HashSet<int>());
       }
       DamagedStructureLocationsThisTurn[unit].Add(Location);
+    }
+    public static Statistic GetArmorStatisticForLocation(this AbstractActor unit, int Location) {
+      Mech mech = unit as Mech;
+      Vehicle vehicle = unit as Vehicle;
+      Turret turret = unit as Turret;
+      if(mech != null) {
+        return unit.StatCollection.GetStatistic(mech.GetStringForArmorLocation((ArmorLocation)Location));
+      }
+      if (vehicle != null) {
+        return unit.StatCollection.GetStatistic(vehicle.GetStringForArmorLocation((VehicleChassisLocations)Location));
+      }
+      if (turret != null) {
+        return unit.StatCollection.GetStatistic(turret.GetStringForArmorLocation((BuildingLocation)Location));
+      }
+      return null;
     }
     public static void CommitCAEDamageData(this AbstractActor unit) {
       Log.LogWrite("CommitDamageData "+unit.DisplayName+":"+unit.GUID+"\n");
@@ -227,8 +243,13 @@ namespace CustomActivatableEquipment {
       Log.LogWrite(" \n");
       if (this.Armor > Core.Epsilon) {
         foreach (int Location in affectedArmorLocations) {
-          float maxArmor = component.parent.MaxArmorForLocation(Location);
-          float currentArmor = component.parent.ArmorForLocation(Location);
+          Statistic stat = component.parent.GetArmorStatisticForLocation(Location);
+          if(stat == null) {
+            Log.TWL(0, "Can't get armor stat " + new Text(component.parent.DisplayName).ToString() + " location:" +Location, true);
+            continue;
+          }
+          float maxArmor = stat.DefaultValue<float>();
+          float currentArmor = stat.Value<float>();
           int StructureLocation = Location;
           if (mech != null) {
             StructureLocation = (int)MechStructureRules.GetChassisLocationFromArmorLocation((ArmorLocation)Location);
@@ -236,7 +257,7 @@ namespace CustomActivatableEquipment {
           currentArmor += this.Armor;
           if (currentArmor > maxArmor) { currentArmor = maxArmor; };
           float delta = currentArmor - component.parent.ArmorForLocation(Location);
-          Log.LogWrite(" armor repair amount:" + delta + "\n");
+          Log.WL(2, "location:"+Location+" maxArmor:"+ maxArmor + " currentArmor:"+ currentArmor+"("+delta+")");
           if (delta > Core.Epsilon) {
             if (mech != null) {
               Log.LogWrite("  mech stat armor location:" + mech.GetStringForArmorLocation((ArmorLocation)Location) + "\n");

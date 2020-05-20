@@ -94,6 +94,7 @@
     <Compile Include="ActivatableButtonHelper.cs" />
     <Compile Include="ActivatableEquipmentSlot.cs" />
     <Compile Include="ActivateDialog.cs" />
+    <Compile Include="ActiveByDefault.cs" />
     <Compile Include="AIHelper.cs" />
     <Compile Include="AudioHelper.cs" />
     <Compile Include="AuraAISupport.cs" />

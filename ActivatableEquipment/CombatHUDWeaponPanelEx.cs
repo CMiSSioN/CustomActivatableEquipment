@@ -435,7 +435,8 @@ namespace CustomActivatableEquipment {
         }
         string state = CombatHUDEquipmentSlotEx.GetState(component, activeDef);
         stateText.SetText(state);
-        failText.SetText("{0}%", CombatHUDEquipmentSlotEx.FailChance(component) * 100f);
+        //float failChance = Mathf.Round(CombatHUDEquipmentSlotEx.FailChance(component)*100.0f);
+        failText.SetText("{0}%", Mathf.Round(CombatHUDEquipmentSlotEx.FailChance(component) * 100.0f));
       }
       AbstractActor actor = component.parent;
       bool forceInactive = actor.HasActivatedThisRound || actor.MovingToPosition != null || actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved;
