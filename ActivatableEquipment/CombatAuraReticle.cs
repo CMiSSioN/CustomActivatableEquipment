@@ -36,7 +36,21 @@ namespace CustomActivatablePatches {
          return false;
       }
       if (aura != null) {
-        if (aura.isMainSensors) { return aura.Def.isSpining == spinning; }
+        if (aura.Def.isSpining != spinning) { return false; }
+        if (aura.isMainSensors) {
+          if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.ShowAll) { return true; }
+          if (aura.Def.NotShowOnSelected) { return false; };
+          if (aura.Def.HideOnNotSelected) {
+            if (___HUD.SelectedActor != null) {
+              if (___HUD.SelectedActor.GUID == ___owner.GUID) {
+                return true;
+              }
+            }
+            return false;
+          } else {
+            return true;
+          }
+        }
         if (aura.source != null) {
           if (aura.Def.isSpining != spinning) { return false; }
           Weapon weapon = aura.source as Weapon;

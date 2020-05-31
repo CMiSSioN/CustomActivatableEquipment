@@ -857,11 +857,11 @@ namespace CustomActivatableEquipment {
         }
         Mech mech = target as Mech;
         Vehicle vehicle = target as Vehicle;
-        if (target.isHasHeat()) {
+        if (target.isHasHeat() == false) {
           Damage += HeatDamage;
           HeatDamage = 0f;
         };
-        if (target.isHasStability()) {
+        if (target.isHasStability() == false) {
           StabDamage = 0f;
         }
         List<int> hitLocations = null;

@@ -390,6 +390,8 @@ namespace CustomActivatableEquipment {
     }
     public void ShowAddFloatie(AuraBubble aura, bool isAlly) {
       FloatieMessage.MessageNature nature = FloatieMessage.MessageNature.NotSet;
+      if (owner.Combat == null) { return; }
+      if (owner.Combat.MessageCenter == null) { return; }
       string action = "";
       if (isAlly && aura.Def.IsPositiveToAlly) { action = "PROTECTED"; nature = FloatieMessage.MessageNature.Buff; } else if ((isAlly == false) && aura.Def.IsNegativeToEnemy) { action = "AFFECTED"; nature = FloatieMessage.MessageNature.Debuff; } else if ((isAlly == false) && aura.Def.IsPositiveToEnemy) { action = "PROTECTED"; nature = FloatieMessage.MessageNature.Buff; } else if ((isAlly == true) && aura.Def.IsNegativeToAlly) { action = "AFFECTED"; nature = FloatieMessage.MessageNature.Debuff; }
       if (nature != FloatieMessage.MessageNature.NotSet) {
