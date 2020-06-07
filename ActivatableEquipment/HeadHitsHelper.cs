@@ -13,6 +13,14 @@ namespace CustomActivatableEquipment {
       }
       return statistic;
     }
+    public static void SetOrCreateStatisic<StatisticType>(this StatCollection collection, string statName, StatisticType value) {
+      Statistic statistic = collection.GetStatistic(statName);
+      if (statistic == null) {
+        statistic = collection.AddStatistic<StatisticType>(statName, value);
+      } else {
+        statistic.SetValue(value);
+      }      
+    }
   }
   [HarmonyPatch(typeof(AbstractActor))]
   [HarmonyPatch("InitEffectStats")]

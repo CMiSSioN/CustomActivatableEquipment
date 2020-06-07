@@ -1208,6 +1208,7 @@ namespace CustomActivatableEquipment {
     public AuraDef sensorsAura { get; set; }
     public string unaffectedByHeadHitStatName { get; set; }
     public float auraStartupTime { get; set; }
+    public float equipmentFlashFailChance { get; set; }
     public Settings() {
       debug = true;
       AdditionalAssets = new List<string>();
@@ -1232,6 +1233,7 @@ namespace CustomActivatableEquipment {
       auraStartupTime = 10f;
       sensorsAura = new AuraDef();
       unaffectedByHeadHitStatName = "unaffectedByHeadHit";
+      equipmentFlashFailChance = 0.1f;
     }
   }
   public class ComponentToggle {

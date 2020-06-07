@@ -328,6 +328,17 @@ namespace CustomActivatableEquipment {
     public List<Ability> abilities { get; set; }
     public bool RealState { get; set; }
     private bool hovered { get; set; }
+    private bool isNeedFlashing() {
+      if (component == null) { return false; }
+      if (activeDef == null) { return false; }
+      if (activeDef.ChargesCount != 0) { return false; }
+      if (component.isActive() == false) { return false; }
+      if (component.FailChance() < Core.Settings.equipmentFlashFailChance) { return false; }
+      return true;
+    }
+    private bool flashing { get; set; }
+    private float flashSpeedCurrent;
+    private float flashT;
     private UILookAndColorConstants LookAndColorConstants { get; set; }
     private void ShowTextColor(Color color, Color failChanceColor) {
       this.nameText.color = color;
@@ -336,11 +347,21 @@ namespace CustomActivatableEquipment {
       this.chargesText.color = color;
     }
     private void RefreshHighlighted() {
-      if ((this.component.IsFunctional == false) || (this.activeDef == null) || (HUD.SelectedTarget != null)) { return; }
-      if (this.activeDef.CanBeactivatedManualy == false) { return; }
-      if (ActivatableComponent.isOutOfCharges(component)) { return; }
-      if (component.parent.HasMovedThisRound) { return; }
-      if (component.parent.IsAvailableThisPhase == false) { return; }
+      flashing = false;
+      flashSpeedCurrent = 2f;
+      flashT = 0f;
+      if (this.component.IsFunctional == false) {
+        this.mainImage.color = this.LookAndColorConstants.WeaponSlotColors.DisabledBGColor;
+        this.checkImage.color = this.LookAndColorConstants.WeaponSlotColors.DisabledBGColor;
+        this.ShowTextColor(this.LookAndColorConstants.WeaponSlotColors.DisabledTextColor, this.LookAndColorConstants.WeaponSlotColors.DisabledTextColor);
+        return;
+      } else
+      if ((activeDef == null) || (HUD.SelectedTarget != null) || ActivatableComponent.isOutOfCharges(component) || (component.parent.IsAvailableThisPhase == false) || (component.parent.HasMovedThisRound)) {
+        this.mainImage.color = this.LookAndColorConstants.WeaponSlotColors.UnavailableSelBGColor;
+        this.checkImage.color = this.LookAndColorConstants.WeaponSlotColors.UnavailableSelBGColor;
+        this.ShowTextColor(this.LookAndColorConstants.WeaponSlotColors.UnavailableSelTextColor, this.LookAndColorConstants.WeaponSlotColors.UnavailableSelTextColor);
+        return;
+      }
       this.HUD.PlayAudioEvent(AudioEventList_ui.ui_weapon_hover);
       this.mainImage.color = this.LookAndColorConstants.WeaponSlotColors.HighlightedBGColor;
       this.ShowTextColor(this.LookAndColorConstants.WeaponSlotColors.HighlightedTextColor, this.LookAndColorConstants.WeaponSlotColors.HighlightedTextColor);
@@ -364,9 +385,19 @@ namespace CustomActivatableEquipment {
         this.ShowTextColor(this.LookAndColorConstants.WeaponSlotColors.UnavailableSelTextColor, this.LookAndColorConstants.WeaponSlotColors.UnavailableSelTextColor);
         return;
       }
-      this.mainImage.color = this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor;
+      flashing = isNeedFlashing();
+      if (flashing == false) {
+        this.mainImage.color = this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor;
+      }
       this.checkImage.color = this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor;
       this.ShowTextColor(this.LookAndColorConstants.WeaponSlotColors.AvailableTextColor, this.GetFailTextColor(CombatHUDEquipmentSlotEx.FailChance(component)));
+    }
+    public void Update() {
+      if (flashing == false) { return; }
+      flashT += Time.deltaTime * flashSpeedCurrent;
+      if (flashT > 1f) { flashT = 1f; flashSpeedCurrent = -2f; }
+      if (flashT < 0f) { flashT = 0f; flashSpeedCurrent = 2f; }
+      this.mainImage.color = Color.Lerp(this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor,Color.red, flashT);
     }
     public override void OnPointerEnter(PointerEventData eventData) {
       Log.TWL(0, "CombatHUDEquipmentSlotEx.OnPointerEnter " + component.defId);
@@ -447,6 +478,11 @@ namespace CustomActivatableEquipment {
     public void Show() {
       if (RealState) {
         //Log.TWL(0, "CombatHUDEquipmentSlotEx.Show "+component.defId+" abilities:"+abilities.Count);
+        if(this.gameObject.activeInHierarchy == false) {
+          flashing = isNeedFlashing();
+          flashSpeedCurrent = 2f;
+          flashT = 0f;
+        }
         this.gameObject.SetActive(true);
         //this.gameObject.transform.parent.gameObject.SetActive(true);
         for (int index = 0; index < abilities.Count; ++index) {
@@ -464,6 +500,9 @@ namespace CustomActivatableEquipment {
         button.transform.parent.gameObject.SetActive(false);
         button.gameObject.SetActive(false);
       }
+      flashing = false;
+      flashSpeedCurrent = 2f;
+      flashT = 0f;
     }
     public static void ResetAbilityButton(AbstractActor actor, CombatHUDActionButton button, Ability ability, bool forceInactive) {
       if (ability == null)

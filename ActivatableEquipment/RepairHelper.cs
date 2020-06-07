@@ -84,12 +84,19 @@ namespace CustomActivatableEquipment {
         DamagedStructureLocationsThisTurn.Add(unit, new HashSet<int>());
       }
       DamagedStructureLocationsThisTurn[unit].Add((int)MechStructureRules.GetChassisLocationFromArmorLocation((ArmorLocation)Location));
+      unit.StatCollection.SetOrCreateStatisic(unit.GetArmorStringForLocation(Location) + "_damageRound", unit.Combat.TurnDirector.CurrentRound);
     }
     public static void AddDamagedLocation(this AbstractActor unit, int Location) {
       if (DamagedStructureLocationsThisTurn.ContainsKey(unit) == false) {
         DamagedStructureLocationsThisTurn.Add(unit, new HashSet<int>());
       }
       DamagedStructureLocationsThisTurn[unit].Add(Location);
+      unit.StatCollection.SetOrCreateStatisic(unit.GetArmorStringForLocation(Location) + "_damageRound", unit.Combat.TurnDirector.CurrentRound);
+    }
+    public static int turnsSinceLocationDamage(this AbstractActor unit, int Location) {
+      Statistic stat = unit.StatCollection.GetStatistic(unit.GetArmorStringForLocation(Location) + "_damageRound");
+      if (stat == null) { return 65536; };
+      return unit.Combat.TurnDirector.CurrentRound - stat.Value<int>();
     }
     public static Statistic GetArmorStatisticForLocation(this AbstractActor unit, int Location) {
       Mech mech = unit as Mech;
@@ -105,6 +112,21 @@ namespace CustomActivatableEquipment {
         return unit.StatCollection.GetStatistic(turret.GetStringForArmorLocation((BuildingLocation)Location));
       }
       return null;
+    }
+    public static string GetArmorStringForLocation(this AbstractActor unit, int Location) {
+      Mech mech = unit as Mech;
+      Vehicle vehicle = unit as Vehicle;
+      Turret turret = unit as Turret;
+      if (mech != null) {
+        return mech.GetStringForArmorLocation((ArmorLocation)Location);
+      }
+      if (vehicle != null) {
+        return vehicle.GetStringForArmorLocation((VehicleChassisLocations)Location);
+      }
+      if (turret != null) {
+        return turret.GetStringForArmorLocation((BuildingLocation)Location);
+      }
+      return string.Empty;
     }
     public static void CommitCAEDamageData(this AbstractActor unit) {
       Log.LogWrite("CommitDamageData "+unit.DisplayName+":"+unit.GUID+"\n");
@@ -174,10 +196,12 @@ namespace CustomActivatableEquipment {
     public BuildingLocation[] BuildingLocations { get; set; }
     public bool AffectInstalledLocation { get; set; }
     public RepairTrigger repairTrigger { get; set; }
+    public int TurnsSinceDamage { get; set; }
     public RepairRecord() {
       InnerStructure = 0f;
       Armor = 0f;
       Components = 0;
+      TurnsSinceDamage = 1;
       MechStructureLocations = new ChassisLocations[0];
       MechArmorLocations = new ArmorLocation[0];
       VehicleLocations = new VehicleChassisLocations[0];
@@ -247,6 +271,13 @@ namespace CustomActivatableEquipment {
           if(stat == null) {
             Log.TWL(0, "Can't get armor stat " + new Text(component.parent.DisplayName).ToString() + " location:" +Location, true);
             continue;
+          }
+          Log.TWL(0, "turnsSinceLocationDamage:"+ component.parent.turnsSinceLocationDamage(Location)+" component:"+TurnsSinceDamage);
+          if (TurnsSinceDamage >= 0) {
+            if (component.parent.turnsSinceLocationDamage(Location) > TurnsSinceDamage) {
+              Log.WL(1, "damage too long ago. No reparing performed.");
+              continue;
+            }
           }
           float maxArmor = stat.DefaultValue<float>();
           float currentArmor = stat.Value<float>();

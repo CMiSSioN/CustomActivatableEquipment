@@ -380,10 +380,13 @@ namespace CustomActivatableEquipment {
       if (owner.GUID == auraOwner.GUID) { isAlly = true; } else
         if (owner.TeamId == auraOwner.TeamId) { isAlly = true; } else {
         if (owner.team == null) {
-          isAlly = false;
           Log.TWL(0, "!!!WARNING!!! "+new Text(owner.DisplayName).ToString() + " have no team. Fix this!!", true);
         } else {
-          try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.TWL(0, e.ToString(), true); };
+          if (auraOwner.team == null) {
+            Log.TWL(0, "!!!WARNING!!! " + new Text(auraOwner.DisplayName).ToString() + " have no team. Fix this!!", true);
+          } else {
+            try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.TWL(0, e.ToString(), true); };
+          }
         }
       }
       this.ShowAddFloatie(aura, isAlly);
