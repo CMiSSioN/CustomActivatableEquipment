@@ -799,9 +799,9 @@ namespace CustomActivatableEquipment {
     {
             ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
             if (activatable == null) { return true; }
-            if (activatable.AutoActivateOnIncomingHeat!=0 && activatable.AutoActivateOnIncomingHeat>=heatDamage)
+            if (activatable.AutoActivateOnIncomingHeat!=0 && activatable.AutoActivateOnIncomingHeat<=heatDamage)
             {
-                Log.LogWrite($"{component.Name} ActivateOnIncomingHeat {activatable.AutoActivateOnIncomingHeat:F3} >= {heatDamage} \n");
+                Log.LogWrite($"{component.Name} ActivateOnIncomingHeat {activatable.AutoActivateOnIncomingHeat:F3} <= {heatDamage} \n");
                 activateComponent(component, true, false);
                 return true;
             }
