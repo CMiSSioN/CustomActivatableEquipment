@@ -434,6 +434,11 @@ namespace CustomActivatableEquipment {
     public float EngineTonnageSlotsMult { get; set; }
     public float AutoActivateOnHeat { get; set; }
     public float AutoDeactivateOnHeat { get; set; }
+    public float AutoActivateOnIncomingHeat { get; set; }
+    public float AutoActivateOnArmorDamage { get; set; }
+    public float AutoActivateOnStructureDamage { get; set; }
+    public float AutoActivateOnAnyDamage { get; set; }
+    public ChassisLocations[] ActivateOnDamageToLocations { get; set; }//empty or None means installed location, All, Torso, Arms , Legs also look at the damage done across those locations.No idea what MainBody is.
     public float AutoActivateOnOverheatLevel { get; set; }
     public float AutoDeactivateOverheatLevel { get; set; }
     public string ActivationMessage { get; set; }
@@ -487,6 +492,11 @@ namespace CustomActivatableEquipment {
       FailPilotingMult = 0f;
       AutoActivateOnHeat = 0f;
       AutoDeactivateOnHeat = 0f;
+      AutoActivateOnIncomingHeat = 0f;
+      AutoActivateOnArmorDamage = 0f;
+      AutoActivateOnStructureDamage = 0f;
+      AutoActivateOnAnyDamage = 0f;
+      ActivateOnDamageToLocations = new ChassisLocations[0];
       FailDamageLocations = new ChassisLocations[0];
       statusEffects = new EffectData[0];
       offlineStatusEffects = new EffectData[0];
@@ -763,7 +773,84 @@ namespace CustomActivatableEquipment {
       }
       return true;
     }
-    public static bool isComponentActivated(MechComponent component) {
+
+
+    public static bool canBeDamageActivated(MechComponent component)
+    {
+        if(isComponentActivated(component))
+        {
+                Log.LogWrite($"{component.Name} already active or not activateable - cannot be activated");
+                return false;
+        }
+        ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+        if (activatable.AutoActivateOnIncomingHeat > 0f||
+            activatable.AutoActivateOnArmorDamage > 0f ||
+            activatable.AutoActivateOnStructureDamage > 0f ||
+            activatable.AutoActivateOnAnyDamage > 0f)
+        {
+                Log.LogWrite($"{component.Name} - can be damage activated");
+                return true;
+        }
+         return false;
+    }
+
+
+    internal static bool ActivateOnIncomingHeat(MechComponent component, int heatDamage)
+    {
+            ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+            if (activatable == null) { return true; }
+            if (activatable.AutoActivateOnIncomingHeat!=0 && activatable.AutoActivateOnIncomingHeat>=heatDamage)
+            {
+                Log.LogWrite($"{component.Name} ActivateOnIncomingHeat {activatable.AutoActivateOnIncomingHeat:F3} >= {heatDamage} ");
+                activateComponent(component, true, false);
+                return true;
+            }
+            return false;
+    }
+
+    internal static bool ActivateOnDamage(MechComponent component, float armorDamage,float structureDamage, ChassisLocations loc)
+    {
+            ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+            if (activatable == null) { return false; }
+            if (activatable.AutoActivateOnAnyDamage != 0 && activatable.AutoActivateOnAnyDamage <= (armorDamage+structureDamage) && shouldAutoActivateForDamageToLocation(component,loc) )
+            {
+                Log.LogWrite($"{component.Name} AutoActivateOnAnyDamage {activatable.AutoActivateOnAnyDamage:F3} <= {armorDamage + structureDamage} ");
+                activateComponent(component, true, false);
+                return true;
+            }
+            if (activatable.AutoActivateOnArmorDamage != 0 && activatable.AutoActivateOnArmorDamage <= armorDamage && shouldAutoActivateForDamageToLocation(component, loc))
+            {
+                Log.LogWrite($"{component.Name} AutoActivateOnArmorDamage {activatable.AutoActivateOnArmorDamage:F3} <= {armorDamage} ");
+                activateComponent(component, true, false);
+                return true;
+            }
+            if (activatable.AutoActivateOnStructureDamage != 0 && activatable.AutoActivateOnStructureDamage <= structureDamage && shouldAutoActivateForDamageToLocation(component, loc))
+            {
+                Log.LogWrite($"{component.Name} AutoActivateOnStructureDamage {activatable.AutoActivateOnStructureDamage:F3} <= {structureDamage} ");
+                activateComponent(component, true, false);
+                return true;
+            }
+            return false;
+        }
+
+        private static bool shouldAutoActivateForDamageToLocation(MechComponent component, ChassisLocations loc)
+        {
+            ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+            if (component.IsFunctional == false) { return false; }
+            if (activatable == null) { return false; }
+            if((activatable.ActivateOnDamageToLocations.Length==0 || activatable.ActivateOnDamageToLocations.Contains(ChassisLocations.None)) && (int)loc==component.Location){
+                Log.LogWrite($"shouldAutoActivate {component.Name} install location matches damage location {loc.ToString()}");
+                return true;
+            }
+            if (activatable.ActivateOnDamageToLocations.Contains(loc))
+            {
+                Log.LogWrite($"shouldAutoActivate {component.Name} auto activate location matches damage location {loc.ToString()}");
+                return true;
+            }
+            return false;
+        }
+
+        public static bool isComponentActivated(MechComponent component) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if(component.IsFunctional == false) { return false; }
       if (activatable == null) { return true; }

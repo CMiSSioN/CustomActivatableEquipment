@@ -29,7 +29,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;BT1_8</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -102,6 +102,7 @@
     <Compile Include="AuraPreviewCache.cs" />
     <Compile Include="Auras.cs" />
     <Compile Include="AuraUpdateHelper.cs" />
+    <Compile Include="DamageHelper.cs" />
     <Compile Include="CombatAuraReticle.cs" />
     <Compile Include="CombatHUDWeaponPanelEx.cs" />
     <Compile Include="ComponentsMenu.cs" />
