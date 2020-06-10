@@ -838,6 +838,45 @@ namespace CustomActivatableEquipment {
             ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
             if (component.IsFunctional == false) { return false; }
             if (activatable == null) { return false; }
+            if (loc==ChassisLocations.MainBody)
+            {
+                return false;//unsupported
+            }
+            if(component.parent is Mech mech)
+            {
+                //These checks mean that if a location is 1 hit destroyed damage triggered activation wont happen
+                //This allows overall damage checks i.e. (damage right leg+damage left leg>VAL) , as well multi location checks ( damage right leg>VAL OR damage left leg >VAL) checks.
+                if (loc== ChassisLocations.Torso && (mech.IsLocationDestroyed(ChassisLocations.CenterTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftTorso) || mech.IsLocationDestroyed(ChassisLocations.RightTorso)))
+                {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
+                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}");
+                    return false;
+                }
+                if (loc == ChassisLocations.Arms && (mech.IsLocationDestroyed(ChassisLocations.LeftArm) || mech.IsLocationDestroyed(ChassisLocations.RightArm)) )
+                {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
+                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}");
+                    return false;
+                }
+                if (loc == ChassisLocations.Legs && (mech.IsLocationDestroyed(ChassisLocations.LeftLeg) || mech.IsLocationDestroyed(ChassisLocations.RightLeg)) )
+                {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
+                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}");
+                    return false;
+                }
+                if (loc == ChassisLocations.All && (mech.IsLocationDestroyed(ChassisLocations.CenterTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftTorso) || mech.IsLocationDestroyed(ChassisLocations.RightTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftArm) || mech.IsLocationDestroyed(ChassisLocations.RightArm) || mech.IsLocationDestroyed(ChassisLocations.LeftLeg) || mech.IsLocationDestroyed(ChassisLocations.RightLeg)))
+                {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
+                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}");
+                    return false;
+                }
+                if (mech.IsLocationDestroyed(loc))
+                {
+                    Log.LogWrite($"shouldAutoActivate Skip cause Location Destroyed {loc.ToString()}");
+                    return false;
+                }
+            }
+            else
+            {
+                Log.LogWrite($"Not a mech, somethings broken");
+            }
+            if (loc==ChassisLocations.Torso && )
             if((activatable.ActivateOnDamageToLocations.Length==0 || activatable.ActivateOnDamageToLocations.Contains(ChassisLocations.None)) && (int)loc==component.Location){
                 Log.LogWrite($"shouldAutoActivate {component.Name} install location matches damage location {loc.ToString()}");
                 return true;
