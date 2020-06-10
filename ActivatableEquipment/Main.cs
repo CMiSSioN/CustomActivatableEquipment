@@ -876,7 +876,6 @@ namespace CustomActivatableEquipment {
             {
                 Log.LogWrite($"Not a mech, somethings broken");
             }
-            if (loc==ChassisLocations.Torso && )
             if((activatable.ActivateOnDamageToLocations.Length==0 || activatable.ActivateOnDamageToLocations.Contains(ChassisLocations.None)) && (int)loc==component.Location){
                 Log.LogWrite($"shouldAutoActivate {component.Name} install location matches damage location {loc.ToString()}");
                 return true;
