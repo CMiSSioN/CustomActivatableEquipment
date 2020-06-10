@@ -71,7 +71,7 @@ namespace CustomActivatableEquipment.DamageHelpers
             // can't do stuff with buildings or Vehicles
             if (!(__instance.directorSequences[0].chosenTarget is Mech))
             {
-                Log.LogWrite("Not a mech.");
+                Log.LogWrite("Not a mech.\n");
                 return;
             }
 
@@ -83,8 +83,8 @@ namespace CustomActivatableEquipment.DamageHelpers
             var director = __instance.directorSequences;
             if (director == null) return;
 
-            Log.LogWrite(new string('═', 46));
-            Log.LogWrite($"{director[0].attacker.DisplayName} attacks {director[0].chosenTarget.DisplayName}");
+            Log.LogWrite($"{new string('═', 46)}\n");
+            Log.LogWrite($"{director[0].attacker.DisplayName} attacks {director[0].chosenTarget.DisplayName}\n");
 
             AbstractActor defender = null;
             switch (director[0]?.chosenTarget)
@@ -97,13 +97,13 @@ namespace CustomActivatableEquipment.DamageHelpers
             // a building , vehicle or turret?
             if (defender == null)
             {
-                Log.LogWrite("Not a mech.");
+                Log.LogWrite("Not a mech.\n");
                 return;
             }
 
             if (defender.IsDead || defender.IsFlaggedForDeath || defender.IsShutDown)
             {
-                Log.LogWrite("defender dead or shutdown.");//<check> do we need to handle incoming damage when shutdown on startup?
+                Log.LogWrite("defender dead or shutdown.\n");//<check> do we need to handle incoming damage when shutdown on startup?
                 return;
             }
 
@@ -129,13 +129,13 @@ namespace CustomActivatableEquipment.DamageHelpers
                     Statistic stat = mech.StatCollection.GetStatistic(mech.GetStringForArmorLocation((ArmorLocation)Location));
                     if (stat == null)
                     {
-                        Log.LogWrite($"Can't get armor stat  { mech.DisplayName } location:{ Location.ToString()}");
+                        Log.LogWrite($"Can't get armor stat  { mech.DisplayName } location:{ Location.ToString()}\n");
                         return 0;
                     }
                     //Log.LogWrite($"armor stat  { mech.DisplayName } location:{ Location.ToString()} :{stat.DefaultValue<float>()}");
                     return stat.DefaultValue<float>();
                 }
-                Log.LogWrite($"Mech null");
+                Log.LogWrite($"Mech null\n");
                 return 0;
             }
             internal static float MaxStructureForLocation(Mech mech, int Location)
@@ -145,13 +145,13 @@ namespace CustomActivatableEquipment.DamageHelpers
                     Statistic stat = mech.StatCollection.GetStatistic(mech.GetStringForStructureLocation((ChassisLocations)Location));
                     if (stat == null)
                     {
-                        Log.LogWrite($"Can't get structure stat  { mech.DisplayName } location:{ Location.ToString()}");
+                        Log.LogWrite($"Can't get structure stat  { mech.DisplayName } location:{ Location.ToString()}\n");
                         return 0;
                     }
                     //Log.LogWrite($"structure stat  { mech.DisplayName } location:{ Location.ToString()}:{stat.DefaultValue<float>()}");
                     return stat.DefaultValue<float>();
                 }
-                Log.LogWrite($"Mech null");
+                Log.LogWrite($"Mech null\n");
                 return 0;
             }
 
@@ -190,7 +190,7 @@ namespace CustomActivatableEquipment.DamageHelpers
                         var id = attackSequence.chosenTarget.GUID;
                         if (!attackSequence.GetAttackDidDamage(id) && !hadMeleeAttack)
                         {
-                            Log.LogWrite("No damage");
+                            Log.LogWrite("No damage\n");
                             return;
                         }
 
@@ -202,7 +202,7 @@ namespace CustomActivatableEquipment.DamageHelpers
                             armorDamageMelee = attackSequence.GetArmorDamageDealt(id);
                             structureDamageMelee = attackSequence.GetStructureDamageDealt(id);
                             hadMeleeAttack = true;
-                            Log.LogWrite("Stashing melee damage for support weapon firing");
+                            Log.LogWrite("Stashing melee damage for support weapon firing\n");
                             return;
                         }
 
@@ -211,7 +211,7 @@ namespace CustomActivatableEquipment.DamageHelpers
 
                         if (hadMeleeAttack)
                         {
-                            Log.LogWrite("Adding stashed melee damage");
+                            Log.LogWrite("Adding stashed melee damage\n");
                             previousArmor = initialArmorMelee;
                             previousStructure = initialStructureMelee;
                         }
@@ -235,43 +235,43 @@ namespace CustomActivatableEquipment.DamageHelpers
                         gotdamagevalues = true;
                         if (defender is Mech mech)
                         {
-                            Log.LogWrite($"Damage >>> A: {armorDamage:F3} S: {structureDamage:F3} H: {heatDamage}");
-                            Log.LogWrite(new string('-', 46));
-                            Log.LogWrite($"{"Location",-20} | {"Armor Damage",12} | {"Structure Damage",12}");
-                            Log.LogWrite(new string('-', 46));
+                            Log.LogWrite($"Damage >>> A: {armorDamage:F3} S: {structureDamage:F3} H: {heatDamage}\n");
+                            Log.LogWrite($"{new string('-', 46)}\n");
+                            Log.LogWrite($"{"Location",-20} | {"Armor Damage",12} | {"Structure Damage",12}\n");
+                            Log.LogWrite($"{new string('-', 46)}\n");
                             Head_s = MaxStructureForLocation(mech, (int)ChassisLocations.Head) - mech.HeadStructure;
                             Head_a = MaxArmorForLocation(mech, (int)ChassisLocations.Head) - mech.HeadArmor;
-                            Log.LogWrite($"{ChassisLocations.Head.ToString(),-20} | {Head_a,12:F3} | {Head_s,12:F3}");
+                            Log.LogWrite($"{ChassisLocations.Head.ToString(),-20} | {Head_a,12:F3} | {Head_s,12:F3}\n");
                             CenterTorso_s = MaxStructureForLocation(mech, (int)ChassisLocations.CenterTorso) - mech.CenterTorsoStructure;
                             CenterTorso_a = MaxArmorForLocation(mech, (int)ArmorLocation.CenterTorso) + MaxArmorForLocation(mech, (int)ArmorLocation.CenterTorsoRear) - mech.CenterTorsoFrontArmor - mech.CenterTorsoRearArmor;
-                            Log.LogWrite($"{ChassisLocations.CenterTorso.ToString(),-20} |  {CenterTorso_a,12:F3} | {CenterTorso_s,12:F3}");
+                            Log.LogWrite($"{ChassisLocations.CenterTorso.ToString(),-20} |  {CenterTorso_a,12:F3} | {CenterTorso_s,12:F3}\n");
                             LeftTorso_s = MaxStructureForLocation(mech, (int)ChassisLocations.LeftTorso) - mech.LeftTorsoStructure;
                             LeftTorso_a = MaxArmorForLocation(mech, (int)ArmorLocation.LeftTorso) + MaxArmorForLocation(mech, (int)ArmorLocation.LeftTorsoRear) - mech.LeftTorsoFrontArmor - mech.LeftTorsoRearArmor;
-                            Log.LogWrite($"{ChassisLocations.LeftTorso.ToString(),-20} |  {LeftTorso_a,12:F3} | {LeftTorso_s,12:F3}");
+                            Log.LogWrite($"{ChassisLocations.LeftTorso.ToString(),-20} |  {LeftTorso_a,12:F3} | {LeftTorso_s,12:F3}\n");
                             RightTorso_s = MaxStructureForLocation(mech, (int)ChassisLocations.RightTorso) - mech.RightTorsoStructure;
                             RightTorso_a = MaxArmorForLocation(mech, (int)ArmorLocation.RightTorso) + MaxArmorForLocation(mech, (int)ArmorLocation.RightTorsoRear) - mech.RightTorsoFrontArmor - mech.RightTorsoRearArmor;
-                            Log.LogWrite($"{ChassisLocations.RightTorso.ToString(),-20} |  {RightTorso_a,12:F3} | {RightTorso_s,12:F3}");
+                            Log.LogWrite($"{ChassisLocations.RightTorso.ToString(),-20} |  {RightTorso_a,12:F3} | {RightTorso_s,12:F3}\n");
                             LeftLeg_s = MaxStructureForLocation(mech, (int)ChassisLocations.LeftLeg) - mech.LeftLegStructure;
                             LeftLeg_a = MaxArmorForLocation(mech, (int)ArmorLocation.LeftLeg) - mech.LeftLegArmor;
-                            Log.LogWrite($"{ChassisLocations.LeftLeg.ToString(),-20} |  {LeftLeg_a,12:F3} | {LeftLeg_s,12:F3}");
+                            Log.LogWrite($"{ChassisLocations.LeftLeg.ToString(),-20} |  {LeftLeg_a,12:F3} | {LeftLeg_s,12:F3}\n");
                             RightLeg_s = MaxStructureForLocation(mech, (int)ChassisLocations.RightLeg) - mech.RightLegStructure;
                             RightLeg_a = MaxArmorForLocation(mech, (int)ArmorLocation.RightLeg) - mech.RightLegArmor;
-                            Log.LogWrite($"{ChassisLocations.RightLeg.ToString(),-20} |  {RightLeg_a,12:F3} | {RightLeg_s,12:F3}");
+                            Log.LogWrite($"{ChassisLocations.RightLeg.ToString(),-20} |  {RightLeg_a,12:F3} | {RightLeg_s,12:F3}\n");
                             LeftArm_s = MaxStructureForLocation(mech, (int)ChassisLocations.LeftArm) - mech.LeftArmStructure;
                             LeftArm_a = MaxArmorForLocation(mech, (int)ArmorLocation.LeftArm) - mech.LeftArmArmor;
-                            Log.LogWrite($"{ChassisLocations.LeftArm.ToString(),-20} |  {LeftArm_a,12:F3} | {LeftArm_s,12:F3}");
+                            Log.LogWrite($"{ChassisLocations.LeftArm.ToString(),-20} |  {LeftArm_a,12:F3} | {LeftArm_s,12:F3}\n");
                             RightArm_s = MaxStructureForLocation(mech, (int)ChassisLocations.RightArm) - mech.RightArmStructure;
                             RightArm_a = MaxArmorForLocation(mech, (int)ArmorLocation.RightArm) - mech.RightArmArmor;
-                            Log.LogWrite($"{ChassisLocations.RightArm.ToString(),-20} |  {RightArm_a,12:F3} | {RightArm_s,12:F3}");
+                            Log.LogWrite($"{ChassisLocations.RightArm.ToString(),-20} |  {RightArm_a,12:F3} | {RightArm_s,12:F3}\n");
 
-                            Log.LogWrite($"{ChassisLocations.Torso.ToString(),-20} |  {CenterTorso_a + LeftTorso_a + RightTorso_a,12:F3} | {CenterTorso_s + LeftTorso_s + RightTorso_s,12:F3}");
-                            Log.LogWrite($"{ChassisLocations.Legs.ToString(),-20} |  {LeftLeg_a + RightLeg_a,12:F3} | { LeftLeg_s + RightLeg_s,12:F3}");
-                            Log.LogWrite($"{ChassisLocations.Arms.ToString(),-20} |  {LeftArm_a + RightArm_a,12:F3} | { LeftArm_s + RightArm_s,12:F3}");
-                            Log.LogWrite($"{ChassisLocations.All.ToString(),-20} |  {CenterTorso_a + LeftTorso_a + RightTorso_a + LeftLeg_a + RightLeg_a + LeftArm_a + RightArm_a,12:F3} | {CenterTorso_s + LeftTorso_s + RightTorso_s + LeftLeg_s + RightLeg_s + LeftArm_s + RightArm_s,12:F3}");
+                            Log.LogWrite($"{ChassisLocations.Torso.ToString(),-20} |  {CenterTorso_a + LeftTorso_a + RightTorso_a,12:F3} | {CenterTorso_s + LeftTorso_s + RightTorso_s,12:F3}\n");
+                            Log.LogWrite($"{ChassisLocations.Legs.ToString(),-20} |  {LeftLeg_a + RightLeg_a,12:F3} | { LeftLeg_s + RightLeg_s,12:F3}\n");
+                            Log.LogWrite($"{ChassisLocations.Arms.ToString(),-20} |  {LeftArm_a + RightArm_a,12:F3} | { LeftArm_s + RightArm_s,12:F3}\n");
+                            Log.LogWrite($"{ChassisLocations.All.ToString(),-20} |  {CenterTorso_a + LeftTorso_a + RightTorso_a + LeftLeg_a + RightLeg_a + LeftArm_a + RightArm_a,12:F3} | {CenterTorso_s + LeftTorso_s + RightTorso_s + LeftLeg_s + RightLeg_s + LeftArm_s + RightArm_s,12:F3}\n");
                         }
                         else
                         {
-                            Log.LogWrite($"Not a mech, somethings broken");
+                            Log.LogWrite($"Not a mech, somethings broken\n");
                         }
 
                     }

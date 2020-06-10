@@ -779,7 +779,7 @@ namespace CustomActivatableEquipment {
     {
         if(isComponentActivated(component))
         {
-                Log.LogWrite($"{component.Name} already active or not activateable - cannot be activated");
+                Log.LogWrite($"{component.Name} already active or not activateable - cannot be activated\n");
                 return false;
         }
         ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
@@ -788,7 +788,7 @@ namespace CustomActivatableEquipment {
             activatable.AutoActivateOnStructureDamage > 0f ||
             activatable.AutoActivateOnAnyDamage > 0f)
         {
-                Log.LogWrite($"{component.Name} - can be damage activated");
+                Log.LogWrite($"{component.Name} - can be damage activated\n");
                 return true;
         }
          return false;
@@ -801,7 +801,7 @@ namespace CustomActivatableEquipment {
             if (activatable == null) { return true; }
             if (activatable.AutoActivateOnIncomingHeat!=0 && activatable.AutoActivateOnIncomingHeat>=heatDamage)
             {
-                Log.LogWrite($"{component.Name} ActivateOnIncomingHeat {activatable.AutoActivateOnIncomingHeat:F3} >= {heatDamage} ");
+                Log.LogWrite($"{component.Name} ActivateOnIncomingHeat {activatable.AutoActivateOnIncomingHeat:F3} >= {heatDamage} \n");
                 activateComponent(component, true, false);
                 return true;
             }
@@ -814,19 +814,19 @@ namespace CustomActivatableEquipment {
             if (activatable == null) { return false; }
             if (activatable.AutoActivateOnAnyDamage != 0 && activatable.AutoActivateOnAnyDamage <= (armorDamage+structureDamage) && shouldAutoActivateForDamageToLocation(component,loc) )
             {
-                Log.LogWrite($"{component.Name} AutoActivateOnAnyDamage {activatable.AutoActivateOnAnyDamage:F3} <= {armorDamage + structureDamage} ");
+                Log.LogWrite($"{component.Name} AutoActivateOnAnyDamage {activatable.AutoActivateOnAnyDamage:F3} <= {armorDamage + structureDamage} \n");
                 activateComponent(component, true, false);
                 return true;
             }
             if (activatable.AutoActivateOnArmorDamage != 0 && activatable.AutoActivateOnArmorDamage <= armorDamage && shouldAutoActivateForDamageToLocation(component, loc))
             {
-                Log.LogWrite($"{component.Name} AutoActivateOnArmorDamage {activatable.AutoActivateOnArmorDamage:F3} <= {armorDamage} ");
+                Log.LogWrite($"{component.Name} AutoActivateOnArmorDamage {activatable.AutoActivateOnArmorDamage:F3} <= {armorDamage} \n");
                 activateComponent(component, true, false);
                 return true;
             }
             if (activatable.AutoActivateOnStructureDamage != 0 && activatable.AutoActivateOnStructureDamage <= structureDamage && shouldAutoActivateForDamageToLocation(component, loc))
             {
-                Log.LogWrite($"{component.Name} AutoActivateOnStructureDamage {activatable.AutoActivateOnStructureDamage:F3} <= {structureDamage} ");
+                Log.LogWrite($"{component.Name} AutoActivateOnStructureDamage {activatable.AutoActivateOnStructureDamage:F3} <= {structureDamage} \n");
                 activateComponent(component, true, false);
                 return true;
             }
@@ -848,41 +848,41 @@ namespace CustomActivatableEquipment {
                 //This allows overall damage checks i.e. (damage right leg+damage left leg>VAL) , as well multi location checks ( damage right leg>VAL OR damage left leg >VAL) checks.
                 if (loc== ChassisLocations.Torso && (mech.IsLocationDestroyed(ChassisLocations.CenterTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftTorso) || mech.IsLocationDestroyed(ChassisLocations.RightTorso)))
                 {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
-                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}");
+                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
                     return false;
                 }
                 if (loc == ChassisLocations.Arms && (mech.IsLocationDestroyed(ChassisLocations.LeftArm) || mech.IsLocationDestroyed(ChassisLocations.RightArm)) )
                 {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
-                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}");
+                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
                     return false;
                 }
                 if (loc == ChassisLocations.Legs && (mech.IsLocationDestroyed(ChassisLocations.LeftLeg) || mech.IsLocationDestroyed(ChassisLocations.RightLeg)) )
                 {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
-                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}");
+                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
                     return false;
                 }
                 if (loc == ChassisLocations.All && (mech.IsLocationDestroyed(ChassisLocations.CenterTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftTorso) || mech.IsLocationDestroyed(ChassisLocations.RightTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftArm) || mech.IsLocationDestroyed(ChassisLocations.RightArm) || mech.IsLocationDestroyed(ChassisLocations.LeftLeg) || mech.IsLocationDestroyed(ChassisLocations.RightLeg)))
                 {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
-                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}");
+                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
                     return false;
                 }
                 if (mech.IsLocationDestroyed(loc))
                 {
-                    Log.LogWrite($"shouldAutoActivate Skip cause Location Destroyed {loc.ToString()}");
+                    Log.LogWrite($"shouldAutoActivate Skip cause Location Destroyed {loc.ToString()}\n");
                     return false;
                 }
             }
             else
             {
-                Log.LogWrite($"Not a mech, somethings broken");
+                Log.LogWrite($"Not a mech, somethings broken\n");
             }
             if((activatable.ActivateOnDamageToLocations.Length==0 || activatable.ActivateOnDamageToLocations.Contains(ChassisLocations.None)) && (int)loc==component.Location){
-                Log.LogWrite($"shouldAutoActivate {component.Name} install location matches damage location {loc.ToString()}");
+                Log.LogWrite($"shouldAutoActivate {component.Name} install location matches damage location {loc.ToString()}\n");
                 return true;
             }
             if (activatable.ActivateOnDamageToLocations.Contains(loc))
             {
-                Log.LogWrite($"shouldAutoActivate {component.Name} auto activate location matches damage location {loc.ToString()}");
+                Log.LogWrite($"shouldAutoActivate {component.Name} auto activate location matches damage location {loc.ToString()}\n");
                 return true;
             }
             return false;
