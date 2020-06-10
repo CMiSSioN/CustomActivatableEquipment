@@ -861,12 +861,12 @@ namespace CustomActivatableEquipment {
                     Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
                     return false;
                 }
-                if (loc == ChassisLocations.All && (mech.IsLocationDestroyed(ChassisLocations.CenterTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftTorso) || mech.IsLocationDestroyed(ChassisLocations.RightTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftArm) || mech.IsLocationDestroyed(ChassisLocations.RightArm) || mech.IsLocationDestroyed(ChassisLocations.LeftLeg) || mech.IsLocationDestroyed(ChassisLocations.RightLeg)))
+                if (loc == ChassisLocations.All && (/*mech.IsLocationDestroyed(ChassisLocations.CenterTorso) ||*/ mech.IsLocationDestroyed(ChassisLocations.LeftTorso) || mech.IsLocationDestroyed(ChassisLocations.RightTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftArm) || mech.IsLocationDestroyed(ChassisLocations.RightArm) || mech.IsLocationDestroyed(ChassisLocations.LeftLeg) || mech.IsLocationDestroyed(ChassisLocations.RightLeg)))
                 {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
                     Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
                     return false;
                 }
-                if (mech.IsLocationDestroyed(loc))
+                if ( !(loc == ChassisLocations.Torso || loc == ChassisLocations.Arms || loc == ChassisLocations.Legs || loc == ChassisLocations.All || loc == ChassisLocations.MainBody) && mech.IsLocationDestroyed(loc))
                 {
                     Log.LogWrite($"shouldAutoActivate Skip cause Location Destroyed {loc.ToString()}\n");
                     return false;
