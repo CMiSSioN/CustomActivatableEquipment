@@ -7,120 +7,57 @@ using BattleTech;
 using Harmony;
 using HBS;
 using CustomComponents;
+using CustomAmmoCategoriesPatches;
 
 namespace CustomActivatableEquipment.DamageHelpers
 {
     [HarmonyPatch(typeof(Mech), "AddExternalHeat")]
-    public class Mech_AddExternalHeat_Patch
+    public static class Mech_AddExternalHeat_Patch
     {
-        internal static int heatDamage;
 
-        private static void Postfix(int amt)
+        private static void Postfix(Mech __instance,string reason,int amt)
         {
-            heatDamage += amt;
-        }
-    }
-
-    // for reasons, AttackStackSequence et al have no?? way to tell if support weapons are firing so we stash a global
-    [HarmonyPatch(typeof(MechMeleeSequence), "FireWeapons")]
-    public static class MechMeleeSequence_FireWeapons_Patch
-    {
-        internal static bool meleeHasSupportWeapons;
-
-        public static void Postfix(MechMeleeSequence __instance)
-        {
-            meleeHasSupportWeapons =
-                Traverse.Create(__instance).Field("CAErequestedWeapons").GetValue<List<Weapon>>().Count > 0;
-        }
-    }
-
-    // save the pre-attack condition
-    [HarmonyPatch(typeof(AttackStackSequence), "OnAttackBegin")]
-    public static class AttackStackSequence_OnAttackBegin_Patch
-    {
-        internal static float armorBeforeAttack;
-        internal static float structureBeforeAttack;
-
-        public static void Prefix(AttackStackSequence __instance)
-        {
-            if (__instance.directorSequences == null || __instance.directorSequences.Count == 0)
+            if (__instance == null)
             {
+                Log.LogWrite("No mech\n");
                 return;
             }
-
-            var target = __instance.directorSequences[0].chosenTarget;
-            armorBeforeAttack = target.SummaryArmorCurrent;
-            structureBeforeAttack = target.SummaryStructureCurrent;
-        }
-    }
-
-    [HarmonyPatch(typeof(AttackStackSequence), "OnAttackComplete")]
-    public static class AttackStackSequence_OnAttackComplete_Patch
-    {
-        private static readonly Stopwatch stopwatch = new Stopwatch();
-
-        public static void Prefix(AttackStackSequence __instance, MessageCenterMessage message)
-        {
-            stopwatch.Restart();
-            var attackCompleteMessage = (AttackCompleteMessage)message;
-            if (attackCompleteMessage == null || attackCompleteMessage.stackItemUID != __instance.SequenceGUID)
-            {
-                return;
-            }
-
-            // can't do stuff with buildings or Vehicles
-            if (!(__instance.directorSequences[0].chosenTarget is Mech))
-            {
-                Log.LogWrite("Not a mech.\n");
-                return;
-            }
-
-            if (__instance.directorSequences[0].chosenTarget?.GUID == null)
-            {
-                return;
-            }
-
-            var director = __instance.directorSequences;
-            if (director == null) return;
-
             Log.LogWrite($"{new string('═', 46)}\n");
-            Log.LogWrite($"{director[0].attacker.DisplayName} attacks {director[0].chosenTarget.DisplayName}\n");
-
-            AbstractActor defender = null;
-            switch (director[0]?.chosenTarget)
-            {
-                case Mech _:
-                    defender = (Mech)director[0]?.chosenTarget;
-                    break;
-            }
-
-            // a building , vehicle or turret?
-            if (defender == null)
-            {
-                Log.LogWrite("Not a mech.\n");
-                return;
-            }
-
-            if (defender.IsDead || defender.IsFlaggedForDeath || defender.IsShutDown)
-            {
-                Log.LogWrite("defender dead or shutdown.\n");//<check> do we need to handle incoming damage when shutdown on startup?
-                return;
-            }
-
-            DamageHelper.ActivateComponentsBasedOnDamage(defender, attackCompleteMessage.attackSequence);
+            Log.LogWrite($"{__instance.DisplayName} :{__instance.GUID } took {amt} Heat Damage from {reason ?? "null"}\n");
+            DamageHelper.ActivateComponentsBasedOnHeatDamage(__instance, amt);
 
         }
+    }
+    [HarmonyPatch(typeof(Mech))]
+    [HarmonyPatch("TakeWeaponDamage")]
+    [HarmonyPatch(MethodType.Normal)]
+#if BT1_8
+    [HarmonyPatch(new Type[] { typeof(WeaponHitInfo), typeof(int), typeof(Weapon), typeof(float), typeof(float), typeof(int), typeof(DamageType) })]
+#else
+  [HarmonyPatch(new Type[] { typeof(WeaponHitInfo), typeof(int), typeof(Weapon), typeof(float), typeof(int), typeof(DamageType) })]
+#endif
+    public static class Mech_TakeWeaponDamage
+    {
+#if BT1_8
+        public static void Postfix(Mech __instance, WeaponHitInfo hitInfo, int hitLocation, Weapon weapon, float damageAmount, float directStructureDamage, int hitIndex, DamageType damageType)
+        {
+#else
+    public static void Postfix(Mech __instance, WeaponHitInfo hitInfo, int hitLocation, Weapon weapon, float damageAmount, int hitIndex, DamageType damageType) {
+#endif
+            if (__instance == null)
+            {
+                Log.LogWrite("No mech\n");
+                return;
+            }
+            Log.LogWrite($"{new string('═', 46)}\n");
+            string wname = (weapon!=null) ? (weapon.Name?? "null") : "null";
+            Log.LogWrite($"{__instance.DisplayName} :{__instance.GUID } took Damage from {wname} - {damageType.ToString()}\n");
+            DamageHelper.ActivateComponentsBasedOnDamage(__instance, damageAmount, directStructureDamage);
+        }
+    }
 
         public class DamageHelper
         {
-
-            // values for combining melee with support weapon fire
-            private static float initialArmorMelee = 0f;
-            private static float initialStructureMelee = 0f;
-            private static float armorDamageMelee = 0f;
-            private static float structureDamageMelee = 0f;
-            private static bool hadMeleeAttack = false;
-            internal static float totalDamage = 0f;
 
             internal static float MaxArmorForLocation(Mech mech, int Location)
             {
@@ -155,12 +92,75 @@ namespace CustomActivatableEquipment.DamageHelpers
                 return 0;
             }
 
-            public static void ActivateComponentsBasedOnDamage(AbstractActor defender, AttackDirector.AttackSequence attackSequence)
+            public static void ActivateComponentsBasedOnHeatDamage(Mech defender, int heatDamage)
             {
+                if (heatDamage<=0)
+                {
+                    Log.LogWrite("No heat damage\n");
+                    return;
+                }
+
+                if (defender==null)
+                {
+                    Log.LogWrite("No mech\n");
+                    return;
+                }
+
+                if (defender.IsDead || defender.IsFlaggedForDeath || defender.IsShutDown)
+                {
+                    Log.LogWrite($"{defender.DisplayName} dead or shutdown.\n");//<check> do we need to handle incoming damage when shutdown on startup?
+                    return;
+                }
+
+            foreach (MechComponent component in defender.allComponents)
+                {
+                    ActivatableComponent tactivatable = component.componentDef.GetComponent<ActivatableComponent>();
+                    if (tactivatable == null) { continue; }
+                    if (ActivatableComponent.canBeDamageActivated(component) == false) { continue; };
+                    if (defender.IsLocationDestroyed((ChassisLocations)component.Location))
+                    {
+                        Log.LogWrite($"Ignored {component.Name} installed in destroyed {((ChassisLocations)component.Location).ToString()}\n");
+                        continue;
+                    };
+                    if (defender is Mech mech)
+                    {
+                        Log.LogWrite($"Damage >>> D: {0:F3} DS: {0:F3} H: {heatDamage}\n");                            
+                    }
+                    else
+                    {
+                        Log.LogWrite($"Not a mech, somethings broken\n");
+                    }
+
+                    if (defender.isHasHeat() )
+                    {//if not battle armor 
+                        ActivatableComponent.ActivateOnIncomingHeat(component, heatDamage);
+                    }
+                    else
+                    {
+                        Log.LogWrite($" { defender.DisplayName } can't have incoming heat damage\n");
+                    }
+                }
+
+            }
+
+            public static void ActivateComponentsBasedOnDamage(Mech defender, float damageAmount, float directStructureDamage)
+            {
+                if (defender == null)
+                {
+                    Log.LogWrite("No mech\n");
+                    return;
+                }
+                if (defender.IsDead || defender.IsFlaggedForDeath || defender.IsShutDown)
+                {
+                    Log.LogWrite($"{defender.DisplayName} dead or shutdown.\n");//<check> do we need to handle incoming damage when shutdown on startup?
+                    return;
+                }
+                if((damageAmount+directStructureDamage)<=0)
+                {
+                    Log.LogWrite("No damage\n");
+                    return;
+                }
                 bool gotdamagevalues = false;
-                float armorDamage = 0f;
-                float structureDamage = 0f;
-                int heatDamage = 0;
 
                 float Head_s = 0;
                 float LeftArm_s = 0;
@@ -185,100 +185,52 @@ namespace CustomActivatableEquipment.DamageHelpers
                     ActivatableComponent tactivatable = component.componentDef.GetComponent<ActivatableComponent>();
                     if (tactivatable == null) { continue; }
                     if (ActivatableComponent.canBeDamageActivated(component) == false) { continue; };
+                    if (defender.IsLocationDestroyed((ChassisLocations)component.Location)) {
+                        Log.LogWrite($"Ignored {component.Name} installed in destroyed {((ChassisLocations)component.Location).ToString()}\n");
+                        continue; 
+                    };
                     if (!gotdamagevalues)
                     {//have atleast 1 damage activateable component get the damage values
-                        var id = attackSequence.chosenTarget.GUID;
-                        if (!attackSequence.GetAttackDidDamage(id) && !hadMeleeAttack)
-                        {
-                            Log.LogWrite("No damage\n");
-                            return;
-                        }
-
-                        // Account for melee attacks so separate activate checks not triggered.
-                        if (attackSequence.isMelee && MechMeleeSequence_FireWeapons_Patch.meleeHasSupportWeapons)
-                        {
-                            initialArmorMelee = AttackStackSequence_OnAttackBegin_Patch.armorBeforeAttack;
-                            initialStructureMelee = AttackStackSequence_OnAttackBegin_Patch.structureBeforeAttack;
-                            armorDamageMelee = attackSequence.GetArmorDamageDealt(id);
-                            structureDamageMelee = attackSequence.GetStructureDamageDealt(id);
-                            hadMeleeAttack = true;
-                            Log.LogWrite("Stashing melee damage for support weapon firing\n");
-                            return;
-                        }
-
-                        var previousArmor = AttackStackSequence_OnAttackBegin_Patch.armorBeforeAttack;
-                        var previousStructure = AttackStackSequence_OnAttackBegin_Patch.structureBeforeAttack;
-
-                        if (hadMeleeAttack)
-                        {
-                            Log.LogWrite("Adding stashed melee damage\n");
-                            previousArmor = initialArmorMelee;
-                            previousStructure = initialStructureMelee;
-                        }
-                        else
-                        {
-                            armorDamageMelee = 0;
-                            structureDamageMelee = 0;
-                        }
-
-                        armorDamage = attackSequence.GetArmorDamageDealt(id) + armorDamageMelee;
-                        structureDamage = attackSequence.GetStructureDamageDealt(id) + structureDamageMelee;
-                        heatDamage = Mech_AddExternalHeat_Patch.heatDamage;
-                        totalDamage = armorDamage + structureDamage;
-
-                        // clear melee values
-                        initialArmorMelee = 0;
-                        initialStructureMelee = 0;
-                        armorDamageMelee = 0;
-                        structureDamageMelee = 0;
-                        hadMeleeAttack = false;
-                        gotdamagevalues = true;
-                        if (defender is Mech mech)
-                        {
-                            Log.LogWrite($"Damage >>> A: {armorDamage:F3} S: {structureDamage:F3} H: {heatDamage}\n");
+                            Mech mech = defender;
+                            Log.LogWrite($"Damage >>> D: {damageAmount:F3} DS: {directStructureDamage:F3} H: {0}\n");
                             Log.LogWrite($"{new string('-', 46)}\n");
                             Log.LogWrite($"{"Location",-20} | {"Armor Damage",12} | {"Structure Damage",12}\n");
                             Log.LogWrite($"{new string('-', 46)}\n");
-                            Head_s = MaxStructureForLocation(mech, (int)ChassisLocations.Head) - mech.HeadStructure;
-                            Head_a = MaxArmorForLocation(mech, (int)ChassisLocations.Head) - mech.HeadArmor;
+                            Head_s = MaxStructureForLocation(mech, (int)ChassisLocations.Head) - defender.HeadStructure;
+                            Head_a = MaxArmorForLocation(mech, (int)ChassisLocations.Head) - defender.HeadArmor;
                             Log.LogWrite($"{ChassisLocations.Head.ToString(),-20} | {Head_a,12:F3} | {Head_s,12:F3}\n");
-                            CenterTorso_s = MaxStructureForLocation(mech, (int)ChassisLocations.CenterTorso) - mech.CenterTorsoStructure;
-                            CenterTorso_a = MaxArmorForLocation(mech, (int)ArmorLocation.CenterTorso) + MaxArmorForLocation(mech, (int)ArmorLocation.CenterTorsoRear) - mech.CenterTorsoFrontArmor - mech.CenterTorsoRearArmor;
+                            CenterTorso_s = MaxStructureForLocation(mech, (int)ChassisLocations.CenterTorso) - defender.CenterTorsoStructure;
+                            CenterTorso_a = MaxArmorForLocation(mech, (int)ArmorLocation.CenterTorso) + MaxArmorForLocation(mech, (int)ArmorLocation.CenterTorsoRear) - defender.CenterTorsoFrontArmor - defender.CenterTorsoRearArmor;
                             Log.LogWrite($"{ChassisLocations.CenterTorso.ToString(),-20} |  {CenterTorso_a,12:F3} | {CenterTorso_s,12:F3}\n");
-                            LeftTorso_s = MaxStructureForLocation(mech, (int)ChassisLocations.LeftTorso) - mech.LeftTorsoStructure;
-                            LeftTorso_a = MaxArmorForLocation(mech, (int)ArmorLocation.LeftTorso) + MaxArmorForLocation(mech, (int)ArmorLocation.LeftTorsoRear) - mech.LeftTorsoFrontArmor - mech.LeftTorsoRearArmor;
+                            LeftTorso_s = MaxStructureForLocation(mech, (int)ChassisLocations.LeftTorso) - defender.LeftTorsoStructure;
+                            LeftTorso_a = MaxArmorForLocation(mech, (int)ArmorLocation.LeftTorso) + MaxArmorForLocation(mech, (int)ArmorLocation.LeftTorsoRear) - defender.LeftTorsoFrontArmor - defender.LeftTorsoRearArmor;
                             Log.LogWrite($"{ChassisLocations.LeftTorso.ToString(),-20} |  {LeftTorso_a,12:F3} | {LeftTorso_s,12:F3}\n");
-                            RightTorso_s = MaxStructureForLocation(mech, (int)ChassisLocations.RightTorso) - mech.RightTorsoStructure;
-                            RightTorso_a = MaxArmorForLocation(mech, (int)ArmorLocation.RightTorso) + MaxArmorForLocation(mech, (int)ArmorLocation.RightTorsoRear) - mech.RightTorsoFrontArmor - mech.RightTorsoRearArmor;
+                            RightTorso_s = MaxStructureForLocation(mech, (int)ChassisLocations.RightTorso) - defender.RightTorsoStructure;
+                            RightTorso_a = MaxArmorForLocation(mech, (int)ArmorLocation.RightTorso) + MaxArmorForLocation(mech, (int)ArmorLocation.RightTorsoRear) - defender.RightTorsoFrontArmor - defender.RightTorsoRearArmor;
                             Log.LogWrite($"{ChassisLocations.RightTorso.ToString(),-20} |  {RightTorso_a,12:F3} | {RightTorso_s,12:F3}\n");
-                            LeftLeg_s = MaxStructureForLocation(mech, (int)ChassisLocations.LeftLeg) - mech.LeftLegStructure;
-                            LeftLeg_a = MaxArmorForLocation(mech, (int)ArmorLocation.LeftLeg) - mech.LeftLegArmor;
+                            LeftLeg_s = MaxStructureForLocation(mech, (int)ChassisLocations.LeftLeg) - defender.LeftLegStructure;
+                            LeftLeg_a = MaxArmorForLocation(mech, (int)ArmorLocation.LeftLeg) - defender.LeftLegArmor;
                             Log.LogWrite($"{ChassisLocations.LeftLeg.ToString(),-20} |  {LeftLeg_a,12:F3} | {LeftLeg_s,12:F3}\n");
-                            RightLeg_s = MaxStructureForLocation(mech, (int)ChassisLocations.RightLeg) - mech.RightLegStructure;
-                            RightLeg_a = MaxArmorForLocation(mech, (int)ArmorLocation.RightLeg) - mech.RightLegArmor;
+                            RightLeg_s = MaxStructureForLocation(mech, (int)ChassisLocations.RightLeg) - defender.RightLegStructure;
+                            RightLeg_a = MaxArmorForLocation(mech, (int)ArmorLocation.RightLeg) - defender.RightLegArmor;
                             Log.LogWrite($"{ChassisLocations.RightLeg.ToString(),-20} |  {RightLeg_a,12:F3} | {RightLeg_s,12:F3}\n");
-                            LeftArm_s = MaxStructureForLocation(mech, (int)ChassisLocations.LeftArm) - mech.LeftArmStructure;
-                            LeftArm_a = MaxArmorForLocation(mech, (int)ArmorLocation.LeftArm) - mech.LeftArmArmor;
+                            LeftArm_s = MaxStructureForLocation(mech, (int)ChassisLocations.LeftArm) - defender.LeftArmStructure;
+                            LeftArm_a = MaxArmorForLocation(mech, (int)ArmorLocation.LeftArm) - defender.LeftArmArmor;
                             Log.LogWrite($"{ChassisLocations.LeftArm.ToString(),-20} |  {LeftArm_a,12:F3} | {LeftArm_s,12:F3}\n");
-                            RightArm_s = MaxStructureForLocation(mech, (int)ChassisLocations.RightArm) - mech.RightArmStructure;
-                            RightArm_a = MaxArmorForLocation(mech, (int)ArmorLocation.RightArm) - mech.RightArmArmor;
+                            RightArm_s = MaxStructureForLocation(mech, (int)ChassisLocations.RightArm) - defender.RightArmStructure;
+                            RightArm_a = MaxArmorForLocation(mech, (int)ArmorLocation.RightArm) - defender.RightArmArmor;
                             Log.LogWrite($"{ChassisLocations.RightArm.ToString(),-20} |  {RightArm_a,12:F3} | {RightArm_s,12:F3}\n");
 
                             Log.LogWrite($"{ChassisLocations.Torso.ToString(),-20} |  {CenterTorso_a + LeftTorso_a + RightTorso_a,12:F3} | {CenterTorso_s + LeftTorso_s + RightTorso_s,12:F3}\n");
                             Log.LogWrite($"{ChassisLocations.Legs.ToString(),-20} |  {LeftLeg_a + RightLeg_a,12:F3} | { LeftLeg_s + RightLeg_s,12:F3}\n");
                             Log.LogWrite($"{ChassisLocations.Arms.ToString(),-20} |  {LeftArm_a + RightArm_a,12:F3} | { LeftArm_s + RightArm_s,12:F3}\n");
                             Log.LogWrite($"{ChassisLocations.All.ToString(),-20} |  {CenterTorso_a + LeftTorso_a + RightTorso_a + LeftLeg_a + RightLeg_a + LeftArm_a + RightArm_a,12:F3} | {CenterTorso_s + LeftTorso_s + RightTorso_s + LeftLeg_s + RightLeg_s + LeftArm_s + RightArm_s,12:F3}\n");
-                        }
-                        else
-                        {
-                            Log.LogWrite($"Not a mech, somethings broken\n");
-                        }
-
+                            gotdamagevalues = true;
                     }
                     // we stop trying to activate the component if any of these return true i.e activated;
                     //ignore the damage from this hit and use the current damage levels.
                     //Not handling ChassisLocation MainBody as i dont know what locations it covers.
-                    if (ActivatableComponent.ActivateOnIncomingHeat(component, heatDamage) ||
+                    if (
                       ActivatableComponent.ActivateOnDamage(component, Head_a, Head_s, ChassisLocations.Head) ||
                       ActivatableComponent.ActivateOnDamage(component, CenterTorso_a, CenterTorso_s, ChassisLocations.CenterTorso) ||
                       ActivatableComponent.ActivateOnDamage(component, LeftTorso_a, LeftTorso_s, ChassisLocations.LeftTorso) ||
@@ -302,5 +254,3 @@ namespace CustomActivatableEquipment.DamageHelpers
             }
         }
     }
-}
-
