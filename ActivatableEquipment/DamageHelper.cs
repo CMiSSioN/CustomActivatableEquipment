@@ -11,6 +11,24 @@ using CustomAmmoCategoriesPatches;
 
 namespace CustomActivatableEquipment.DamageHelpers
 {
+    [HarmonyPatch(typeof(AbstractActor), "OnActivationBegin")]
+    public static class AbstractActor_OnActivationBegin_Patch
+    {
+        public static void Prefix(AbstractActor __instance)
+        {
+            DamageHelper.newTurnFor(__instance);
+        }
+    }
+
+    [HarmonyPatch(typeof(AbstractActor), "OnActivationEnd")]
+    public static class AbstractActor_OnActivationEnd_Patch
+    {
+        public static void Prefix(AbstractActor __instance)
+        {
+            DamageHelper.completedTurnFor(__instance);
+        }
+    }
+
     [HarmonyPatch(typeof(Mech), "AddExternalHeat")]
     public static class Mech_AddExternalHeat_Patch
     {
@@ -24,10 +42,21 @@ namespace CustomActivatableEquipment.DamageHelpers
             }
             Log.LogWrite($"{new string('═', 46)}\n");
             Log.LogWrite($"{__instance.DisplayName} :{__instance.GUID } took {amt} Heat Damage from {reason ?? "null"}\n");
-            DamageHelper.ActivateComponentsBasedOnHeatDamage(__instance, amt);
+            DamageHelper.BatchHeatDamage(__instance, amt);
 
         }
     }
+
+    [HarmonyPatch(typeof(GameInstance), "LaunchContract", typeof(Contract), typeof(string))]
+    public static class GameInstance_LaunchContract_Patch
+    {
+        // reset on new contracts
+        private static void Postfix()
+        {
+            DamageHelper.Reset();
+        }
+    }
+
     [HarmonyPatch(typeof(Mech))]
     [HarmonyPatch("TakeWeaponDamage")]
     [HarmonyPatch(MethodType.Normal)]
@@ -52,14 +81,51 @@ namespace CustomActivatableEquipment.DamageHelpers
             Log.LogWrite($"{new string('═', 46)}\n");
             string wname = (weapon!=null) ? (weapon.Name?? "null") : "null";
             Log.LogWrite($"{__instance.DisplayName} :{__instance.GUID } took Damage from {wname} - {damageType.ToString()}\n");
-            DamageHelper.ActivateComponentsBasedOnDamage(__instance, damageAmount, directStructureDamage);
+            DamageHelper.BatchDamage(__instance, damageAmount, directStructureDamage);
         }
     }
 
-        public class DamageHelper
+        public static class DamageHelper
         {
 
-            internal static float MaxArmorForLocation(Mech mech, int Location)
+        private static Dictionary<string, int> turnExternalHeatAccumulator = new Dictionary<string, int>();
+        private static List<AbstractActor> activationVictims = new List<AbstractActor>();
+        private static AbstractActor attacker = null;
+
+        internal static void Reset()
+        {
+            Log.LogWrite($"DamageHelper Reset - new Mission\n");
+            turnExternalHeatAccumulator = new Dictionary<string, int>();
+            attacker = null;
+            activationVictims = new List<AbstractActor>();
+        }
+        internal static void newTurnFor(AbstractActor actor)
+        {
+            Log.LogWrite($"new Turn Activation for {actor.Nickname} - {actor.DisplayName} - {actor.GUID}\n");
+            attacker = actor;
+            if (actor is Mech)
+            {
+                turnExternalHeatAccumulator[actor.GUID] = 0;//external heat 0 start of activation
+            }
+        }
+        internal static void completedTurnFor(AbstractActor instance)
+        {
+            if (attacker != null)
+            {
+                Log.LogWrite($"completed Turn Activation for {instance.Nickname} - {instance.DisplayName} - {instance.GUID}\n");
+                foreach (AbstractActor actor in activationVictims)
+                {
+                    Log.LogWrite($"{instance.DisplayName}|{instance.Nickname}|{instance.GUID} damaged during turn.\n");
+                    ActivateComponentsBasedOnHeatDamage(actor as Mech, turnExternalHeatAccumulator[actor.GUID]);
+                    ActivateComponentsBasedOnDamage(actor as Mech);
+                }
+                activationVictims.Clear();
+            }
+            attacker = null;
+        }
+
+
+        internal static float MaxArmorForLocation(Mech mech, int Location)
             {
                 if (mech != null)
                 {
@@ -143,7 +209,7 @@ namespace CustomActivatableEquipment.DamageHelpers
 
             }
 
-            public static void ActivateComponentsBasedOnDamage(Mech defender, float damageAmount, float directStructureDamage)
+            public static void ActivateComponentsBasedOnDamage(Mech defender)
             {
                 if (defender == null)
                 {
@@ -155,11 +221,7 @@ namespace CustomActivatableEquipment.DamageHelpers
                     Log.LogWrite($"{defender.DisplayName} dead or shutdown.\n");//<check> do we need to handle incoming damage when shutdown on startup?
                     return;
                 }
-                if((damageAmount+directStructureDamage)<=0)
-                {
-                    Log.LogWrite("No damage\n");
-                    return;
-                }
+                
                 bool gotdamagevalues = false;
 
                 float Head_s = 0;
@@ -192,7 +254,7 @@ namespace CustomActivatableEquipment.DamageHelpers
                     if (!gotdamagevalues)
                     {//have atleast 1 damage activateable component get the damage values
                             Mech mech = defender;
-                            Log.LogWrite($"Damage >>> D: {damageAmount:F3} DS: {directStructureDamage:F3} H: {0}\n");
+                
                             Log.LogWrite($"{new string('-', 46)}\n");
                             Log.LogWrite($"{"Location",-20} | {"Armor Damage",12} | {"Structure Damage",12}\n");
                             Log.LogWrite($"{new string('-', 46)}\n");
@@ -252,5 +314,41 @@ namespace CustomActivatableEquipment.DamageHelpers
                 }
 
             }
+
+        internal static void BatchHeatDamage(Mech instance, int amt)
+        {
+            if(instance!=null && amt > 0)
+            {
+                if(!turnExternalHeatAccumulator.ContainsKey(instance.GUID))
+                {
+                    turnExternalHeatAccumulator[instance.GUID] = 0;
+                }
+                turnExternalHeatAccumulator[instance.GUID] = turnExternalHeatAccumulator[instance.GUID]+amt;
+                if (!activationVictims.Contains(instance))
+                {
+                    activationVictims.Add(instance);
+                    Log.LogWrite($"{instance.DisplayName}|{instance.Nickname}|{instance.GUID} added to victims [heat]\n");
+                }
+            }
         }
+
+        internal static void BatchDamage(Mech instance, float damageAmount, float directStructureDamage)
+        {
+            if (damageAmount <= 0 && directStructureDamage <= 0)
+                return;
+            if (instance != null)
+            {
+                if (!turnExternalHeatAccumulator.ContainsKey(instance.GUID))
+                {
+                    turnExternalHeatAccumulator[instance.GUID] = 0;
+                }
+                
+                if (!activationVictims.Contains(instance))
+                {
+                    activationVictims.Add(instance);
+                    Log.LogWrite($"{instance.DisplayName}|{instance.Nickname}|{instance.GUID} added to victims\n");
+                }
+            }
+        }
+    }
     }
