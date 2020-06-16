@@ -17,6 +17,7 @@ using Localize;
 using CustomActivatableEquipment;
 using CustomAmmoCategoriesPatches;
 using CustAmmoCategoriesPatches;
+using CustomActivatableEquipment.DamageHelpers;
 
 namespace CustomActivatablePatches {
   [HarmonyPatch(typeof(CombatHUDButtonBase))]
@@ -80,6 +81,7 @@ namespace CustomActivatablePatches {
             }
           }
         }
+        __instance.owningActor.Combat.commitDamage();
       }
     }
   }
@@ -102,6 +104,7 @@ namespace CustomActivatablePatches {
           }
         }
       }
+      __instance.owningActor.Combat.commitDamage();
     }
   }
   [HarmonyPatch(typeof(Mech))]
@@ -412,6 +415,7 @@ namespace CustomActivatableEquipment {
       statusEffects = new EffectData[0];
     }
   }
+  public enum DamageActivationType { Threshhold, Single, Level }
   [CustomComponent("ActivatableComponent")]
   public partial class ActivatableComponent : SimpleCustomComponent, IPreValidateDrop {
     public static string CAEComponentActiveStatName = "CAEComnonentActive";
@@ -435,10 +439,13 @@ namespace CustomActivatableEquipment {
     public float AutoActivateOnHeat { get; set; }
     public float AutoDeactivateOnHeat { get; set; }
     public float AutoActivateOnIncomingHeat { get; set; }
+    public DamageActivationType incomingHeatActivationType { get; set; }
     public float AutoActivateOnArmorDamage { get; set; }
     public float AutoActivateOnStructureDamage { get; set; }
-    public float AutoActivateOnAnyDamage { get; set; }
-    public ChassisLocations[] ActivateOnDamageToLocations { get; set; }//empty or None means installed location, All, Torso, Arms , Legs also look at the damage done across those locations.No idea what MainBody is.
+    public bool ActivateOnDamageToInstalledLocation { get; set; }
+    public DamageActivationType damageActivationType { get; set; }
+    public ArmorLocation[] ActivateOnDamageToMechLocations { get; set; }
+    public VehicleChassisLocations[] ActivateOnDamageToVehicleLocations { get; set; }
     public float AutoActivateOnOverheatLevel { get; set; }
     public float AutoDeactivateOverheatLevel { get; set; }
     public string ActivationMessage { get; set; }
@@ -495,8 +502,10 @@ namespace CustomActivatableEquipment {
       AutoActivateOnIncomingHeat = 0f;
       AutoActivateOnArmorDamage = 0f;
       AutoActivateOnStructureDamage = 0f;
-      AutoActivateOnAnyDamage = 0f;
-      ActivateOnDamageToLocations = new ChassisLocations[0];
+      ActivateOnDamageToInstalledLocation = false;
+      incomingHeatActivationType = DamageActivationType.Threshhold;
+      ActivateOnDamageToMechLocations = new ArmorLocation[0];
+      ActivateOnDamageToVehicleLocations = new VehicleChassisLocations[0];
       FailDamageLocations = new ChassisLocations[0];
       statusEffects = new EffectData[0];
       offlineStatusEffects = new EffectData[0];
@@ -528,6 +537,7 @@ namespace CustomActivatableEquipment {
       Linkage = new LinkageRecord();
       presistantVFXOutOfLOSHide = false;
       activateVFXOutOfLOSHide = false;
+      incomingHeatActivationType = DamageActivationType.Threshhold;
       Log.LogWrite("ActivatableComponent constructor\n");
     }
     public void playActivateSound(AkGameObj soundObject) {
@@ -785,8 +795,9 @@ namespace CustomActivatableEquipment {
         ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
         if (activatable.AutoActivateOnIncomingHeat > 0f||
             activatable.AutoActivateOnArmorDamage > 0f ||
-            activatable.AutoActivateOnStructureDamage > 0f ||
-            activatable.AutoActivateOnAnyDamage > 0f)
+            activatable.AutoActivateOnStructureDamage > 0f
+            //activatable.AutoActivateOnAnyDamage > 0f
+            )
         {
                 Log.LogWrite($"{component.Name} - can be damage activated\n");
                 return true;
@@ -810,7 +821,7 @@ namespace CustomActivatableEquipment {
 
     internal static bool ActivateOnDamage(MechComponent component, float armorDamage,float structureDamage, ChassisLocations loc)
     {
-            ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+            /*ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
             if (activatable == null) { return false; }
             if (activatable.AutoActivateOnAnyDamage != 0 && activatable.AutoActivateOnAnyDamage <= (armorDamage+structureDamage) && shouldAutoActivateForDamageToLocation(component,loc) )
             {
@@ -829,7 +840,7 @@ namespace CustomActivatableEquipment {
                 Log.LogWrite($"{component.Name} AutoActivateOnStructureDamage {activatable.AutoActivateOnStructureDamage:F3} <= {structureDamage} \n");
                 activateComponent(component, true, false);
                 return true;
-            }
+            }*/
             return false;
         }
 
@@ -876,7 +887,7 @@ namespace CustomActivatableEquipment {
             {
                 Log.LogWrite($"Not a mech, somethings broken\n");
             }
-            if((activatable.ActivateOnDamageToLocations.Length==0 || activatable.ActivateOnDamageToLocations.Contains(ChassisLocations.None)) && (int)loc==component.Location){
+            /*if((activatable.ActivateOnDamageToLocations.Length==0 || activatable.ActivateOnDamageToLocations.Contains(ChassisLocations.None)) && (int)loc==component.Location){
                 Log.LogWrite($"shouldAutoActivate {component.Name} install location matches damage location {loc.ToString()}\n");
                 return true;
             }
@@ -884,7 +895,7 @@ namespace CustomActivatableEquipment {
             {
                 Log.LogWrite($"shouldAutoActivate {component.Name} auto activate location matches damage location {loc.ToString()}\n");
                 return true;
-            }
+            }*/
             return false;
         }
 

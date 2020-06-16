@@ -113,6 +113,21 @@ namespace CustomActivatableEquipment {
       }
       return null;
     }
+    public static Statistic GetStructureStatisticForLocation(this AbstractActor unit, int Location) {
+      Mech mech = unit as Mech;
+      Vehicle vehicle = unit as Vehicle;
+      Turret turret = unit as Turret;
+      if (mech != null) {
+        return unit.StatCollection.GetStatistic(mech.GetStringForStructureLocation(MechStructureRules.GetChassisLocationFromArmorLocation((ArmorLocation)Location)));
+      }
+      if (vehicle != null) {
+        return unit.StatCollection.GetStatistic(vehicle.GetStringForStructureLocation((VehicleChassisLocations)Location));
+      }
+      if (turret != null) {
+        return unit.StatCollection.GetStatistic(turret.GetStringForStructureLocation((BuildingLocation)Location));
+      }
+      return null;
+    }
     public static string GetArmorStringForLocation(this AbstractActor unit, int Location) {
       Mech mech = unit as Mech;
       Vehicle vehicle = unit as Vehicle;
