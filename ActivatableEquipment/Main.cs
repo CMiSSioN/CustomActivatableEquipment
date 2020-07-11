@@ -81,7 +81,7 @@ namespace CustomActivatablePatches {
             }
           }
         }
-        __instance.owningActor.Combat.commitDamage();
+        //__instance.owningActor.Combat.commitDamage();
       }
     }
   }
@@ -104,7 +104,7 @@ namespace CustomActivatablePatches {
           }
         }
       }
-      __instance.owningActor.Combat.commitDamage();
+      //__instance.owningActor.Combat.commitDamage();
     }
   }
   [HarmonyPatch(typeof(Mech))]

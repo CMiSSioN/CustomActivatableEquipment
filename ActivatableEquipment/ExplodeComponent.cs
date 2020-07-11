@@ -846,10 +846,19 @@ namespace CustomActivatableEquipment {
         float distance = Vector3.Distance(CurrentPosition, component.parent.CurrentPosition);
         if (CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range < CustomAmmoCategories.Epsilon) { CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range = 1f; }
         distance /= CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range;
+        target.TagAoEModifiers(out float tagAoEModRange, out float tagAoEDamage);
+        if (tagAoEModRange < CustomAmmoCategories.Epsilon) { tagAoEModRange = 1f; }
+        if (tagAoEDamage < CustomAmmoCategories.Epsilon) { tagAoEDamage = 1f; }
+        distance /= tagAoEModRange;
         if (distance > Range) { continue; };
-        float HeatDamage = component.AoEExplodeHeat() * (Range - distance) / Range;
-        float Damage = AoEDmg * CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Damage * (Range - distance) / Range;
-        float StabDamage = component.AoEExplodeStability() * (Range - distance) / Range;
+        float rangeMult = (Range - distance) / Range;
+        float targetAoEMult = target.AoEDamageMult();
+        float unitTypeAoEMult = CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Damage;
+        float targetHeatMult = target.IncomingHeatMult();
+        float targetStabMult = target.IncomingStabilityMult();
+        float HeatDamage = component.AoEExplodeHeat() * unitTypeAoEMult * rangeMult * targetAoEMult * targetHeatMult;
+        float Damage = AoEDmg * unitTypeAoEMult * rangeMult * targetAoEMult;
+        float StabDamage = component.AoEExplodeStability() * unitTypeAoEMult * rangeMult * targetAoEMult * targetStabMult;
         foreach (EffectData effect in effects) {
           string effectID = string.Format("OnComponentAoEExplosionEffect_{0}_{1}", (object)component.parent.GUID, (object)SequenceID);
           Log.LogWrite($"  Applying effectID:{effect.Description.Id} with effectDescId:{effect?.Description.Id} effectDescName:{effect?.Description.Name}\n");

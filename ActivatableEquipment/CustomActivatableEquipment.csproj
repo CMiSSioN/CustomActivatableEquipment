@@ -120,6 +120,10 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /Y "$(TargetPath)" "$(ProjectDir)\..\..\Mods\ActivatableEquipment"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetPath)" "$(ProjectDir)\..\..\Mods\ActivatableEquipment"
+copy /Y "$(TargetPath)" "$(ProjectDir)\..\..\RogueTechWorking\CustomActivatableEquipment"
+xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles" "$(ProjectDir)\..\..\RogueTechWorking\CustomActivatableEquipment"
+copy /Y "$(TargetPath)" "$(ProjectDir)\..\..\Release_CAC\Release\CustomBundle\CustomActivatableEquipment"
+xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles" "$(ProjectDir)\..\..\Release_CAC\Release\CustomBundle\CustomActivatableEquipment"</PostBuildEvent>
   </PropertyGroup>
 </Project>
