@@ -77,15 +77,12 @@ namespace CustomActivatableEquipment {
     public static void Postfix(AbstractActor __instance) {
       AuraActorBody body = __instance.bodyAura();
       List<AuraBubble> auras = body.affectedAurasEffects.Keys.ToList();
-            bool effectRemoved = false;
       foreach (AuraBubble aura in auras) {
         if (aura.Def.RemoveOnSensorLock && __instance.IsSensorLocked) {
           body.RemoveAuraEffects(aura, false, true);
-                    effectRemoved = true;
         }
       }
-      if (effectRemoved)
-        body.ReapplyAllEffects();
+      //body.ReapplyAllEffects();
     }
   }
   [HarmonyPatch(typeof(AbstractActor))]
@@ -97,15 +94,12 @@ namespace CustomActivatableEquipment {
     public static void Postfix(AbstractActor __instance) {
       AuraActorBody body = __instance.bodyAura();
       List<AuraBubble> auras = body.affectedAurasEffects.Keys.ToList();
-            bool effectRemoved = false;
       foreach (AuraBubble aura in auras) {
         if (aura.Def.RemoveOnSensorLock && __instance.IsSensorLocked) {
           body.RemoveAuraEffects(aura, false, true);
-                    effectRemoved = true;
         }
       }
-      if (effectRemoved)
-        body.ReapplyAllEffects();
+      //body.ReapplyAllEffects();
     }
   }
   [HarmonyPatch(typeof(AbstractActor))]
