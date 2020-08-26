@@ -29,7 +29,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(bool) })]
   public static class MechComponent_CancelCreatedEffects {
     public static bool Prefix(MechComponent __instance,ref HashSet<EffectData> __state) {
-      Log.LogWrite(__instance.parent.GUID+":"+__instance.defId+".CancelCreatedEffects prefix\n");
+      Log.Debug?.Write(__instance.parent.GUID+":"+__instance.defId+".CancelCreatedEffects prefix\n");
       __state = new HashSet<EffectData>();
       for (int index1 = 0; index1 < __instance.createdEffectIDs.Count; ++index1) {
         List<Effect> allEffectsWithId = __instance.parent.Combat.EffectManager.GetAllEffectsWithID(__instance.createdEffectIDs[index1]);
@@ -41,7 +41,7 @@ namespace CustomActivatableEquipment {
           if ((allEffectsWithId[index2].EffectData.effectType == EffectType.StatisticEffect) && (allEffectsWithId[index2].EffectData.statisticData.effectsPersistAfterDestruction == true)) {
             if (__state.Contains(statusEffect) == false) {
               __state.Add(statusEffect);
-              Log.LogWrite(" " + allEffectsWithId[index2].EffectData.Description.Id + " need to be restored\n");
+              Log.Debug?.Write(" " + allEffectsWithId[index2].EffectData.Description.Id + " need to be restored\n");
             }
           }
         }
@@ -49,7 +49,7 @@ namespace CustomActivatableEquipment {
       return true;
     }
     public static void Postfix(MechComponent __instance, ref HashSet<EffectData> __state) {
-      Log.LogWrite(__instance.parent.GUID + ":" + __instance.defId + ".CancelCreatedEffects postfix\n");
+      Log.Debug?.Write(__instance.parent.GUID + ":" + __instance.defId + ".CancelCreatedEffects postfix\n");
       MechComponent component = __instance;
       foreach (EffectData statusEffect in __state) {
         string effectID = string.Format("ActivatableEffect_{0}_{1}", (object)component.parent.GUID, (object)component.uid);
@@ -57,7 +57,7 @@ namespace CustomActivatableEquipment {
                 (object)statusEffect,(object)component.parent,(object)((ICombatant)component.parent),(object)effectID
               });
         component.createdEffectIDs.Add(effectID);
-        Log.LogWrite("restore effect " + effectID + ":" + statusEffect.Description.Id + "\n");
+        Log.Debug?.Write("restore effect " + effectID + ":" + statusEffect.Description.Id + "\n");
       }
     }
   }
@@ -133,10 +133,10 @@ namespace CustomActivatableEquipment {
       }
     }
     public static void InitExplosionStats(this MechComponent component) {
-      Log.LogWrite("MechComponent.InitExplosionStats(" + component.parent.GUID+":"+component.defId+")\n");
+      Log.Debug?.Write("MechComponent.InitExplosionStats(" + component.parent.GUID+":"+component.defId+")\n");
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) {
-        Log.LogWrite(" not activatable\n");
+        Log.Debug?.Write(" not activatable\n");
         return;
       }
       component.InitActorStat(activatable.Explosion.Range, activatable.Explosion.RangeActorStat);
@@ -167,66 +167,66 @@ namespace CustomActivatableEquipment {
       component.InitActorStat(activatable.Explosion.LongVFXOffsetZ, activatable.Explosion.LongVFXOffsetZActorStat);
       component.InitActorStat(activatable.Explosion.ExplodeSound, activatable.Explosion.ExplodeSoundActorStat);
       component.InitActorStat(activatable.Explosion.statusEffectsCollection, activatable.Explosion.statusEffectsCollectionActorStat);
-      Log.LogWrite(" StatusEffectsCollections "+ activatable.Explosion.statusEffects.Length + "\n");
+      Log.Debug?.Write(" StatusEffectsCollections "+ activatable.Explosion.statusEffects.Length + "\n");
       if (activatable.Explosion.statusEffects.Length > 0) {
-        Log.LogWrite(" found StatusEffectsCollections\n");
+        Log.Debug?.Write(" found StatusEffectsCollections\n");
         if (AoEExplosion.ExposionStatusEffects.ContainsKey(component.parent) == false) { AoEExplosion.ExposionStatusEffects.Add(component.parent, new Dictionary<string, List<EffectData>>()); };
-        Log.LogWrite(" parent:"+component.parent.DisplayName+":"+component.parent.GUID+"\n");
+        Log.Debug?.Write(" parent:"+component.parent.DisplayName+":"+component.parent.GUID+"\n");
         Dictionary<string, List<EffectData>> statusEffectsCollection = AoEExplosion.ExposionStatusEffects[component.parent];
         if (statusEffectsCollection.ContainsKey(activatable.Explosion.statusEffectsCollectionName) == false) { statusEffectsCollection.Add(activatable.Explosion.statusEffectsCollectionName, new List<EffectData>()); }
         statusEffectsCollection[activatable.Explosion.statusEffectsCollectionName].AddRange(activatable.Explosion.statusEffects);
       }
     }
     public static List<EffectData> AoEExplosionEffects(this MechComponent component) {
-      Log.LogWrite(component.parent.GUID + ":" + component.defId + ".AoEExplosionEffects\n");
+      Log.Debug?.Write(component.parent.GUID + ":" + component.defId + ".AoEExplosionEffects\n");
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) {
         return new List<EffectData>();
       }
       if (AoEExplosion.ExposionStatusEffects.ContainsKey(component.parent) == false) {
-        Log.LogWrite(" parent have no explosion effects collections\n");
+        Log.Debug?.Write(" parent have no explosion effects collections\n");
         return new List<EffectData>();
       }
       Dictionary<string, List<EffectData>> statusEffectsCollection = AoEExplosion.ExposionStatusEffects[component.parent];
       string collectionName = string.Empty;
       if (string.IsNullOrEmpty(activatable.Explosion.statusEffectsCollectionActorStat) == false) {
         if (Core.checkExistance(component.parent.StatCollection, activatable.Explosion.statusEffectsCollectionActorStat)) {
-          Log.LogWrite(activatable.Explosion.statusEffectsCollectionActorStat + " exists\n");
+          Log.Debug?.Write(activatable.Explosion.statusEffectsCollectionActorStat + " exists\n");
           collectionName = component.parent.StatCollection.GetStatistic(activatable.Explosion.statusEffectsCollectionActorStat).Value<string>();
         } else {
-          Log.LogWrite(activatable.Explosion.statusEffectsCollectionActorStat + " not exists\n");
+          Log.Debug?.Write(activatable.Explosion.statusEffectsCollectionActorStat + " not exists\n");
           collectionName = activatable.Explosion.statusEffectsCollection;
         }
       } else {
-        Log.LogWrite("statusEffectsCollectionActorStat not set\n");
+        Log.Debug?.Write("statusEffectsCollectionActorStat not set\n");
         collectionName = activatable.Explosion.statusEffectsCollection;
       }
       if(statusEffectsCollection.ContainsKey(collectionName) == false) {
-        Log.LogWrite(" actor explosion effects collection not contains collection "+collectionName+"\n");
+        Log.Debug?.Write(" actor explosion effects collection not contains collection "+collectionName+"\n");
         return new List<EffectData>();
       }
       return statusEffectsCollection[collectionName];
     }
     public static float AoEExplodeRange(this MechComponent component) {
-      Log.LogWrite(component.parent.GUID + ":" + component.defId + ".AoEExplodeRange\n");
+      Log.Debug?.Write(component.parent.GUID + ":" + component.defId + ".AoEExplodeRange\n");
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) {
         return 0f;
       }
       if (string.IsNullOrEmpty(activatable.Explosion.RangeActorStat) == false) {
         if (Core.checkExistance(component.parent.StatCollection, activatable.Explosion.RangeActorStat)) {
-          Log.LogWrite(activatable.Explosion.RangeActorStat + " exists\n");
+          Log.Debug?.Write(activatable.Explosion.RangeActorStat + " exists\n");
           return component.parent.StatCollection.GetStatistic(activatable.Explosion.RangeActorStat).Value<float>();
         } else {
-          Log.LogWrite(activatable.Explosion.RangeActorStat + " not exists\n");
+          Log.Debug?.Write(activatable.Explosion.RangeActorStat + " not exists\n");
           return activatable.Explosion.Range;
         }
       }
-      Log.LogWrite("RangeActorStat not set\n");
+      Log.Debug?.Write("RangeActorStat not set\n");
       return activatable.Explosion.Range;
     }
     public static float AoEExplodeDamage(this MechComponent component) {
-      Log.LogWrite(component.parent.GUID + ":" + component.defId + ".AoEExplodeDamage\n");
+      Log.Debug?.Write(component.parent.GUID + ":" + component.defId + ".AoEExplodeDamage\n");
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) {
         return 0f;
@@ -234,31 +234,31 @@ namespace CustomActivatableEquipment {
       float result = 0f;
       if (string.IsNullOrEmpty(activatable.Explosion.DamageActorStat) == false) {
         if (Core.checkExistance(component.parent.StatCollection, activatable.Explosion.DamageActorStat)) {
-          Log.LogWrite(activatable.Explosion.DamageActorStat + " exists\n");
+          Log.Debug?.Write(activatable.Explosion.DamageActorStat + " exists\n");
           result = component.parent.StatCollection.GetStatistic(activatable.Explosion.DamageActorStat).Value<float>();
         } else {
-          Log.LogWrite(activatable.Explosion.DamageActorStat + " not exists\n");
+          Log.Debug?.Write(activatable.Explosion.DamageActorStat + " not exists\n");
           result = activatable.Explosion.Damage;
         }
       } else {
-        Log.LogWrite("DamageActorStat not set\n");
+        Log.Debug?.Write("DamageActorStat not set\n");
         result = activatable.Explosion.Damage;
       }
       if (activatable.Explosion.AmmoCountScale) {
         AmmunitionBox box = component as AmmunitionBox;
         if(box != null) {
           if (box.IsFunctional == false) {
-            Log.LogWrite(" ammo box not functional. Exploded already.");
+            Log.Debug?.Write(" ammo box not functional. Exploded already.");
             result = 0f;
           } else {
-            Log.LogWrite("Scale by ammo capacity. Was "+result);
+            Log.Debug?.Write("Scale by ammo capacity. Was "+result);
             result *= ((float)box.CurrentAmmo / (float)box.AmmoCapacity);
-            Log.LogWrite(" become " + result+"\n");
+            Log.Debug?.Write(" become " + result+"\n");
           }
         }
       }
       if(string.IsNullOrEmpty(activatable.Explosion.AddSelfDamageTag) == false) {
-        Log.LogWrite(" alter by tag\n");
+        Log.Debug?.Write(" alter by tag\n");
         foreach (MechComponent scomp in component.parent.allComponents) {
           ActivatableComponent sactiv = scomp.componentDef.GetComponent<ActivatableComponent>();
           if (sactiv == null) { continue; }
@@ -271,7 +271,7 @@ namespace CustomActivatableEquipment {
       return result;
     }
     public static float AoEExplodeHeat(this MechComponent component) {
-      Log.LogWrite(component.parent.GUID + ":" + component.defId + ".AoEExplodeHeat\n");
+      Log.Debug?.Write(component.parent.GUID + ":" + component.defId + ".AoEExplodeHeat\n");
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) {
         return 0f;
@@ -279,31 +279,31 @@ namespace CustomActivatableEquipment {
       float result = 0f;
       if (string.IsNullOrEmpty(activatable.Explosion.HeatActorStat) == false) {
         if (Core.checkExistance(component.parent.StatCollection, activatable.Explosion.HeatActorStat)) {
-          Log.LogWrite(activatable.Explosion.HeatActorStat + " exists\n");
+          Log.Debug?.Write(activatable.Explosion.HeatActorStat + " exists\n");
           result = component.parent.StatCollection.GetStatistic(activatable.Explosion.HeatActorStat).Value<float>();
         } else {
-          Log.LogWrite(activatable.Explosion.HeatActorStat + " not exists\n");
+          Log.Debug?.Write(activatable.Explosion.HeatActorStat + " not exists\n");
           result = activatable.Explosion.Heat;
         }
       } else {
-        Log.LogWrite("HeatActorStat not set\n");
+        Log.Debug?.Write("HeatActorStat not set\n");
         result = activatable.Explosion.Heat;
       }
       if (activatable.Explosion.AmmoCountScale) {
         AmmunitionBox box = component as AmmunitionBox;
         if (box != null) {
           if (box.IsFunctional == false) {
-            Log.LogWrite(" ammo box not functional. Exploded already.");
+            Log.Debug?.Write(" ammo box not functional. Exploded already.");
             result = 0f;
           } else {
-            Log.LogWrite("Scale by ammo capacity. Was " + result);
+            Log.Debug?.Write("Scale by ammo capacity. Was " + result);
             result *= ((float)box.CurrentAmmo / (float)box.AmmoCapacity);
-            Log.LogWrite(" become " + result + "\n");
+            Log.Debug?.Write(" become " + result + "\n");
           }
         }
       }
       if (string.IsNullOrEmpty(activatable.Explosion.AddSelfDamageTag) == false) {
-        Log.LogWrite(" alter by tag\n");
+        Log.Debug?.Write(" alter by tag\n");
         foreach (MechComponent scomp in component.parent.allComponents) {
           ActivatableComponent sactiv = scomp.componentDef.GetComponent<ActivatableComponent>();
           if (sactiv == null) { continue; }
@@ -316,7 +316,7 @@ namespace CustomActivatableEquipment {
       return result;
     }
     public static float AoEExplodeStability(this MechComponent component) {
-      Log.LogWrite(component.parent.GUID + ":" + component.defId + ".AoEExplodeStability\n");
+      Log.Debug?.Write(component.parent.GUID + ":" + component.defId + ".AoEExplodeStability\n");
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) {
         return 0f;
@@ -324,31 +324,31 @@ namespace CustomActivatableEquipment {
       float result = 0f;
       if (string.IsNullOrEmpty(activatable.Explosion.StabilityActorStat) == false) {
         if (Core.checkExistance(component.parent.StatCollection, activatable.Explosion.StabilityActorStat)) {
-          Log.LogWrite(activatable.Explosion.StabilityActorStat + " exists\n");
+          Log.Debug?.Write(activatable.Explosion.StabilityActorStat + " exists\n");
           result = component.parent.StatCollection.GetStatistic(activatable.Explosion.StabilityActorStat).Value<float>();
         } else {
-          Log.LogWrite(activatable.Explosion.StabilityActorStat + " not exists\n");
+          Log.Debug?.Write(activatable.Explosion.StabilityActorStat + " not exists\n");
           result = activatable.Explosion.Stability;
         }
       } else {
-        Log.LogWrite("StabilityActorStat not set\n");
+        Log.Debug?.Write("StabilityActorStat not set\n");
         result = activatable.Explosion.Stability;
       }
       if (activatable.Explosion.AmmoCountScale) {
         AmmunitionBox box = component as AmmunitionBox;
         if (box != null) {
           if (box.IsFunctional == false) {
-            Log.LogWrite(" ammo box not functional. Exploded already.");
+            Log.Debug?.Write(" ammo box not functional. Exploded already.");
             result = 0f;
           } else {
-            Log.LogWrite("Scale by ammo capacity. Was " + result);
+            Log.Debug?.Write("Scale by ammo capacity. Was " + result);
             result *= ((float)box.CurrentAmmo / (float)box.AmmoCapacity);
-            Log.LogWrite(" become " + result + "\n");
+            Log.Debug?.Write(" become " + result + "\n");
           }
         }
       }
       if (string.IsNullOrEmpty(activatable.Explosion.AddSelfDamageTag) == false) {
-        Log.LogWrite(" alter by tag\n");
+        Log.Debug?.Write(" alter by tag\n");
         foreach (MechComponent scomp in component.parent.allComponents) {
           ActivatableComponent sactiv = scomp.componentDef.GetComponent<ActivatableComponent>();
           if (sactiv == null) { continue; }
@@ -676,13 +676,13 @@ namespace CustomActivatableEquipment {
       vfxs.explodeObject.SpawnSelf(component.parent.Combat);
     }
     public static void applyExplodeBurn(this MechComponent component, Weapon fakeWeapon) {
-      Log.LogWrite("Applying burn effect:" + component.defId + " " + component.parent.CurrentPosition + "\n");
+      Log.Debug?.Write("Applying burn effect:" + component.defId + " " + component.parent.CurrentPosition + "\n");
       MapTerrainDataCellEx cell = component.parent.Combat.MapMetaData.GetCellAt(component.parent.CurrentPosition) as MapTerrainDataCellEx;
       if (cell == null) {
         CustomAmmoCategoriesLog.Log.LogWrite(" cell is not extended\n");
         return;
       }
-      Log.LogWrite(" fire at " + component.parent.CurrentPosition + "\n");
+      Log.Debug?.Write(" fire at " + component.parent.CurrentPosition + "\n");
       if (component.AoEExplodeFireFireTerrainCellRadius() == 0) {
         if (cell.hexCell.TryBurnCell(fakeWeapon,component.AoEExplodeFireTerrainChance(),component.AoEExplodeFireTerrainStrength(),component.AoEExplodeFireDurationWithoutForest())) {
           DynamicMapHelper.burningHexes.Add(cell.hexCell);
@@ -697,13 +697,13 @@ namespace CustomActivatableEquipment {
       }
     }
     public static void applyImpactTempMask(this MechComponent component) {
-      Log.LogWrite("Applying long effect:" + component.defId + " " + component.parent.CurrentPosition + "\n");
+      Log.Debug?.Write("Applying long effect:" + component.defId + " " + component.parent.CurrentPosition + "\n");
       MapTerrainDataCellEx cell = component.parent.Combat.MapMetaData.GetCellAt(component.parent.CurrentPosition) as MapTerrainDataCellEx;
       if (cell == null) {
-        Log.LogWrite(" cell is not extended\n");
+        Log.Debug?.Write(" cell is not extended\n");
         return;
       }
-      Log.LogWrite(" impact at " + component.parent.CurrentPosition + "\n");
+      Log.Debug?.Write(" impact at " + component.parent.CurrentPosition + "\n");
       int turns = component.AoEExplodeTempDesignMaskTurns();
       string vfx = component.AoEExplodeLongVFX();
       Vector3 scale = component.AoELongVFXScale();
@@ -828,13 +828,13 @@ namespace CustomActivatableEquipment {
       if (Range <= Core.Epsilon) { return; }
       if (Chance <= Core.Epsilon) { return; }
       float roll = Random.Range(0f, 1f);
-      Log.LogWrite("AoE explosion "+component.parent.GUID+":"+component.defId+". Chance:"+Chance+" Roll:"+roll+"\n");
+      Log.Debug?.Write("AoE explosion "+component.parent.GUID+":"+component.defId+". Chance:"+Chance+" Roll:"+roll+"\n");
       if (roll > Chance) {
-        Log.LogWrite("Fail. No Explosion\n");
+        Log.Debug?.Write("Fail. No Explosion\n");
         return;
       }
-      Log.LogWrite("Spawning explode VFX\n");
-      Log.LogWrite(" Range:"+Range+" Damage:"+AoEDmg+"\n");
+      Log.Debug?.Write("Spawning explode VFX\n");
+      Log.Debug?.Write(" Range:"+Range+" Damage:"+AoEDmg+"\n");
       List<AoEComponentExplosionRecord> AoEDamage = new List<AoEComponentExplosionRecord>();
       List<EffectData> effects = component.AoEExplosionEffects();
       int SequenceID = component.parent.Combat.StackManager.NextStackUID;
@@ -861,7 +861,7 @@ namespace CustomActivatableEquipment {
         float StabDamage = component.AoEExplodeStability() * unitTypeAoEMult * rangeMult * targetAoEMult * targetStabMult;
         foreach (EffectData effect in effects) {
           string effectID = string.Format("OnComponentAoEExplosionEffect_{0}_{1}", (object)component.parent.GUID, (object)SequenceID);
-          Log.LogWrite($"  Applying effectID:{effect.Description.Id} with effectDescId:{effect?.Description.Id} effectDescName:{effect?.Description.Name}\n");
+          Log.Debug?.Write($"  Applying effectID:{effect.Description.Id} with effectDescId:{effect?.Description.Id} effectDescName:{effect?.Description.Name}\n");
           component.parent.Combat.EffectManager.CreateEffect(effect, effectID, -1, component.parent, target, new WeaponHitInfo(), 0, false);
         }
         Mech mech = target as Mech;
@@ -899,12 +899,12 @@ namespace CustomActivatableEquipment {
             fullLocationDamage += 100f;
           }
         }
-        Log.LogWrite(" hitLocations: ");
+        Log.Debug?.Write(" hitLocations: ");
         foreach (int hitLocation in hitLocations) {
-          Log.LogWrite(" " + hitLocation);
+          Log.Debug?.Write(" " + hitLocation);
         }
-        Log.LogWrite("\n");
-        Log.LogWrite(" full location damage coeff " + fullLocationDamage + "\n");
+        Log.Debug?.Write("\n");
+        Log.Debug?.Write(" full location damage coeff " + fullLocationDamage + "\n");
         AoEComponentExplosionRecord AoERecord = new AoEComponentExplosionRecord(target);
         AoERecord.HeatDamage = HeatDamage;
         AoERecord.StabDamage = StabDamage;
@@ -921,11 +921,11 @@ namespace CustomActivatableEquipment {
             Vector3 pos = target.getImpactPositionSimple(component.parent, component.parent.CurrentPosition, hitLocation);
             AoERecord.hitRecords[hitLocation] = new AoEComponentExplosionHitRecord(pos, CurrentLocationDamage);
           }
-          Log.LogWrite("  location " + hitLocation + " damage " + AoERecord.hitRecords[hitLocation].Damage + "\n");
+          Log.Debug?.Write("  location " + hitLocation + " damage " + AoERecord.hitRecords[hitLocation].Damage + "\n");
         }
         AoEDamage.Add(AoERecord);
       }
-      Log.LogWrite("AoE Damage result:\n");
+      Log.Debug?.Write("AoE Damage result:\n");
       Weapon fakeWeapon = new Weapon();
       fakeWeapon.parent = component.parent;
       typeof(MechComponent).GetProperty("componentDef", BindingFlags.Instance | BindingFlags.Public).GetSetMethod(true).Invoke(fakeWeapon,new object[1] { (object)component.componentDef });
@@ -937,7 +937,7 @@ namespace CustomActivatableEquipment {
       component.AoEPlayExplodeVFX();
       CustAmmoCategories.CustomAudioSource explodeSound = component.AoEExplodeSound();
       if (explodeSound != null) {
-        Log.LogWrite(" play explode sound\n");
+        Log.Debug?.Write(" play explode sound\n");
         explodeSound.play(component.parent.GameRep.audioObject);
       }
       var fakeHit = new WeaponHitInfo(-1, -1, -1, -1, component.parent.GUID, component.parent.GUID, -1, null, null, null, null, null, null
@@ -945,12 +945,12 @@ namespace CustomActivatableEquipment {
         , new AttackDirection[1] { AttackDirection.FromArtillery }
         , new Vector3[1] { Vector3.zero }, null, null);
       for (int index = 0; index < AoEDamage.Count; ++index) {
-        Log.LogWrite(" "+ AoEDamage[index].target.DisplayName+":"+ AoEDamage[index].target.GUID+"\n");
-        Log.LogWrite(" Heat:" + AoEDamage[index].HeatDamage+ "\n");
-        Log.LogWrite(" Instability:" + AoEDamage[index].StabDamage + "\n");
+        Log.Debug?.Write(" "+ AoEDamage[index].target.DisplayName+":"+ AoEDamage[index].target.GUID+"\n");
+        Log.Debug?.Write(" Heat:" + AoEDamage[index].HeatDamage+ "\n");
+        Log.Debug?.Write(" Instability:" + AoEDamage[index].StabDamage + "\n");
         fakeHit.targetId = AoEDamage[index].target.GUID;
         foreach (var AOEHitRecord in AoEDamage[index].hitRecords) {
-          Log.LogWrite("  location:" + AOEHitRecord.Key + " pos:" + AOEHitRecord.Value.hitPosition + " dmg:" + AOEHitRecord.Value.Damage + "\n");
+          Log.Debug?.Write("  location:" + AOEHitRecord.Key + " pos:" + AOEHitRecord.Value.hitPosition + " dmg:" + AOEHitRecord.Value.Damage + "\n");
           float LocArmor = AoEDamage[index].target.ArmorForLocation(AOEHitRecord.Key);
           if ((double)LocArmor < (double)AOEHitRecord.Value.Damage) {
             component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, AoEDamage[index].target.GUID, new Text("{0}", new object[1]

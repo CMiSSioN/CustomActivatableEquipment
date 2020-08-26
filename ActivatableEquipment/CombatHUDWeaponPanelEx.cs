@@ -38,7 +38,7 @@ namespace CustomActivatableEquipment {
     private delegate string GetExtendedDescriptionInvoker(string defId);
     private static GetExtendedDescriptionInvoker GetExtendedDescriptionDelegate = null;
     public static void DetectMechEngineer() {
-      Log.TWL(0, "DetectMechEngineer");
+      Log.Debug?.TWL(0, "DetectMechEngineer");
       Assembly[] asseblies = AppDomain.CurrentDomain.GetAssemblies();
       foreach (Assembly assembly in asseblies) {
         Log.WL(1, assembly.FullName);
@@ -64,7 +64,7 @@ namespace CustomActivatableEquipment {
     public static ExtendedDescription GetExtendedDescription(this MechComponent component) {
       if (GetExtendedDescriptionDelegate == null) { return null; }
       string serialData = GetExtendedDescriptionDelegate(component.defId);
-      Log.TWL(0, "GetExtendedDescription: " + component.defId + ":" + serialData);
+      Log.Debug?.TWL(0, "GetExtendedDescription: " + component.defId + ":" + serialData);
       if (string.IsNullOrEmpty(serialData)) { return null; }
       ExtendedDescription obj = JsonConvert.DeserializeObject<ExtendedDescription>(serialData);
       Log.WL(0,JsonConvert.SerializeObject(obj,Formatting.Indented));
@@ -85,7 +85,7 @@ namespace CustomActivatableEquipment {
       text_HitChance = ht;
     }
     public override void OnPointerEnter(PointerEventData data) {
-      Log.LogWrite("WeaponSlotsLabelsToggle.OnPointerEnter called." + data.position + "\n");
+      Log.Debug?.Write("WeaponSlotsLabelsToggle.OnPointerEnter called." + data.position + "\n");
       if (text_WeaponText != null) { text_WeaponText.color = Color.white; };
       if (text_Ammo != null) { text_Ammo.color = Color.white; };
       if (text_Damage != null) { text_Damage.color = Color.white; };
@@ -93,7 +93,7 @@ namespace CustomActivatableEquipment {
       hovered = true;
     }
     public override void OnPointerExit(PointerEventData data) {
-      Log.LogWrite("WeaponSlotsLabelsToggle.OnPointerExit called." + data.position + "\n");
+      Log.Debug?.Write("WeaponSlotsLabelsToggle.OnPointerExit called." + data.position + "\n");
       if (text_WeaponText != null) { text_WeaponText.color = Color.grey; };
       if (text_Ammo != null) { text_Ammo.color = Color.grey; };
       if (text_Damage != null) { text_Damage.color = Color.grey; };
@@ -101,7 +101,7 @@ namespace CustomActivatableEquipment {
       hovered = false;
     }
     public override void OnPointerClick(PointerEventData data) {
-      Log.LogWrite("WeaponSlotsLabelsToggle.OnPointerClick called." + data.position + "\n");
+      Log.Debug?.Write("WeaponSlotsLabelsToggle.OnPointerClick called." + data.position + "\n");
       if (this.hovered) if (CombatHUDWeaponPanelExHelper.panelEx != null) CombatHUDWeaponPanelExHelper.panelEx.Toggle();
       //line.SetText(dataline.ToString(false));
     }
@@ -150,21 +150,21 @@ namespace CustomActivatableEquipment {
       if (clickReceivers.ContainsKey(hover)) { clickReceivers[hover].OnPointerClick(null); }
     }
     public override void OnPointerEnter(PointerEventData data) {
-      Log.LogWrite("CombatHUDEquipmentPanel.OnPointerEnter called." + data.position + "\n");
+      Log.Debug?.Write("CombatHUDEquipmentPanel.OnPointerEnter called." + data.position + "\n");
       if (label_WeaponText != null) { label_WeaponText.color = Color.white; };
       if (label_State != null) { label_State.color = Color.white; };
       if (label_Charges != null) { label_Charges.color = Color.white; };
       if (label_FailChance != null) { label_FailChance.color = Color.white; };
     }
     public override void OnPointerExit(PointerEventData data) {
-      Log.LogWrite("CombatHUDEquipmentPanel.OnPointerExit called." + data.position + "\n");
+      Log.Debug?.Write("CombatHUDEquipmentPanel.OnPointerExit called." + data.position + "\n");
       if (label_WeaponText != null) { label_WeaponText.color = Color.grey; };
       if (label_State != null) { label_State.color = Color.grey; };
       if (label_Charges != null) { label_Charges.color = Color.grey; };
       if (label_FailChance != null) { label_FailChance.color = Color.grey; };
     }
     public override void OnPointerClick(PointerEventData data) {
-      Log.LogWrite("CombatHUDEquipmentPanel.OnPointerClick called." + data.position + "\n");
+      Log.Debug?.Write("CombatHUDEquipmentPanel.OnPointerClick called." + data.position + "\n");
       Toggle();
       //if (CombatHUDWeaponPanelExHelper.panelEx != null) CombatHUDWeaponPanelExHelper.panelEx.Toggle();
       //line.SetText(dataline.ToString(false));
@@ -218,7 +218,7 @@ namespace CustomActivatableEquipment {
     public void InitDisplayedEquipment(AbstractActor unit) {
       operatinalSlots.Clear();
       if (unit == null) { return; }
-      Log.TWL(0, "CombatHUDEquipmentPanel.InitDisplayedEquipment unit:" + new Localize.Text(unit.DisplayName).ToString() + " pilot:" + unit.GetPilot().pilotDef.Description.Id);
+      Log.Debug?.TWL(0, "CombatHUDEquipmentPanel.InitDisplayedEquipment unit:" + new Localize.Text(unit.DisplayName).ToString() + " pilot:" + unit.GetPilot().pilotDef.Description.Id);
       //Log.WL(1, "unit:" + new Localize.Text(unit.DisplayName).ToString());
       HashSet<MechComponent> acomps = new HashSet<MechComponent>();
       foreach (Ability ability in unit.ComponentAbilities) {
@@ -254,7 +254,7 @@ namespace CustomActivatableEquipment {
       RefreshDisplayedEquipment(unit);
     }
     public void RefreshDisplayedEquipment(AbstractActor unit) {
-      //Log.TWL(0, "CombatHUDEquipmentPanel.RefreshDisplayedEquipment");
+      //Log.Debug?.TWL(0, "CombatHUDEquipmentPanel.RefreshDisplayedEquipment");
       if (unit == null) { return; }
       foreach (CombatHUDEquipmentSlotEx slot in slots) {
         slot.RefreshComponent();
@@ -400,17 +400,17 @@ namespace CustomActivatableEquipment {
       this.mainImage.color = Color.Lerp(this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor,Color.red, flashT);
     }
     public override void OnPointerEnter(PointerEventData eventData) {
-      Log.TWL(0, "CombatHUDEquipmentSlotEx.OnPointerEnter " + component.defId);
+      Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.OnPointerEnter " + component.defId);
       hovered = true;
       this.RefreshHighlighted();
     }
     public override void OnPointerExit(PointerEventData eventData) {
-      Log.TWL(0, "CombatHUDEquipmentSlotEx.OnPointerExit " + component.defId);
+      Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.OnPointerExit " + component.defId);
       hovered = false;
       this.RefreshNonHighlighted();
     }
     public override void OnPointerClick(PointerEventData eventData) {
-      Log.TWL(0, "CombatHUDEquipmentSlotEx.OnPointerClick");
+      Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.OnPointerClick");
       if (activeDef == null) { return; }
       if (component == null) { return; }
       if (activeDef.CanBeactivatedManualy == false) { return; }
@@ -419,7 +419,7 @@ namespace CustomActivatableEquipment {
       if (component.parent.HasMovedThisRound) { return; }
       if (ActivatableComponent.isOutOfCharges(component)) { return; }
       if (component.parent.IsAvailableThisPhase == false) { return; }
-      Log.LogWrite("Toggle activatable " + component.defId + "\n");
+      Log.Debug?.Write("Toggle activatable " + component.defId + "\n");
       ActivatableComponent.toggleComponentActivation(this.component);
       equipPanel.RefreshDisplayedEquipment(component.parent);
     }
@@ -477,7 +477,7 @@ namespace CustomActivatableEquipment {
     }
     public void Show() {
       if (RealState) {
-        //Log.TWL(0, "CombatHUDEquipmentSlotEx.Show "+component.defId+" abilities:"+abilities.Count);
+        //Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.Show "+component.defId+" abilities:"+abilities.Count);
         if(this.gameObject.activeInHierarchy == false) {
           flashing = isNeedFlashing();
           flashSpeedCurrent = 2f;
@@ -545,7 +545,7 @@ namespace CustomActivatableEquipment {
       this.component = component;
       this.activeDef = component.componentDef.GetComponent<ActivatableComponent>();
       this.hoverSidePanel.Title = new Localize.Text(component.Description.UIName);
-      Log.TWL(0, "CombatHUDEquipmentSlotEx.Init "+component.defId);
+      Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.Init "+component.defId);
       ExtendedDetails extDescr = component.componentDef.GetComponent<ExtendedDetails>();
       if (extDescr == null) {
         this.hoverSidePanel.Description = new Localize.Text(component.Description.Details);
@@ -597,7 +597,7 @@ namespace CustomActivatableEquipment {
         }
       }
       for (int t = abilities.Count; t < buttons.Count; ++t) { buttons[t].gameObject.SetActive(false); buttons[t].gameObject.transform.parent.gameObject.SetActive(false); };
-      Log.TWL(0, "CombatHUDEquipmentSlotEx.Init " + component.defId + " abilities:" + this.abilities.Count);
+      Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.Init " + component.defId + " abilities:" + this.abilities.Count);
     }
     public static CombatHUDEquipmentSlotEx Init(CombatHUD HUD, CombatHUDWeaponPanel weaponPanel, CombatHUDEquipmentPanel equipPanel) {
       Transform slot = weaponPanel.gameObject.transform.Find("wp_Slot1");
@@ -609,7 +609,7 @@ namespace CustomActivatableEquipment {
         slot_ex.transform.SetParent(weaponPanel.transform);
         slot_ex.SetActive(false);
         slot_ex.transform.localScale = new Vector3(1f, 1f, 1f);
-        Log.TWL(0, "found wp_Slot1 parent:" + slot_ex.transform.parent.name);
+        Log.Debug?.TWL(0, "found wp_Slot1 parent:" + slot_ex.transform.parent.name);
       } else {
         return null;
       }
@@ -629,7 +629,7 @@ namespace CustomActivatableEquipment {
         result.chargesText = ui.Find("damage_Text").GetComponent<LocalizableText>();
         result.mainImage = ui.gameObject.GetComponent<SVGImage>();
         result.checkImage = ui.Find("check_Image").gameObject.GetComponent<SVGImage>();
-        Log.TWL(0, "check_Image:" + ui.Find("check_Image").gameObject.GetComponent<SVGImage>().color);
+        Log.Debug?.TWL(0, "check_Image:" + ui.Find("check_Image").gameObject.GetComponent<SVGImage>().color);
         GameObject.Destroy(ui.gameObject.GetComponent<CombatHUDTooltipHoverElement>());
         result.hoverSidePanel = ui.gameObject.AddComponent<CombatHUDSidePanelHoverElement>();
         result.hoverSidePanel.Init(HUD);
@@ -642,7 +642,7 @@ namespace CustomActivatableEquipment {
       return result;
     }
     public void InitNewAbilitySlot() {
-      Log.TWL(0, "CombatHUDEquipmentSlotEx.InitNewAbilitySlot "+ this.component.defId);
+      Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.InitNewAbilitySlot "+ this.component.defId);
       try {
         Transform slot = weaponPanel.gameObject.transform.Find("uixPrfPanl_ElectronicWarfareToggles");
         if (slot != null) {
@@ -658,7 +658,7 @@ namespace CustomActivatableEquipment {
                   layout.padding.bottom);
           tempPadding.left += 50;
           layout.padding = tempPadding;
-          Log.TWL(0, "found uixPrfPanl_ElectronicWarfareToggles parent:" + slot_ex.transform.parent.name);
+          Log.Debug?.TWL(0, "found uixPrfPanl_ElectronicWarfareToggles parent:" + slot_ex.transform.parent.name);
           CombatHUDEquipmentSlot eqslot = slot_ex.transform.Find("equipmentButton_1").GetComponent<CombatHUDEquipmentSlot>();
           if (eqslot != null) {
             buttons.Add(eqslot);
@@ -666,7 +666,7 @@ namespace CustomActivatableEquipment {
           }
         }
       }catch(Exception e) {
-        Log.TWL(0,e.ToString());
+        Log.Debug?.TWL(0,e.ToString());
       }
     }
   }
@@ -739,7 +739,7 @@ namespace CustomActivatableEquipment {
     private PropertyInfo p_numWeaponsDisplayed;
     private int numWeaponsDisplayed {
       get {
-        if (this.panel == null) { Log.TWL(0, "CombatHUDWeaponPanel is null!"); return 0; }
+        if (this.panel == null) { Log.Debug?.TWL(0, "CombatHUDWeaponPanel is null!"); return 0; }
         return (int)p_numWeaponsDisplayed.GetValue(this.panel);
       }
     }

@@ -84,23 +84,23 @@ namespace CustomActivatableEquipment {
     public ComponentLine dataline { get; set; }
     private LocalizableText line { get; set; }
     public override void OnPointerEnter(PointerEventData data) {
-      Log.LogWrite("OnPointerEnter called." + data.position + "\n");
+      Log.Debug?.Write("OnPointerEnter called." + data.position + "\n");
       line.SetText(dataline.ToString(true));
     }
     public override void OnPointerExit(PointerEventData data) {
-      Log.LogWrite("OnPointerExit called." + data.position + "\n");
+      Log.Debug?.Write("OnPointerExit called." + data.position + "\n");
       line.SetText(dataline.ToString(false));
     }
     public override void OnPointerClick(PointerEventData data) {
-      Log.LogWrite("OnPointerClick called." + data.position + "\n");
+      Log.Debug?.Write("OnPointerClick called." + data.position + "\n");
       if (dataline.error) { return; }
       if (dataline.manual == false) { return; }
       if (dataline.component != null) {
-        Log.LogWrite("Toggle activatable " + dataline.component.defId + "\n");
+        Log.Debug?.Write("Toggle activatable " + dataline.component.defId + "\n");
         ActivatableComponent.toggleComponentActivation(dataline.component);
       }
       if (ActivatebleDialogHelper.popup != null) {
-        Log.LogWrite("Aborting popup\n");
+        Log.Debug?.Write("Aborting popup\n");
         ActivatebleDialogHelper.popup.Pool(false);
       }
       //line.SetText(dataline.ToString(false));
@@ -110,7 +110,7 @@ namespace CustomActivatableEquipment {
       this.dataline = data;
     }
     public void Deactivate() {
-      Log.LogWrite("ActivatbleMenuTriggers.Deactivate\n");
+      Log.Debug?.Write("ActivatbleMenuTriggers.Deactivate\n");
     }
   }
   public class AbilityMenuTriggers : EventTrigger {
@@ -118,18 +118,18 @@ namespace CustomActivatableEquipment {
     private LocalizableText line { get; set; }
     private CombatHUD HUD { get; set; }
     public override void OnPointerEnter(PointerEventData data) {
-      Log.LogWrite("OnPointerEnter called." + data.position + "\n");
+      Log.Debug?.Write("OnPointerEnter called." + data.position + "\n");
       line.SetText(dataline.ToString(true));
     }
     public override void OnPointerExit(PointerEventData data) {
-      Log.LogWrite("OnPointerExit called." + data.position + "\n");
+      Log.Debug?.Write("OnPointerExit called." + data.position + "\n");
       line.SetText(dataline.ToString(false));
     }
     public override void OnPointerClick(PointerEventData data) {
-      Log.LogWrite("OnPointerClick called." + data.position + "\n");
+      Log.Debug?.Write("OnPointerClick called." + data.position + "\n");
       if (dataline.error) { return; }
       if (dataline.ability != null) {
-        Log.LogWrite("Toggle ability " + dataline.ability.Def.Description.Id + "\n");
+        Log.Debug?.Write("Toggle ability " + dataline.ability.Def.Description.Id + "\n");
         List<CombatHUDEquipmentSlot> equipmentSlots = CombatHUDWeaponPanel_RefreshDisplayedEquipment.EquipmentSlots;
         Log.WL(1, "EquipmentSlots:"+ equipmentSlots.Count);
         equipmentSlots[1].InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(dataline.ability.Def.Targeting, false), dataline.ability, dataline.ability.Def.AbilityIcon, dataline.ability.Def.Description.Id, dataline.ability.Def.Description.Name, HUD.SelectedActor);
@@ -138,7 +138,7 @@ namespace CustomActivatableEquipment {
         equipmentSlots[1].OnClick();
       }
       if (ActivatebleDialogHelper.popup != null) {
-        Log.LogWrite("Aborting popup\n");
+        Log.Debug?.Write("Aborting popup\n");
         ActivatebleDialogHelper.popup.Pool(false);
       }
       //line.SetText(dataline.ToString(false));
@@ -149,7 +149,7 @@ namespace CustomActivatableEquipment {
       this.HUD = HUD;
     }
     public void Deactivate() {
-      Log.LogWrite("ActivatbleMenuTriggers.Deactivate\n");
+      Log.Debug?.Write("ActivatbleMenuTriggers.Deactivate\n");
     }
   }
 
@@ -198,7 +198,7 @@ namespace CustomActivatableEquipment {
     private static Dictionary<string, object> WPStates = new Dictionary<string, object>();
     public static void Init() {
       Type states = typeof(CombatHUDWeaponPanel).GetField("state", BindingFlags.Instance | BindingFlags.NonPublic).FieldType;
-      Log.TWL(0, "WPState:" + (states == null ? "null" : states.ToString()));
+      Log.Debug?.TWL(0, "WPState:" + (states == null ? "null" : states.ToString()));
       if (states != null) {
         var WPStateValues = Enum.GetValues(states);
         foreach (var WPStateValue in WPStateValues) {
@@ -208,7 +208,7 @@ namespace CustomActivatableEquipment {
       }
     }
     public static void ShowComponents(CombatHUD HUD) {
-      Log.TWL(0, "ShowComponents");
+      Log.Debug?.TWL(0, "ShowComponents");
       //if (HUD.SelectedActor == null) { return; };
       typeof(CombatHUDWeaponPanel).GetMethod("SetState", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(HUD.WeaponPanel, new object[] { weaponPanelState?WPStates["Unloading"] : WPStates["Loading"] });
       weaponPanelState = !weaponPanelState;

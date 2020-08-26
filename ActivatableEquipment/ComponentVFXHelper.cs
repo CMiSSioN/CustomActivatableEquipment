@@ -17,7 +17,7 @@ namespace CustomActivatableEquipment {
       try {
         __instance.registerComponentsForVFX();
       }catch(Exception e) {
-        Log.LogWrite(e.ToString()+"\n");
+        Log.Debug?.Write(e.ToString()+"\n");
       }
     }
   }
@@ -27,7 +27,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(Transform) })]
   public static class Vehicle_InitGameRep {
     public static void Postfix(Vehicle __instance) {
-      Log.LogWrite("Vehicle.InitGameRep " + (__instance != null?"not null":"null") + "\n");
+      Log.Debug?.Write("Vehicle.InitGameRep " + (__instance != null?"not null":"null") + "\n");
       __instance.registerComponentsForVFX();
     }
   }
@@ -63,9 +63,9 @@ namespace CustomActivatableEquipment {
   public static class PilotableActorRepresentation_OnPlayerVisibilityChanged {
     public static void Postfix(PilotableActorRepresentation __instance, VisibilityLevel newLevel) {
       try {
-        Log.LogWrite("PilotableActorRepresentation.OnPlayerVisibilityChanged " + __instance.parentCombatant.DisplayName + " " + newLevel + "\n");
+        Log.Debug?.Write("PilotableActorRepresentation.OnPlayerVisibilityChanged " + __instance.parentCombatant.DisplayName + " " + newLevel + "\n");
         if (__instance.parentActor == null) {
-          Log.LogWrite(" are you fucking seriously?? parentActor is null\n", true);
+          Log.WriteCritical(" are you fucking seriously?? parentActor is null\n");
           return;
         }
         foreach (MechComponent component in __instance.parentActor.allComponents) {
@@ -86,11 +86,11 @@ namespace CustomActivatableEquipment {
               }
             }
           } catch (Exception e) {
-            Log.LogWrite(e.ToString() + "\n", true);
+            Log.WriteCritical(e.ToString() + "\n");
           }
         }
       }catch(Exception e) {
-        Log.LogWrite(e.ToString() + "\n", true);
+        Log.WriteCritical(e.ToString() + "\n");
       }
     }
   }
@@ -101,10 +101,10 @@ namespace CustomActivatableEquipment {
   public static class MechComponent_DamageComponent {
     public static bool Prefix(MechComponent __instance, WeaponHitInfo hitInfo, ComponentDamageLevel damageLevel, bool applyEffects, ref bool __state) {
       __state = false;
-      Log.LogWrite("MechComponent.DamageComponent "+ __instance.DamageLevel+"->"+ damageLevel+"\n");
+      Log.Debug?.Write("MechComponent.DamageComponent "+ __instance.DamageLevel+"->"+ damageLevel+"\n");
       if (__instance.DamageLevel < ComponentDamageLevel.Destroyed) {
         if(damageLevel >= ComponentDamageLevel.Destroyed) {
-          Log.LogWrite(" destroyed\n");
+          Log.Debug?.Write(" destroyed\n");
           __state = true;
         }
       }
@@ -114,7 +114,7 @@ namespace CustomActivatableEquipment {
       if (__state) {
         ActivatableComponent activatable = __instance.componentDef.GetComponent<ActivatableComponent>();
         if(activatable == null) {
-          Log.LogWrite(" not activatable\n");
+          Log.Debug?.Write(" not activatable\n");
           return;
         }
         ObjectSpawnDataSelf VFX = __instance.PresitantVFX();
@@ -126,7 +126,7 @@ namespace CustomActivatableEquipment {
         if (activatable.ExplodeOnDamage) { __instance.AoEExplodeComponent(); };
         __instance.playDestroySound();
       } else {
-        Log.LogWrite(" no additional processing\n");
+        Log.Debug?.Write(" no additional processing\n");
       }
       __instance.UpdateAuras();
     }
@@ -160,11 +160,11 @@ namespace CustomActivatableEquipment {
             parentObject = weapon.weaponRep.gameObject;
           }
         }
-        Log.LogWrite(p.defId + " is activatable \n");
+        Log.Debug?.Write(p.defId + " is activatable \n");
         //PilotableActorRepresentation rep = parent.parent.GameRep as PilotableActorRepresentation;
         if (activatable.presistantVFX.isInited) {
           try {
-            Log.LogWrite(p.defId + " spawning " + activatable.presistantVFX.VFXPrefab + " \n");
+            Log.Debug?.Write(p.defId + " spawning " + activatable.presistantVFX.VFXPrefab + " \n");
             presitantObject = new ObjectSpawnDataSelf(activatable.presistantVFX.VFXPrefab, parentObject,
               new Vector3(activatable.presistantVFX.VFXOffsetX, activatable.presistantVFX.VFXOffsetY, activatable.presistantVFX.VFXOffsetZ),
               new Vector3(activatable.presistantVFX.VFXScaleX, activatable.presistantVFX.VFXScaleY, activatable.presistantVFX.VFXScaleZ), true, false);
@@ -175,13 +175,13 @@ namespace CustomActivatableEquipment {
             //  }
             //}
           } catch (Exception e) {
-            Log.LogWrite(" Fail to spawn vfx " + e.ToString() + "\n");
+            Log.Debug?.Write(" Fail to spawn vfx " + e.ToString() + "\n");
           }
         } else {
           presitantObject = null;
         }
         if (activatable.activateVFX.isInited) {
-          Log.LogWrite(p.defId + " spawning " + activatable.activateVFX.VFXPrefab + " \n");
+          Log.Debug?.Write(p.defId + " spawning " + activatable.activateVFX.VFXPrefab + " \n");
           activateObject = new ObjectSpawnDataSelf(activatable.activateVFX.VFXPrefab, parentObject,
             new Vector3(activatable.activateVFX.VFXOffsetX, activatable.activateVFX.VFXOffsetY, activatable.activateVFX.VFXOffsetZ),
             new Vector3(activatable.activateVFX.VFXScaleX, activatable.activateVFX.VFXScaleY, activatable.activateVFX.VFXScaleZ), true, false);
@@ -189,7 +189,7 @@ namespace CustomActivatableEquipment {
           activateObject = null;
         }
         if (activatable.destroyedVFX.isInited) {
-          Log.LogWrite(p.defId + " spawning " + activatable.destroyedVFX.VFXPrefab + " \n");
+          Log.Debug?.Write(p.defId + " spawning " + activatable.destroyedVFX.VFXPrefab + " \n");
           destroyedObject = new ObjectSpawnDataSelf(activatable.destroyedVFX.VFXPrefab, parentObject,
             new Vector3(activatable.destroyedVFX.VFXOffsetX, activatable.destroyedVFX.VFXOffsetY, activatable.destroyedVFX.VFXOffsetZ),
             new Vector3(activatable.destroyedVFX.VFXScaleX, activatable.destroyedVFX.VFXScaleY, activatable.destroyedVFX.VFXScaleZ), true, false);
@@ -215,7 +215,7 @@ namespace CustomActivatableEquipment {
       if (activatable != null) { activatable.playDestroySound(component.parent.GameRep.audioObject); }
     }
     public static void registerComponentsForVFX(this AbstractActor unit) {
-      Log.LogWrite("registerComponentsForVFX "+unit.DisplayName+":"+unit.GUID+"\n");
+      Log.Debug?.Write("registerComponentsForVFX "+unit.DisplayName+":"+unit.GUID+"\n");
       foreach (MechComponent component in unit.allComponents) {
         string wGUID;
         if (component.StatCollection.ContainsStatistic(CustomAmmoCategories.GUIDStatisticName) == false) {
@@ -224,7 +224,7 @@ namespace CustomActivatableEquipment {
         } else {
           wGUID = component.StatCollection.GetStatistic(CustomAmmoCategories.GUIDStatisticName).Value<string>();
         }
-        Log.LogWrite(" " + component.defId + ":"+wGUID+"\n");
+        Log.Debug?.Write(" " + component.defId + ":"+wGUID+"\n");
         ComponentVFXHelper.componentsVFXObjects[wGUID] = new VFXObjects(component);
       }
     }
@@ -236,7 +236,7 @@ namespace CustomActivatableEquipment {
       } else {
         wGUID = component.StatCollection.GetStatistic(CustomAmmoCategories.GUIDStatisticName).Value<string>();
       }
-      Log.LogWrite("ActivateVFX(" + component.defId + ":" + wGUID + ")\n");
+      Log.Debug?.Write("ActivateVFX(" + component.defId + ":" + wGUID + ")\n");
       if (ComponentVFXHelper.componentsVFXObjects.ContainsKey(wGUID)) {
         return ComponentVFXHelper.componentsVFXObjects[wGUID].activateObject;
       }
@@ -250,7 +250,7 @@ namespace CustomActivatableEquipment {
       } else {
         wGUID = component.StatCollection.GetStatistic(CustomAmmoCategories.GUIDStatisticName).Value<string>();
       }
-      Log.LogWrite("PresitantVFX(" + component.defId + ":" + wGUID + ")\n");
+      Log.Debug?.Write("PresitantVFX(" + component.defId + ":" + wGUID + ")\n");
       if (ComponentVFXHelper.componentsVFXObjects.ContainsKey(wGUID)) {
         return ComponentVFXHelper.componentsVFXObjects[wGUID].presitantObject;
       }
@@ -264,7 +264,7 @@ namespace CustomActivatableEquipment {
       } else {
         wGUID = component.StatCollection.GetStatistic(CustomAmmoCategories.GUIDStatisticName).Value<string>();
       }
-      Log.LogWrite("DestroyedVFX(" + component.defId + ":" + wGUID + ")\n");
+      Log.Debug?.Write("DestroyedVFX(" + component.defId + ":" + wGUID + ")\n");
       if (ComponentVFXHelper.componentsVFXObjects.ContainsKey(wGUID)) {
         return ComponentVFXHelper.componentsVFXObjects[wGUID].destroyedObject;
       }
@@ -330,13 +330,13 @@ namespace CustomActivatableEquipment {
     public Vector3 localPos;
     public void Hide() {
       if (this.spawnedObject != null) {
-        Log.LogWrite("ObjectSpawnDataSelf.Hide "+this.spawnedObject.name+"\n");
+        Log.Debug?.Write("ObjectSpawnDataSelf.Hide "+this.spawnedObject.name+"\n");
         this.spawnedObject.SetActive(false);
       }
     }
     public void Show() {
       if (this.spawnedObject != null) {
-        Log.LogWrite("ObjectSpawnDataSelf.Show " + this.spawnedObject.name + "\n");
+        Log.Debug?.Write("ObjectSpawnDataSelf.Show " + this.spawnedObject.name + "\n");
         this.spawnedObject.SetActive(true);
       }
     }
@@ -350,16 +350,16 @@ namespace CustomActivatableEquipment {
     }
     public void CleanupSelf() {
       if (this == null) {
-        Log.LogWrite("Cleaning null?!!!\n", true);
+        Log.WriteCritical("Cleaning null?!!!\n");
         return;
       }
-      Log.LogWrite("Cleaning up " + this.prefabName + "\n");
+      Log.Debug?.Write("Cleaning up " + this.prefabName + "\n");
       if (Combat == null) {
-        Log.LogWrite("Trying cleanup object " + this.prefabName + " never spawned\n", true);
+        Log.WriteCritical("Trying cleanup object " + this.prefabName + " never spawned\n");
         return;
       }
       if (this.spawnedObject == null) {
-        Log.LogWrite("Trying cleanup object " + this.prefabName + " already cleaned\n", true);
+        Log.WriteCritical("Trying cleanup object " + this.prefabName + " already cleaned\n");
         return;
       }
       try {
@@ -371,36 +371,36 @@ namespace CustomActivatableEquipment {
         //}
         GameObject.Destroy(this.spawnedObject);
       } catch (Exception e) {
-        Log.LogWrite("Cleanup exception: " + e.ToString() + "\n", true);
-        Log.LogWrite("nulling spawned object directly\n", true);
+        Log.WriteCritical("Cleanup exception: " + e.ToString() + "\n");
+        Log.WriteCritical("nulling spawned object directly\n");
         this.spawnedObject = null;
       }
       this.spawnedObject = null;
-      Log.LogWrite("Finish cleaning " + this.prefabName + "\n");
+      Log.Debug?.Write("Finish cleaning " + this.prefabName + "\n");
     }
     public void SpawnSelf(CombatGameState Combat) {
       this.Combat = Combat;
       GameObject gameObject = Combat.DataManager.PooledInstantiate(this.prefabName, BattleTechResourceType.Prefab, new Vector3?(), new Quaternion?(), (Transform)null);
       if ((UnityEngine.Object)gameObject == (UnityEngine.Object)null) {
-        Log.LogWrite("Can't find " + prefabName + " in in-game prefabs\n");
+        Log.Debug?.Write("Can't find " + prefabName + " in in-game prefabs\n");
         if (CACMain.Core.AdditinalFXObjects.ContainsKey(prefabName)) {
-          Log.LogWrite("Found in additional prefabs\n");
+          Log.Debug?.Write("Found in additional prefabs\n");
           gameObject = GameObject.Instantiate(CACMain.Core.AdditinalFXObjects[prefabName]);
         } else {
-          Log.LogWrite(" can't spawn prefab " + this.prefabName + " it is absent in pool,in-game assets and external assets\n", true);
+          Log.WriteCritical(" can't spawn prefab " + this.prefabName + " it is absent in pool,in-game assets and external assets\n");
           return;
         }
       }
-      Log.LogWrite("SpawnSelf: "+ this.prefabName+"\n");
+      Log.Debug?.Write("SpawnSelf: "+ this.prefabName+"\n");
       Component[] components = gameObject.GetComponentsInChildren<Component>();
       foreach(Component component in components) {
         if (component == null) { continue; };
-        Log.LogWrite(" " + component.name + ":"+component.GetType().ToString()+"\n");
+        Log.Debug?.Write(" " + component.name + ":"+component.GetType().ToString()+"\n");
         ParticleSystem ps = component as ParticleSystem;
         if(ps != null) {
           var main = ps.main;
           main.scalingMode = ParticleSystemScalingMode.Hierarchy;
-          Log.LogWrite("  " + ps.main.scalingMode.ToString() + "\n");
+          Log.Debug?.Write("  " + ps.main.scalingMode.ToString() + "\n");
         }
       }
       //gameObject.transform.SetParent(this.parentObject.transform);

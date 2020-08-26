@@ -25,10 +25,10 @@ namespace CustomActivatableEquipment {
       }
     }
     public void DBGLogPrint() {
-      Log.LogWrite("  proj:"+proj.DisplayName+"-"+proj.GUID+"\n");
-      Log.LogWrite("  recv:" + recv.DisplayName + "-" + recv.GUID + "\n");
-      Log.LogWrite("  def:" + def.Id + "\n");
-      Log.LogWrite("  ProjAllyToRecv:" + ProjAllyToRecv + "\n");
+      Log.Debug?.Write("  proj:"+proj.DisplayName+"-"+proj.GUID+"\n");
+      Log.Debug?.Write("  recv:" + recv.DisplayName + "-" + recv.GUID + "\n");
+      Log.Debug?.Write("  def:" + def.Id + "\n");
+      Log.Debug?.Write("  ProjAllyToRecv:" + ProjAllyToRecv + "\n");
     }
   }
   public class AuraPreviewRecord {
@@ -37,22 +37,22 @@ namespace CustomActivatableEquipment {
     public Dictionary<AbstractActor, List<AuraPreview>> aurasRemoved;
     public Dictionary<AbstractActor, int> stealthPipsPreview;
     public void DBGLogPrint() {
-      Log.LogWrite(" movingActor:"+movingActor.DisplayName+"-"+movingActor.GUID+"\n");
-      Log.LogWrite(" aurasAdded:\n");
+      Log.Debug?.Write(" movingActor:"+movingActor.DisplayName+"-"+movingActor.GUID+"\n");
+      Log.Debug?.Write(" aurasAdded:\n");
       foreach(var auras in aurasAdded) {
         foreach(AuraPreview aura in auras.Value) {
           aura.DBGLogPrint();
         }
       }
-      Log.LogWrite(" aurasRemoved:\n");
+      Log.Debug?.Write(" aurasRemoved:\n");
       foreach (var auras in aurasRemoved) {
         foreach (AuraPreview aura in auras.Value) {
           aura.DBGLogPrint();
         }
       }
-      Log.LogWrite(" stealthPipsPreview:\n");
+      Log.Debug?.Write(" stealthPipsPreview:\n");
       foreach (var st in stealthPipsPreview) {
-        Log.LogWrite("  "+st.Key.DisplayName+":"+st.Value+"\n");
+        Log.Debug?.Write("  "+st.Key.DisplayName+":"+st.Value+"\n");
       }
     }
     public AuraPreviewRecord(AbstractActor movingActor) {
@@ -193,7 +193,7 @@ namespace CustomActivatableEquipment {
     public static AuraPreviewRecord fillPreviewCache(this AbstractActor movingActor, Vector3 position) {
       AuraActorBody body = movingActor.bodyAura();
       if (body == null) {
-        Log.LogWrite("WARNING!" + movingActor.DisplayName + ":" + movingActor.GUID + " has no body to apply auras\n", true);
+        Log.WriteCritical("WARNING!" + movingActor.DisplayName + ":" + movingActor.GUID + " has no body to apply auras\n");
         return new AuraPreviewRecord(movingActor);
       }
       HashSet<AuraBubble> newAuras = new HashSet<AuraBubble>();

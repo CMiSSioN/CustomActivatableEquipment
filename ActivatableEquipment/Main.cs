@@ -27,7 +27,7 @@ namespace CustomActivatablePatches {
   public static class CombatHUDActionButton_ExecuteClick {
 
     public static bool Prefix(CombatHUDActionButton __instance) {
-      CustomActivatableEquipment.Log.LogWrite("CombatHUDActionButton.ExecuteClick '" + __instance.GUID + "'/'" + CombatHUD.ButtonID_Move + "' " + (__instance.GUID == CombatHUD.ButtonID_Move) + "\n");
+      CustomActivatableEquipment.Log.Debug?.Write("CombatHUDActionButton.ExecuteClick '" + __instance.GUID + "'/'" + CombatHUD.ButtonID_Move + "' " + (__instance.GUID == CombatHUD.ButtonID_Move) + "\n");
       CombatHUD HUD = (CombatHUD)typeof(CombatHUDActionButton).GetProperty("HUD", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance, null);
       /*if (__instance.GUID == CombatHUD.ButtonID_Move) {
         CustomActivatableEquipment.Log.LogWrite(" button is move\n");
@@ -45,14 +45,14 @@ namespace CustomActivatablePatches {
         }
       } else*/
       if (__instance.GUID == CombatHUD.ButtonID_DoneWithMech) {
-        CustomActivatableEquipment.Log.LogWrite(" button is brase\n");
+        CustomActivatableEquipment.Log.Debug?.Write(" button is brase\n");
         bool modifyers = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
         if (modifyers) {
-          CustomActivatableEquipment.Log.LogWrite(" ctrl is pressed\n");
+          CustomActivatableEquipment.Log.Debug?.Write(" ctrl is pressed\n");
           if (HUD.SelectedActor != null) {
-            CustomActivatableEquipment.Log.LogWrite(" actor is selected\n");
+            CustomActivatableEquipment.Log.Debug?.Write(" actor is selected\n");
             if (HUD.SelectedActor is Mech) {
-              CustomActivatableEquipment.Log.LogWrite(" mech is selected\n");
+              CustomActivatableEquipment.Log.Debug?.Write(" mech is selected\n");
               CustomActivatableEquipment.Core.ShowHeatDlg(HUD.SelectedActor as Mech);
             }
           }
@@ -68,15 +68,15 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(new Type[] { })]
   public static class ActorMovementSequence_CompleteOrders {
     public static void Postfix(ActorMovementSequence __instance) {
-      CustomActivatableEquipment.Log.LogWrite("ActorMovementSequence.ActorMovementSequence " + __instance.owningActor.GUID + ":" + __instance.owningActor.DisplayName + "\n");
+      CustomActivatableEquipment.Log.Debug?.Write("ActorMovementSequence.ActorMovementSequence " + __instance.owningActor.GUID + ":" + __instance.owningActor.DisplayName + "\n");
       if (__instance.meleeType == MeleeAttackType.NotSet) {
         foreach (MechComponent component in __instance.owningActor.allComponents) {
           if (component.IsFunctional == false) { continue; };
           if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
             int aRounds = CustomActivatableEquipment.ActivatableComponent.getComponentActiveRounds(component);
-            CustomActivatableEquipment.Log.LogWrite("Component:" + component.defId + " is active for " + aRounds + "\n");
+            CustomActivatableEquipment.Log.Debug?.Write("Component:" + component.defId + " is active for " + aRounds + "\n");
             if (CustomActivatableEquipment.ActivatableComponent.rollFail(component, false) == false) {
-              CustomActivatableEquipment.Log.LogWrite("Component fail\n");
+              CustomActivatableEquipment.Log.Debug?.Write("Component fail\n");
               CustomActivatableEquipment.ActivatableComponent.deactivateComponent(component);
             }
           }
@@ -92,14 +92,14 @@ namespace CustomActivatablePatches {
   public static class MechMeleeSequence_CompleteOrders {
 
     public static void Postfix(MechMeleeSequence __instance) {
-      CustomActivatableEquipment.Log.LogWrite("MechMeleeSequence.CompleteOrders " + __instance.OwningMech.GUID + ":" + __instance.OwningMech.DisplayName + "\n");
+      CustomActivatableEquipment.Log.Debug?.Write("MechMeleeSequence.CompleteOrders " + __instance.OwningMech.GUID + ":" + __instance.OwningMech.DisplayName + "\n");
       foreach (MechComponent component in __instance.OwningMech.allComponents) {
         if (component.IsFunctional == false) { continue; };
         if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
           int aRounds = CustomActivatableEquipment.ActivatableComponent.getComponentActiveRounds(component);
-          CustomActivatableEquipment.Log.LogWrite("Component:" + component.defId + " is active for " + aRounds + "\n");
+          CustomActivatableEquipment.Log.Debug?.Write("Component:" + component.defId + " is active for " + aRounds + "\n");
           if (CustomActivatableEquipment.ActivatableComponent.rollFail(component, false) == false) {
-            CustomActivatableEquipment.Log.LogWrite("Component fail\n");
+            CustomActivatableEquipment.Log.Debug?.Write("Component fail\n");
             CustomActivatableEquipment.ActivatableComponent.deactivateComponent(component);
           }
         }
@@ -136,15 +136,15 @@ namespace CustomActivatablePatches {
   public static class Mech_ApplyHeatSinks {
 
     public static void Postfix(Mech __instance, int stackID) {
-      Log.LogWrite("Mech.ApplyHeatSinks:" + __instance.DisplayName + ":" + __instance.GUID + "\n");
+      Log.Debug?.Write("Mech.ApplyHeatSinks:" + __instance.DisplayName + ":" + __instance.GUID + "\n");
       foreach (MechComponent component in __instance.allComponents) {
         ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
         if (activatable == null) { continue; }
         //if(activatable.CanBeactivatedManualy) {continue;}
         float OverheatLevel = (float)__instance.CurrentHeat / (float)__instance.OverheatLevel;
         if (ActivatableComponent.isComponentActivated(component)) {
-          Log.LogWrite(" " + component.defId + " active " + __instance.CurrentHeat + "/" + activatable.AutoDeactivateOnHeat + "\n");
-          Log.LogWrite(" " + component.defId + " active " + OverheatLevel + "/" + activatable.AutoDeactivateOverheatLevel + "\n");
+          Log.Debug?.Write(" " + component.defId + " active " + __instance.CurrentHeat + "/" + activatable.AutoDeactivateOnHeat + "\n");
+          Log.Debug?.Write(" " + component.defId + " active " + OverheatLevel + "/" + activatable.AutoDeactivateOverheatLevel + "\n");
           if (activatable.AutoDeactivateOverheatLevel <= CustomActivatableEquipment.Core.Epsilon) {
             if (activatable.AutoDeactivateOnHeat > Core.Epsilon) {
               if (__instance.CurrentHeat < activatable.AutoDeactivateOnHeat) {
@@ -157,7 +157,7 @@ namespace CustomActivatablePatches {
             }
           }
         } else {
-          Log.LogWrite(" " + component.defId + " not active " + __instance.CurrentHeat + "/" + activatable.AutoActivateOnHeat + "\n");
+          Log.Debug?.Write(" " + component.defId + " not active " + __instance.CurrentHeat + "/" + activatable.AutoActivateOnHeat + "\n");
           if (activatable.AutoActivateOnOverheatLevel <= CustomActivatableEquipment.Core.Epsilon) {
             if (activatable.AutoActivateOnHeat > Core.Epsilon) {
               if (__instance.CurrentHeat >= activatable.AutoActivateOnHeat) {
@@ -198,27 +198,27 @@ namespace CustomActivatablePatches {
       MoveStatusPreview_DisplayPreviewStatus.setAdditionalStringMoving(actor, "__/CAE.COMPONENTS/__", result.ToString());
     }
     public static void Postfix(TurnDirector __instance) {
-      CustomActivatableEquipment.Log.LogWrite("TurnDirector.EndCurrentRound\n");
+      CustomActivatableEquipment.Log.Debug?.Write("TurnDirector.EndCurrentRound\n");
       foreach (var mech in __instance.Combat.AllActors) {
-        CustomActivatableEquipment.Log.LogWrite(" Actor:" + mech.DisplayName + ":" + mech.GUID + "\n");
+        CustomActivatableEquipment.Log.Debug?.Write(" Actor:" + mech.DisplayName + ":" + mech.GUID + "\n");
         foreach (MechComponent component in mech.allComponents) {
           ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
           if (activatable == null) { continue; }
           float curFailChance = ActivatableComponent.getComponentFailChance(component);
-          CustomActivatableEquipment.Log.LogWrite("  " + component.defId + " activatable\n");
+          CustomActivatableEquipment.Log.Debug?.Write("  " + component.defId + " activatable\n");
           if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
             if (curFailChance < activatable.FailFlatChance) { curFailChance = activatable.FailFlatChance; };
             curFailChance += activatable.FailChancePerTurn;
             int actRounds = ActivatableComponent.getComponentActiveRounds(component);
             ++actRounds;
             ActivatableComponent.setComponentActiveRounds(component, actRounds);
-            CustomActivatableEquipment.Log.LogWrite("  active for " + actRounds + "\n");
+            CustomActivatableEquipment.Log.Debug?.Write("  active for " + actRounds + "\n");
           } else {
             curFailChance -= activatable.FailChancePerTurn;
             if (curFailChance < activatable.FailFlatChance) { curFailChance = activatable.FailFlatChance; };
           }
           ActivatableComponent.setComponentFailChance(component, curFailChance);
-          CustomActivatableEquipment.Log.LogWrite("  new fail chance " + curFailChance + "\n");
+          CustomActivatableEquipment.Log.Debug?.Write("  new fail chance " + curFailChance + "\n");
         }
         mech.CollectDangerComponents();
       }
@@ -263,11 +263,12 @@ namespace CustomActivatablePatches {
 }
 
 namespace CustomActivatableEquipment {
-  public static class Log {
+  public class Log {
     //private static string m_assemblyFile;
     private static string m_logfile;
     private static StreamWriter m_fs = null;
     private static readonly Mutex mutex = new Mutex();
+    private static Log m_log = new Log();
     public static string BaseDirectory;
     public static void InitLog() {
       //Log.m_assemblyFile = (new System.Uri(Assembly.GetExecutingAssembly().CodeBase)).AbsolutePath;
@@ -278,7 +279,7 @@ namespace CustomActivatableEquipment {
       m_fs.AutoFlush = true;
     }
     public static void W(string line, bool isCritical = false) {
-      LogWrite(line, isCritical);
+      m_log.Write(line, isCritical);
     }
     public static void WL(string line, bool isCritical = false) {
       line += "\n"; W(line, isCritical);
@@ -296,12 +297,29 @@ namespace CustomActivatableEquipment {
       line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
       W(line, isCritical);
     }
-    public static void TWL(int initiation, string line, bool isCritical = false) {
+    public void TWL(int initiation, string line, bool isCritical = false) {
       string init = new string(' ', initiation);
       line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
       WL(line, isCritical);
     }
-    public static void LogWrite(string line, bool isCritical = false) {
+    public static void TWriteCritical(int initiation, string line) {
+      string init = new string(' ', initiation);
+      line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
+      WL(line, true);
+    }
+    public static Log Debug{
+        get
+        {
+            if (Core.Settings.debug) {
+                return m_log;
+            }
+            return null;
+        }
+    }
+    public static void WriteCritical(string line) {
+        m_log.Write(line, true);
+    }
+    public void Write(string line, bool isCritical = false) {
       try {
         if ((Core.Settings.debug) || (isCritical)) {
           if (Log.mutex.WaitOne(1000)) {
@@ -538,23 +556,23 @@ namespace CustomActivatableEquipment {
       presistantVFXOutOfLOSHide = false;
       activateVFXOutOfLOSHide = false;
       incomingHeatActivationType = DamageActivationType.Threshhold;
-      Log.LogWrite("ActivatableComponent constructor\n");
+      Log.Debug?.Write("ActivatableComponent constructor\n");
     }
     public void playActivateSound(AkGameObj soundObject) {
       if (FActivateSound != null) {
-        Log.LogWrite("playing activate sound\n");
+        Log.Debug?.Write("playing activate sound\n");
         FActivateSound.play(soundObject);
       }
     }
     public void playDeactivateSound(AkGameObj soundObject) {
       if (FDeactivateSound != null) {
-        Log.LogWrite("playing deactivate sound\n");
+        Log.Debug?.Write("playing deactivate sound\n");
         FDeactivateSound.play(soundObject);
       }
     }
     public void playDestroySound(AkGameObj soundObject) {
       if (FDestroySound != null) {
-        Log.LogWrite("playing destroy sound\n");
+        Log.Debug?.Write("playing destroy sound\n");
         FDestroySound.play(soundObject);
       }
     }
@@ -662,41 +680,41 @@ namespace CustomActivatableEquipment {
     }
 
     public static void CritLocation(Mech mech, ChassisLocations location, ref WeaponHitInfo hitInfo) {
-      Log.LogWrite("CritLocation " + mech.DisplayName + ":" + location + "\n");
+      Log.Debug?.Write("CritLocation " + mech.DisplayName + ":" + location + "\n");
       int maxSlots = mech.MechDef.GetChassisLocationDef(location).InventorySlots;
-      Log.LogWrite(" slots in location:" + maxSlots + "\n");
+      Log.Debug?.Write(" slots in location:" + maxSlots + "\n");
       List<int> slotsWithComponents = new List<int>();
       for (int slotIndex = 0; slotIndex < maxSlots; ++slotIndex) {
         MechComponent testInSlot = mech.GetComponentInSlot(location, slotIndex);
         if (testInSlot != null) {
-          Log.LogWrite(" slots:" + slotIndex + ":" + testInSlot.defId + "\n");
+          Log.Debug?.Write(" slots:" + slotIndex + ":" + testInSlot.defId + "\n");
           slotsWithComponents.Add(slotIndex);
         } else {
-          Log.LogWrite(" slots:" + slotIndex + ":empty\n");
+          Log.Debug?.Write(" slots:" + slotIndex + ":empty\n");
         }
       }
       int slotRoll = (int)(((float)slotsWithComponents.Count) * Random.Range(0f, 1f));
-      Log.LogWrite(" slotRoll:" + slotRoll + "\n");
+      Log.Debug?.Write(" slotRoll:" + slotRoll + "\n");
       MechComponent componentInSlot = mech.GetComponentInSlot(location, slotRoll);
       if (componentInSlot != null) {
-        Log.LogWrite(" critComponent:" + componentInSlot.defId + "\n");
+        Log.Debug?.Write(" critComponent:" + componentInSlot.defId + "\n");
         ActivatableComponent.critComponent(mech, componentInSlot, location, ref hitInfo);
       } else {
-        Log.LogWrite(" crit to empty slot. possibly only if no components in location\n");
+        Log.Debug?.Write(" crit to empty slot. possibly only if no components in location\n");
       }
     }
 
     public static bool rollFail(MechComponent component, bool isInital = false, bool testRoll = false) {
-      Log.TWL(0,"rollFail " + component.defId);
+      Log.Debug?.TWL(0,"rollFail " + component.defId);
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) { return false; }
       if ((ActivatableComponent.isComponentActivated(component) == false) && (isInital == false)) {
-        Log.LogWrite(" not activated\n");
+        Log.Debug?.Write(" not activated\n");
         return false;
       };
       int actRounds = ActivatableComponent.getComponentActiveRounds(component);
       if ((isInital == false) && (actRounds < activatable.FailRoundsStart)) {
-        Log.LogWrite(" check not needed\n");
+        Log.Debug?.Write(" check not needed\n");
         return true;
       }
       //if (activatable.FailDamageLocations.Length <= 0) {
@@ -704,7 +722,7 @@ namespace CustomActivatableEquipment {
       //return true;
       //}
       if (!(component.parent is Mech)) {
-        Log.LogWrite(" owner is not mech\n");
+        Log.Debug?.Write(" owner is not mech\n");
         return true;
       }
       Mech owner = component.parent as Mech;
@@ -713,18 +731,18 @@ namespace CustomActivatableEquipment {
       //  chance = activatable.FailFlatChance;
       //  ActivatableComponent.setComponentFailChance(component, activatable.FailFlatChance);
       //}
-      Log.LogWrite(" chance:" + chance + "\n");
+      Log.Debug?.Write(" chance:" + chance + "\n");
       float roll = Random.Range(0f, 1f);
       if (activatable.AlwaysFail) {
         roll = -1f;
-        Log.LogWrite(" always fail\n");
+        Log.Debug?.Write(" always fail\n");
       }
       if (testRoll) { if (roll < chance) { return false; } else { return true; }; };
       if (component.isAIRollPassed()) {
         component.setAIRollPassed(false);
         if(roll >= 0f) { roll = chance + 0.1f; };
       }
-      Log.LogWrite(" roll:" + roll + "\n");
+      Log.Debug?.Write(" roll:" + roll + "\n");
       if (roll < chance) {
         if (activatable.EjectOnFail) { component.parent.EjectPilot(component.parent.GUID, -1, DeathMethod.PilotEjection, false); };
         /*ObjectSpawnDataSelf activateEffect = component.ActivateVFX();
@@ -738,7 +756,7 @@ namespace CustomActivatableEquipment {
         var fakeHit = new WeaponHitInfo(-1, -1, -1, -1, component.parent.GUID, component.parent.GUID, -1, null, null, null, null, null, null, null, null, null, null, null);
         if (activatable.FailISDamage >= 1f) {
           foreach (ChassisLocations location in activatable.FailDamageLocations) {
-            Log.LogWrite(" apply inner structure damage:" + location + "\n");
+            Log.Debug?.Write(" apply inner structure damage:" + location + "\n");
             owner.ApplyStructureStatDamage(location, activatable.FailISDamage, fakeHit);
             if (owner.IsLocationDestroyed(location)) {
               owner.NukeStructureLocation(fakeHit, (int)location, location, Vector3.zero, DamageType.OverheatSelf);
@@ -748,22 +766,22 @@ namespace CustomActivatableEquipment {
         }
         if (activatable.FailCrit) {
           foreach (ChassisLocations location in activatable.FailDamageLocations) {
-            Log.LogWrite(" apply crit:" + location + "\n");
+            Log.Debug?.Write(" apply crit:" + location + "\n");
             ActivatableComponent.CritLocation(owner, location, ref fakeHit);
           }
         }
         if (activatable.SelfCrit) {
-          Log.LogWrite(" apply crit to self\n");
+          Log.Debug?.Write(" apply crit to self\n");
           ActivatableComponent.critComponent(owner, component, MechStructureRules.GetChassisLocationFromArmorLocation((ArmorLocation)component.Location), ref fakeHit);
         }
         if (activatable.FailStabDamage > Core.Epsilon) {
           owner.AddAbsoluteInstability(activatable.FailStabDamage, StabilityChangeSource.Effect, owner.GUID);
         }
-        Log.LogWrite(" owner status. Death:" + owner.IsFlaggedForDeath + " Knockdown:" + owner.IsFlaggedForKnockdown + "\n");
+        Log.Debug?.Write(" owner status. Death:" + owner.IsFlaggedForDeath + " Knockdown:" + owner.IsFlaggedForKnockdown + "\n");
         bool needToDone = false;
         owner.CheckPilotStatusFromAttack("Component Fail",-1,-1);
         if (owner.IsFlaggedForDeath || owner.IsFlaggedForKnockdown) {
-          Log.LogWrite(" need done with actor\n");
+          Log.Debug?.Write(" need done with actor\n");
           needToDone = true;
           owner.HasFiredThisRound = true;
           owner.HasMovedThisRound = true;
@@ -773,7 +791,7 @@ namespace CustomActivatableEquipment {
           owner.HandleKnockdown(-1, owner.GUID, Vector2.one, (SequenceFinished)null);
         }
         if (needToDone) {
-          Log.LogWrite(" done with actor\n");
+          Log.Debug?.Write(" done with actor\n");
           owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage(owner.DoneWithActor()));
         }
         if (activatable.ExplodeOnFail) {
@@ -789,7 +807,7 @@ namespace CustomActivatableEquipment {
     {
         if(isComponentActivated(component))
         {
-                Log.LogWrite($"{component.Name} already active or not activateable - cannot be activated\n");
+                Log.Debug?.Write($"{component.Name} already active or not activateable - cannot be activated\n");
                 return false;
         }
         ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
@@ -799,7 +817,7 @@ namespace CustomActivatableEquipment {
             //activatable.AutoActivateOnAnyDamage > 0f
             )
         {
-                Log.LogWrite($"{component.Name} - can be damage activated\n");
+                Log.Debug?.Write($"{component.Name} - can be damage activated\n");
                 return true;
         }
          return false;
@@ -812,7 +830,7 @@ namespace CustomActivatableEquipment {
             if (activatable == null) { return true; }
             if (activatable.AutoActivateOnIncomingHeat!=0 && activatable.AutoActivateOnIncomingHeat<=heatDamage)
             {
-                Log.LogWrite($"{component.Name} ActivateOnIncomingHeat {activatable.AutoActivateOnIncomingHeat:F3} <= {heatDamage} \n");
+                Log.Debug?.Write($"{component.Name} ActivateOnIncomingHeat {activatable.AutoActivateOnIncomingHeat:F3} <= {heatDamage} \n");
                 activateComponent(component, true, false);
                 return true;
             }
@@ -859,33 +877,33 @@ namespace CustomActivatableEquipment {
                 //This allows overall damage checks i.e. (damage right leg+damage left leg>VAL) , as well multi location checks ( damage right leg>VAL OR damage left leg >VAL) checks.
                 if (loc== ChassisLocations.Torso && (mech.IsLocationDestroyed(ChassisLocations.CenterTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftTorso) || mech.IsLocationDestroyed(ChassisLocations.RightTorso)))
                 {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
-                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
+                    Log.Debug?.Write($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
                     return false;
                 }
                 if (loc == ChassisLocations.Arms && (mech.IsLocationDestroyed(ChassisLocations.LeftArm) || mech.IsLocationDestroyed(ChassisLocations.RightArm)) )
                 {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
-                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
+                    Log.Debug?.Write($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
                     return false;
                 }
                 if (loc == ChassisLocations.Legs && (mech.IsLocationDestroyed(ChassisLocations.LeftLeg) || mech.IsLocationDestroyed(ChassisLocations.RightLeg)) )
                 {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
-                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
+                    Log.Debug?.Write($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
                     return false;
                 }
                 if (loc == ChassisLocations.All && (/*mech.IsLocationDestroyed(ChassisLocations.CenterTorso) ||*/ mech.IsLocationDestroyed(ChassisLocations.LeftTorso) || mech.IsLocationDestroyed(ChassisLocations.RightTorso) || mech.IsLocationDestroyed(ChassisLocations.LeftArm) || mech.IsLocationDestroyed(ChassisLocations.RightArm) || mech.IsLocationDestroyed(ChassisLocations.LeftLeg) || mech.IsLocationDestroyed(ChassisLocations.RightLeg)))
                 {//not sure what isLocationDestroyed performs when checking complex locations - AND or OR , so implementing
-                    Log.LogWrite($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
+                    Log.Debug?.Write($"shouldAutoActivate Skip cause Location (?Partialy?) Destroyed {loc.ToString()}\n");
                     return false;
                 }
                 if ( !(loc == ChassisLocations.Torso || loc == ChassisLocations.Arms || loc == ChassisLocations.Legs || loc == ChassisLocations.All || loc == ChassisLocations.MainBody) && mech.IsLocationDestroyed(loc))
                 {
-                    Log.LogWrite($"shouldAutoActivate Skip cause Location Destroyed {loc.ToString()}\n");
+                    Log.Debug?.Write($"shouldAutoActivate Skip cause Location Destroyed {loc.ToString()}\n");
                     return false;
                 }
             }
             else
             {
-                Log.LogWrite($"Not a mech, somethings broken\n");
+                Log.Debug?.Write($"Not a mech, somethings broken\n");
             }
             /*if((activatable.ActivateOnDamageToLocations.Length==0 || activatable.ActivateOnDamageToLocations.Contains(ChassisLocations.None)) && (int)loc==component.Location){
                 Log.LogWrite($"shouldAutoActivate {component.Name} install location matches damage location {loc.ToString()}\n");
@@ -961,36 +979,36 @@ namespace CustomActivatableEquipment {
     }
     public static void activateComponent(MechComponent component, bool autoActivate, bool isInital) {
       CombatHUDEquipmentSlotEx.ClearCache(component);
-      Log.LogWrite("activateComponent " + component.defId + "\n");
+      Log.Debug?.Write("activateComponent " + component.defId + "\n");
       if (component.IsFunctional == false) {
-        Log.LogWrite(" not functional\n");
+        Log.Debug?.Write(" not functional\n");
         return;
       };
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) {
-        Log.LogWrite(" not activatable\n");
+        Log.Debug?.Write(" not activatable\n");
         return;
       }
       if (ActivatableComponent.isComponentActivated(component) == true) {
-        Log.LogWrite(" already activated\n");
+        Log.Debug?.Write(" already activated\n");
         return;
       };
       if (ActivatableComponent.isOutOfCharges(component)) {
-        Log.LogWrite(" out of charges\n");
+        Log.Debug?.Write(" out of charges\n");
         return;
       }
       if (activatable.EjectOnActivationTry) {
-        Log.LogWrite(" eject on activation try\n");
+        Log.Debug?.Write(" eject on activation try\n");
         component.parent.EjectPilot(component.parent.GUID, -1, DeathMethod.PilotEjection, false);
       };
       if (autoActivate == false) {
         if (ActivatableComponent.rollFail(component, true) == false) {
-          Log.LogWrite(" fail to activate\n");
+          Log.Debug?.Write(" fail to activate\n");
           component.playDeactivateSound();
           return;
         }
       } else {
-        Log.LogWrite(" auto activation. no fail roll needed\n");
+        Log.Debug?.Write(" auto activation. no fail roll needed\n");
       }
       if (activatable.ChargesCount != 0) {
         if (activatable.ChargesCount > 0) {
@@ -998,13 +1016,13 @@ namespace CustomActivatableEquipment {
           if (charges > 0) {
             --charges;
             ActivatableComponent.setChargesCount(component, charges);
-            Log.LogWrite(" remains charges:" + charges + "\n");
+            Log.Debug?.Write(" remains charges:" + charges + "\n");
           } else {
-            Log.LogWrite(" out of charges\n");
+            Log.Debug?.Write(" out of charges\n");
             return;
           }
         } else {
-          Log.LogWrite(" infinate charges\n");
+          Log.Debug?.Write(" infinate charges\n");
         }
       } else {
         if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentActiveStatName) == false) {
@@ -1025,7 +1043,7 @@ namespace CustomActivatableEquipment {
         ActivatableComponent.setComponentFailChance(component, curFailChance);
       }
       if (activatable.EjectOnSuccess) {
-        Log.LogWrite(" eject on activation success\n");
+        Log.Debug?.Write(" eject on activation success\n");
         component.parent.EjectPilot(component.parent.GUID, -1, DeathMethod.PilotEjection, false);
       };
       if (activatable.Repair.repairTrigger.OnActivation) { activatable.Repair.Repair(component); }
@@ -1052,11 +1070,11 @@ namespace CustomActivatableEquipment {
 
     public void applyOnlineEffects(MechComponent component, bool isInital) {
       if (this.statusEffects == null) {
-        Log.LogWrite(" no activatable effects\n");
+        Log.Debug?.Write(" no activatable effects\n");
       } else {
-        Log.LogWrite(" activatable effects count: " + this.statusEffects.Length + "\n");
-        Log.LogWrite(" sprint:" + component.parent.MaxSprintDistance + "\n");
-        Log.LogWrite(" walk:" + component.parent.MaxWalkDistance + "\n");
+        Log.Debug?.Write(" activatable effects count: " + this.statusEffects.Length + "\n");
+        Log.Debug?.Write(" sprint:" + component.parent.MaxSprintDistance + "\n");
+        Log.Debug?.Write(" walk:" + component.parent.MaxWalkDistance + "\n");
         for (int index = 0; index < this.statusEffects.Length; ++index) {
           EffectData statusEffect = this.statusEffects[index];
           if (statusEffect.targetingData.effectTriggerType == EffectTriggerType.Passive) {
@@ -1068,7 +1086,7 @@ namespace CustomActivatableEquipment {
                 (object)statusEffect,(object)component.parent,(object)((ICombatant)component.parent),(object)effectID
               });
               component.createdEffectIDs.Add(effectID);
-              Log.LogWrite("Activate effect " + effectID + ":" + statusEffect.Description.Id + "\n");
+              Log.Debug?.Write("Activate effect " + effectID + ":" + statusEffect.Description.Id + "\n");
             }
           }
         }
@@ -1078,17 +1096,17 @@ namespace CustomActivatableEquipment {
         //  AuraCache.UpdateAurasToActor(component.parent.Combat.AllActors, component.parent, component.parent.CurrentPosition, EffectTriggerType.TurnUpdate, true);
         //  AuraCache.RefreshECMStates(component.parent.Combat.AllActors, EffectTriggerType.TurnUpdate);
         //}
-        Log.LogWrite(" sprint:" + component.parent.MaxSprintDistance + "\n");
-        Log.LogWrite(" walk:" + component.parent.MaxWalkDistance + "\n");
+        Log.Debug?.Write(" sprint:" + component.parent.MaxSprintDistance + "\n");
+        Log.Debug?.Write(" walk:" + component.parent.MaxWalkDistance + "\n");
       }
     }
     public void applyOfflineEffects(MechComponent component,bool isInital) {
       if (this.offlineStatusEffects == null) {
-        Log.LogWrite(" no offline effects\n");
+        Log.Debug?.Write(" no offline effects\n");
       } else {
-        Log.LogWrite(" offline effects count: " + this.statusEffects.Length + "\n");
-        Log.LogWrite(" sprint:" + component.parent.MaxSprintDistance + "\n");
-        Log.LogWrite(" walk:" + component.parent.MaxWalkDistance + "\n");
+        Log.Debug?.Write(" offline effects count: " + this.statusEffects.Length + "\n");
+        Log.Debug?.Write(" sprint:" + component.parent.MaxSprintDistance + "\n");
+        Log.Debug?.Write(" walk:" + component.parent.MaxWalkDistance + "\n");
         for (int index = 0; index < this.offlineStatusEffects.Length; ++index) {
           EffectData statusEffect = this.offlineStatusEffects[index];
           if (statusEffect.targetingData.effectTriggerType == EffectTriggerType.Passive) {
@@ -1100,7 +1118,7 @@ namespace CustomActivatableEquipment {
                 (object)statusEffect,(object)component.parent,(object)((ICombatant)component.parent),(object)effectID
               });
               component.createdEffectIDs.Add(effectID);
-              Log.LogWrite("Activate offline effect " + effectID + ":" + statusEffect.Description.Id + "\n");
+              Log.Debug?.Write("Activate offline effect " + effectID + ":" + statusEffect.Description.Id + "\n");
             }
           }
         }
@@ -1110,8 +1128,8 @@ namespace CustomActivatableEquipment {
         //  AuraCache.UpdateAurasToActor(component.parent.Combat.AllActors, component.parent, component.parent.CurrentPosition, EffectTriggerType.TurnUpdate, true);
         //  AuraCache.RefreshECMStates(component.parent.Combat.AllActors, EffectTriggerType.TurnUpdate);
         //}
-        Log.LogWrite(" sprint:" + component.parent.MaxSprintDistance + "\n");
-        Log.LogWrite(" walk:" + component.parent.MaxWalkDistance + "\n");
+        Log.Debug?.Write(" sprint:" + component.parent.MaxSprintDistance + "\n");
+        Log.Debug?.Write(" walk:" + component.parent.MaxWalkDistance + "\n");
       }
     }
     public void removeOnlineEffects(MechComponent component) {
@@ -1125,10 +1143,10 @@ namespace CustomActivatableEquipment {
         List<Effect> allEffectsWithId = component.parent.Combat.EffectManager.GetAllEffectsWithID(effId);
         for (int index2 = 0; index2 < allEffectsWithId.Count; ++index2) {
           if (allEffectsWithId[index2].EffectData.targetingData.specialRules != AbilityDef.SpecialRules.Aura) {
-            Log.LogWrite("Removing effect " + effId + ":" + allEffectsWithId[index2].EffectData.Description.Id + "\n");
+            Log.Debug?.Write("Removing effect " + effId + ":" + allEffectsWithId[index2].EffectData.Description.Id + "\n");
             component.parent.CancelEffect(allEffectsWithId[index2], false);
           } else {
-            Log.LogWrite("Aura effect " + effId + ":" + allEffectsWithId[index2].EffectData.Description.Id + " will be removed at aura cache update\n");
+            Log.Debug?.Write("Aura effect " + effId + ":" + allEffectsWithId[index2].EffectData.Description.Id + " will be removed at aura cache update\n");
           }
         }
         component.createdEffectIDs.Remove(effId);
@@ -1144,11 +1162,11 @@ namespace CustomActivatableEquipment {
       foreach (string effId in actEffectsIDs) {
         List<Effect> allEffectsWithId = component.parent.Combat.EffectManager.GetAllEffectsWithID(effId);
         for (int index2 = 0; index2 < allEffectsWithId.Count; ++index2) {
-          Log.LogWrite("Removing effect " + effId + ":" + allEffectsWithId[index2].EffectData.Description.Id + "\n");
+          Log.Debug?.Write("Removing effect " + effId + ":" + allEffectsWithId[index2].EffectData.Description.Id + "\n");
           if (allEffectsWithId[index2].EffectData.targetingData.specialRules != AbilityDef.SpecialRules.Aura) {
             component.parent.CancelEffect(allEffectsWithId[index2], false);
           } else {
-            Log.LogWrite("Aura effect " + effId + ":" + allEffectsWithId[index2].EffectData.Description.Id + " will be removed at aura cache update\n");
+            Log.Debug?.Write("Aura effect " + effId + ":" + allEffectsWithId[index2].EffectData.Description.Id + " will be removed at aura cache update\n");
           }
         }
         component.createdEffectIDs.Remove(effId);
@@ -1172,12 +1190,12 @@ namespace CustomActivatableEquipment {
       component.UpdateAuras(false);
       ObjectSpawnDataSelf activeVFX = component.ActivateVFX();
       if (activeVFX != null) { activeVFX.CleanupSelf(); }
-      Log.LogWrite(component.defId+" shutdown\n");
+      Log.Debug?.Write(component.defId+" shutdown\n");
     }
     public static void startupComponent(MechComponent component) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) { return; }
-      Log.LogWrite(component.defId + " restart\n");
+      Log.Debug?.Write(component.defId + " restart\n");
       if (activatable.ActiveByDefault == true) {
         ActivatableComponent.activateComponent(component, true, true);
       } else {
@@ -1219,14 +1237,14 @@ namespace CustomActivatableEquipment {
     }
     public static void toggleComponentActivation(MechComponent component) {
       CombatHUDEquipmentSlotEx.ClearCache(component);
-      Log.LogWrite("toggleComponentActivation " + component.defId + "\n");
+      Log.Debug?.Write("toggleComponentActivation " + component.defId + "\n");
       if (component.IsFunctional == false) {
-        Log.LogWrite(" not functional\n");
+        Log.Debug?.Write(" not functional\n");
         return;
       };
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) {
-        Log.LogWrite(" not activatable\n");
+        Log.Debug?.Write(" not activatable\n");
         return;
       }
       component.parent.OnActivationBegin(component.parent.GUID, -1);
@@ -1237,7 +1255,7 @@ namespace CustomActivatableEquipment {
         component.StatCollection.AddStatistic<int>(ActivatableComponent.CAEComponentActiveRounds, 0);
       }
       if (ActivatableComponent.isComponentActivated(component) == false) {
-        Log.LogWrite(" activating\n");
+        Log.Debug?.Write(" activating\n");
         ActivatableComponent.activateComponent(component,false,false);
       } else {
         ActivatableComponent.deactivateComponent(component);
@@ -1245,12 +1263,12 @@ namespace CustomActivatableEquipment {
     }
 
     public string PreValidateDrop(MechLabItemSlotElement item, LocationHelper location, MechLabHelper mechlab) {
-      Log.LogWrite("PreValidateDrop\n");
+      Log.Debug?.Write("PreValidateDrop\n");
       if (this.MechTonnageWeightMult > CustomActivatableEquipment.Core.Epsilon) {
         float self_tonnage = (float)Math.Ceiling((double)this.Def.Tonnage);
         float upLimit = (float)Math.Ceiling((double)(self_tonnage * this.MechTonnageWeightMult));
         float downLimit = (float)Math.Ceiling((double)((self_tonnage - 1f) * this.MechTonnageWeightMult));
-        Log.LogWrite(" checking on tonnage. mech : " + downLimit + " - " + upLimit + "\n");
+        Log.Debug?.Write(" checking on tonnage. mech : " + downLimit + " - " + upLimit + "\n");
         if ((mechlab.MechLab.activeMechDef.Chassis.Tonnage <= downLimit) || (mechlab.MechLab.activeMechDef.Chassis.Tonnage > upLimit)) {
           string result = "This component is not sutable for this chassis. Tonnage must be " + (downLimit + 1f) + "-" + upLimit;
           return result;
@@ -1260,14 +1278,14 @@ namespace CustomActivatableEquipment {
         float self_tonnage = this.Def.InventorySize;
         float upLimit = (float)Math.Ceiling((double)(self_tonnage * this.MechTonnageSlotsMult));
         float downLimit = (float)Math.Ceiling((double)((self_tonnage - 1f) * this.MechTonnageSlotsMult));
-        Log.LogWrite(" checking on tonnage. mech : " + downLimit + " - " + upLimit + "\n");
+        Log.Debug?.Write(" checking on tonnage. mech : " + downLimit + " - " + upLimit + "\n");
         if ((mechlab.MechLab.activeMechDef.Chassis.Tonnage <= downLimit) || (mechlab.MechLab.activeMechDef.Chassis.Tonnage > upLimit)) {
           string result = "This component is not sutable for this chassis. Tonnage must be " + (downLimit + 1f) + "-" + upLimit;
           return result;
         }
       }
       if ((this.EngineTonnageWeightMult > CustomActivatableEquipment.Core.Epsilon) || (this.EngineTonnageSlotsMult > CustomActivatableEquipment.Core.Epsilon)) {
-        Log.LogWrite(" checking on engine weight\n");
+        Log.Debug?.Write(" checking on engine weight\n");
         List<MechComponentRef> components = mechlab.MechLab.activeMechInventory;
         float engineTonnage = 0f;
         foreach (var comp in components) {
@@ -1282,7 +1300,7 @@ namespace CustomActivatableEquipment {
           float self_tonnage = (float)Math.Ceiling((double)this.Def.Tonnage);
           float upLimit = (float)Math.Ceiling((double)(self_tonnage * this.EngineTonnageWeightMult));
           float downLimit = (float)Math.Ceiling((double)((self_tonnage - 1f) * this.EngineTonnageWeightMult));
-          Log.LogWrite(" checking on tonnage. engine : " + downLimit + " - " + upLimit + "\n");
+          Log.Debug?.Write(" checking on tonnage. engine : " + downLimit + " - " + upLimit + "\n");
           if ((engineTonnage <= downLimit) || (engineTonnage > upLimit)) {
             string result = "This component is not sutable for this chassis. Engine tonnage must be " + (downLimit + 1f) + "-" + upLimit;
             return result;
@@ -1292,7 +1310,7 @@ namespace CustomActivatableEquipment {
           float self_tonnage = this.Def.InventorySize;
           float upLimit = (float)Math.Ceiling((double)(self_tonnage * this.EngineTonnageSlotsMult));
           float downLimit = (float)Math.Ceiling((double)((self_tonnage - 1f) * this.EngineTonnageSlotsMult));
-          Log.LogWrite(" checking on tonnage. engine : " + downLimit + " - " + upLimit + "\n");
+          Log.Debug?.Write(" checking on tonnage. engine : " + downLimit + " - " + upLimit + "\n");
           if ((engineTonnage <= downLimit) || (engineTonnage > upLimit)) {
             string result = "This component is not sutable for this chassis. Engine tonnage must be " + (downLimit + 1f) + "-" + upLimit;
             return result;
@@ -1380,7 +1398,7 @@ namespace CustomActivatableEquipment {
       this.activatable = a;
     }
     public void toggle() {
-      Log.LogWrite("Toggle activatable " + component.defId + "\n");
+      Log.Debug?.Write("Toggle activatable " + component.defId + "\n");
       ActivatableComponent.toggleComponentActivation(this.component);
     }
   }
@@ -1393,7 +1411,7 @@ namespace CustomActivatableEquipment {
     }
     public void AddHeatSink() {
       if (mech == null) {
-        Log.LogWrite("WARNING! Alter mech heatsink state without mech selected", true);
+        Log.WriteCritical("WARNING! Alter mech heatsink state without mech selected");
         return;
       }
       for (int index = 0; index < mech.miscComponents.Count; ++index) {
@@ -1410,10 +1428,10 @@ namespace CustomActivatableEquipment {
     }
     public void RemoveHeatSink() {
       if (mech == null) {
-        Log.LogWrite("WARNING! Alter mech heatsink state without mech selected", true);
+        Log.WriteCritical("WARNING! Alter mech heatsink state without mech selected");
         return;
       }
-      Log.LogWrite("Deactivating heatsink:" + mech.DisplayName + ":" + mech.GUID + "\n");
+      Log.Debug?.Write("Deactivating heatsink:" + mech.DisplayName + ":" + mech.GUID + "\n");
       for (int index = 0; index < mech.miscComponents.Count; ++index) {
         MechComponent miscComponent = mech.miscComponents[index];
         if (miscComponent.componentType != ComponentType.HeatSink) { continue; };
@@ -1421,9 +1439,9 @@ namespace CustomActivatableEquipment {
         if (componentDef.DissipationCapacity < CustomActivatableEquipment.Core.Epsilon) { continue; };
         if (miscComponent.DamageLevel > ComponentDamageLevel.NonFunctional) { continue; }
         if (miscComponent.ComponentTags().Contains(CustomActivatableEquipment.Core.HeatSinkOfflineTagName)) { continue; };
-        Log.LogWrite("  Active heat sinc found:" + miscComponent.getCCGUID() + "\n");
+        Log.Debug?.Write("  Active heat sinc found:" + miscComponent.getCCGUID() + "\n");
         miscComponent.AddTag(CustomActivatableEquipment.Core.HeatSinkOfflineTagName);
-        Log.LogWrite("  Add tag:" + miscComponent.ComponentTags().ToString() + "\n");
+        Log.Debug?.Write("  Add tag:" + miscComponent.ComponentTags().ToString() + "\n");
         this.popup.TextContent = HeatSinkToggle.MechHeatSinksInfo(this.mech);
         break;
       }
@@ -1434,23 +1452,23 @@ namespace CustomActivatableEquipment {
       int OfflineHeatSinks = 0;
       float OnlineHeatDissipation = 0f;
       if (mech == null) {
-        Log.LogWrite("WARNING! trying to get mech heat info without mech selected", true);
+        Log.WriteCritical("WARNING! trying to get mech heat info without mech selected");
         return "No mech selected";
       }
       if (mech.miscComponents == null) {
-        Log.LogWrite("WARNING! trying to get mech heat info without misc components on mech", true);
+        Log.WriteCritical("WARNING! trying to get mech heat info without misc components on mech");
         return "No heatsinks found";
       }
       for (int index = 0; index < mech.miscComponents.Count; ++index) {
         MechComponent miscComponent = mech.miscComponents[index];
         if (miscComponent == null) {
-          Log.LogWrite("WARNING! empty component", true);
+          Log.WriteCritical("WARNING! empty component");
           continue;
         }
         if (miscComponent.componentType != ComponentType.HeatSink) { continue; };
         HeatSinkDef componentDef = miscComponent.componentDef as HeatSinkDef;
         if (miscComponent == null) {
-          Log.LogWrite("WARNING! Component without def", true);
+          Log.WriteCritical("WARNING! Component without def");
           continue;
         }
         if (componentDef.DissipationCapacity < CustomActivatableEquipment.Core.Epsilon) { continue; };
@@ -1487,7 +1505,7 @@ namespace CustomActivatableEquipment {
 
       OnlineHeatDissipation = (float)Math.Round(((double)OnlineHeatDissipation * ((double)num * (double)mech.Combat.Constants.Heat.GlobalHeatSinkMultiplier)));*/
       stringBuilder.Append("Effective total heat dissipation:" + (mech.AdjustedHeatsinkCapacity) + "\n");
-      Log.LogWrite(stringBuilder.ToString());
+      Log.Debug?.Write(stringBuilder.ToString());
       return stringBuilder.ToString();
     }
   }
@@ -1615,21 +1633,21 @@ namespace CustomActivatableEquipment {
 
     public static Settings Settings = new Settings();
     public static void FinishedLoading(List<string> loadOrder) {
-      Log.TWL(0, "FinishedLoading", true);
+      Log.TWriteCritical(0, "FinishedLoading");
       try {
         //ExtendedDescriptionHelper.DetectMechEngineer();
       } catch (Exception e) {
-        Log.TWL(0, e.ToString(), true);
+        Log.TWriteCritical(0, e.ToString());
       }
     }
     public static void Init(string directory, string settingsJson) {
       CustomActivatableEquipment.Log.BaseDirectory = directory;
       CustomActivatableEquipment.Log.InitLog();
       Core.Settings = JsonConvert.DeserializeObject<CustomActivatableEquipment.Settings>(settingsJson);
-      CustomActivatableEquipment.Log.LogWrite("Initing... " + directory + " version: " + Assembly.GetExecutingAssembly().GetName().Version + "\n", true);
+      CustomActivatableEquipment.Log.WriteCritical("Initing... " + directory + " version: " + Assembly.GetExecutingAssembly().GetName().Version + "\n");
       for(int layer1 = 8; layer1 < 32; ++layer1) {
         for (int layer2 = 8; layer2 < 32; ++layer2) {
-          Log.LogWrite(LayerMask.LayerToName(layer1)+"->"+LayerMask.LayerToName(layer2)+" ignore collisions:"+ Physics.GetIgnoreLayerCollision(layer1,layer2)+"\n");
+          Log.Debug?.Write(LayerMask.LayerToName(layer1)+"->"+LayerMask.LayerToName(layer2)+" ignore collisions:"+ Physics.GetIgnoreLayerCollision(layer1,layer2)+"\n");
         }
       }
       /*try {
@@ -1666,7 +1684,7 @@ namespace CustomActivatableEquipment {
         new HarmonyMethod(typeof(AreAnyHostilesInWeaponRangeNode_Tick).GetMethod("Prefix")));
         ActivatebleDialogHelper.Init();
       } catch (Exception e) {
-        CustomActivatableEquipment.Log.LogWrite(e.ToString() + "\n");
+        CustomActivatableEquipment.Log.Debug?.Write(e.ToString() + "\n");
       }
     }
   }

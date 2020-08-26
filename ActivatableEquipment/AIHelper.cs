@@ -15,11 +15,11 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(new Type[] { typeof(int) })]
   public static class AbstractActor_OnNewRound {
     public static bool Prefix(AbstractActor __instance) {
-      Log.LogWrite("AbstractActor.OnNewRound(" + __instance.DisplayName + ":" + __instance.GUID + ")\n");
+      Log.Debug?.Write("AbstractActor.OnNewRound(" + __instance.DisplayName + ":" + __instance.GUID + ")\n");
       try {
         //__instance.Combat.commitDamage();
       }catch(Exception e) {
-        Log.TWL(0, e.ToString(), true);
+        Log.TWriteCritical(0, e.ToString());
       }
         if (__instance.IsDead) { return true; };
       CAEAIHelper.AIActivatableProc(__instance);
@@ -33,7 +33,7 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(new Type[] { typeof(string), typeof(int) })]
   public static class AbstractActor_OnActivationEnd {
     public static bool Prefix(AbstractActor __instance) {
-      Log.LogWrite("AbstractActor.OnActivationEnd(" + __instance.DisplayName + ":" + __instance.GUID + ")\n");
+      Log.Debug?.Write("AbstractActor.OnActivationEnd(" + __instance.DisplayName + ":" + __instance.GUID + ")\n");
       CAEAIHelper.AIActivatableProc(__instance);
       return true;
     }
@@ -69,7 +69,7 @@ namespace CustomActivatableEquipment {
       try {
         if (unit.IsDead) { return; }
         if (unit.TeamId == unit.Combat.LocalPlayerTeamGuid) {
-          Log.LogWrite(" not AI\n");
+          Log.Debug?.Write(" not AI\n");
           return;
         }
         HashSet<MechComponent> extreamlyUsefull = new HashSet<MechComponent>();
@@ -88,77 +88,77 @@ namespace CustomActivatableEquipment {
           heatCoeff = mech.CurrentHeat / mech.OverheatLevel;
           overheatCoeff = mech.CurrentHeatAsRatio;
         }
-        Log.LogWrite("AI activatable coeffs:" + unit.DisplayName + ":" + unit.GUID + "\n");
-        Log.LogWrite(" visible targets:" + isVisibleTargets + "\n");
-        Log.LogWrite(" offenceCoeff:" + offenceCoeff + "\n");
-        Log.LogWrite(" deffenceCoeff:" + deffenceCoeff + "\n");
-        Log.LogWrite(" heatCoeff:" + heatCoeff + "\n");
-        Log.LogWrite(" overheatCoeff:" + overheatCoeff + "\n");
+        Log.Debug?.Write("AI activatable coeffs:" + unit.DisplayName + ":" + unit.GUID + "\n");
+        Log.Debug?.Write(" visible targets:" + isVisibleTargets + "\n");
+        Log.Debug?.Write(" offenceCoeff:" + offenceCoeff + "\n");
+        Log.Debug?.Write(" deffenceCoeff:" + deffenceCoeff + "\n");
+        Log.Debug?.Write(" heatCoeff:" + heatCoeff + "\n");
+        Log.Debug?.Write(" overheatCoeff:" + overheatCoeff + "\n");
         bool isAnyLocationExposed = unit.IsAnyStructureExposed;
-        Log.LogWrite(" isAnyLocationExposed:" + isAnyLocationExposed + "\n");
-        Log.LogWrite("Components:\n");
+        Log.Debug?.Write(" isAnyLocationExposed:" + isAnyLocationExposed + "\n");
+        Log.Debug?.Write("Components:\n");
         foreach (MechComponent component in unit.allComponents) {
-          Log.LogWrite(" " + component.defId + "\n");
+          Log.Debug?.Write(" " + component.defId + "\n");
           if (component.CanBeActivated() == false) {
-            Log.LogWrite("  can't be activated\n");
+            Log.Debug?.Write("  can't be activated\n");
             continue;
           };
           if (component.isSensors()) {
-            Log.LogWrite("  sensors\n");
+            Log.Debug?.Write("  sensors\n");
             if (isVisibleTargets == 0) {
               if (isAnyLocationExposed == false) {
-                Log.LogWrite("  no visible targets. Sensors are extreamly usefull to detect them\n");
+                Log.Debug?.Write("  no visible targets. Sensors are extreamly usefull to detect them\n");
                 extreamlyUsefull.Add(component);
               }
             } else
             if (isVisibleTargets < 2) {
               if (isAnyLocationExposed == false) {
-                Log.LogWrite("  low visible visible targets count. Sensors are usefull to detect additional targets\n");
+                Log.Debug?.Write("  low visible visible targets count. Sensors are usefull to detect additional targets\n");
                 Usefull.Add(component);
               }
             }
           }
           if (component.isCool()) {
             if (heatCoeff > Core.Settings.AIHeatCoeffCoeff) {
-              Log.LogWrite("  cooling component and i'm heated. Usefull\n");
+              Log.Debug?.Write("  cooling component and i'm heated. Usefull\n");
               Usefull.Add(component);
             }
             if (overheatCoeff > Core.Settings.AIOverheatCoeffCoeff) {
-              Log.LogWrite("  cooling component and i'm close to overheat. Very usefull\n");
+              Log.Debug?.Write("  cooling component and i'm close to overheat. Very usefull\n");
               extreamlyUsefull.Add(component);
             }
           }
           if (component.isSpeed()) {
             if (isAnyLocationExposed) {
-              Log.LogWrite("  speed and i'm damaged. Need to flee. Very usefull\n");
+              Log.Debug?.Write("  speed and i'm damaged. Need to flee. Very usefull\n");
               extreamlyUsefull.Add(component);
             } else
             if (isVisibleTargets == 0) {
-              Log.LogWrite("  speed and no visible targets. Need to find usefull\n");
+              Log.Debug?.Write("  speed and no visible targets. Need to find usefull\n");
               Usefull.Add(component);
             }
           }
           if (component.isOffence()) {
             if ((isVisibleTargets > 1) && (isAnyLocationExposed)) {
-              Log.LogWrite("  offence and i see target and damaged. Very usefull\n");
+              Log.Debug?.Write("  offence and i see target and damaged. Very usefull\n");
               extreamlyUsefull.Add(component);
             } else if (offenceCoeff > Core.Settings.AIOffenceUsefullCoeff) {
-              Log.LogWrite("  offence and i can make much damage. Very usefull\n");
+              Log.Debug?.Write("  offence and i can make much damage. Very usefull\n");
               extreamlyUsefull.Add(component);
             } else if (offenceCoeff > Core.Epsilon) {
-              Log.LogWrite("  offence and i can make some damage. Usefull\n");
+              Log.Debug?.Write("  offence and i can make some damage. Usefull\n");
               Usefull.Add(component);
             }
           }
           if (component.isDefence()) {
             if ((isVisibleTargets > 1) && (isAnyLocationExposed)) {
-              Log.LogWrite("  defence and i see target and damaged. Very usefull\n");
+              Log.Debug?.Write("  defence and i see target and damaged. Very usefull\n");
               extreamlyUsefull.Add(component);
             } else if (deffenceCoeff > Core.Settings.AIDefenceUsefullCoeff) {
-              Log.LogWrite("  defence and i can suffer much damage. Very usefull\n");
+              Log.Debug?.Write("  defence and i can suffer much damage. Very usefull\n");
               extreamlyUsefull.Add(component);
             } else if (deffenceCoeff > Core.Epsilon) {
-              Log.LogWrite("  defence and i suffer make some damage. Usefull\n");
+              Log.Debug?.Write("  defence and i suffer make some damage. Usefull\n");
               Usefull.Add(component);
             }
           }
@@ -167,11 +167,11 @@ namespace CustomActivatableEquipment {
         foreach (MechComponent component in extreamlyUsefull) {
           if (component.isHeat()) {
             if (heatCoeff > Core.Settings.AIHeatCoeffCoeff) {
-              Log.LogWrite(component.defId + " very usefull. But i'm heated\n");
+              Log.Debug?.Write(component.defId + " very usefull. But i'm heated\n");
               stepDownComponents.Add(component);
             } else
             if (overheatCoeff > Core.Settings.AIOverheatCoeffCoeff) {
-              Log.LogWrite(component.defId + " very usefull. But i'm overheated\n");
+              Log.Debug?.Write(component.defId + " very usefull. But i'm overheated\n");
               stepDownComponents.Add(component);
             }
           }
@@ -180,67 +180,67 @@ namespace CustomActivatableEquipment {
           extreamlyUsefull.Remove(component);
           Usefull.Add(component);
         }
-        Log.LogWrite("Activation:\n");
+        Log.Debug?.Write("Activation:\n");
         foreach (MechComponent component in unit.allComponents) {
-          Log.LogWrite(" " + component.defId + "\n");
+          Log.Debug?.Write(" " + component.defId + "\n");
           bool needToBeActivated = false;
           if (extreamlyUsefull.Contains(component)) {
-            Log.LogWrite("  very usefull\n");
+            Log.Debug?.Write("  very usefull\n");
             if (component.isFailDanger() == false) {
-              Log.LogWrite("  not danger\n");
+              Log.Debug?.Write("  not danger\n");
               needToBeActivated = true;
             } else {
-              Log.LogWrite("  FailChance:" + component.FailChance() + "\n");
+              Log.Debug?.Write("  FailChance:" + component.FailChance() + "\n");
               if ((component.isDamaged() == false)||(isAnyLocationExposed == true)) {
                 if (component.FailChance() < Core.Settings.AIComponentExtreamlyUsefulModifyer) {
                   needToBeActivated = true;
-                  Log.LogWrite("  not big danger. Can be activated\n");
+                  Log.Debug?.Write("  not big danger. Can be activated\n");
                 }
               } else {
-                Log.LogWrite("  component is damaged and have no exposed locations. Danger level increase\n");
+                Log.Debug?.Write("  component is damaged and have no exposed locations. Danger level increase\n");
                 if (component.FailChance() < Core.Settings.AIComponentUsefullModifyer) {
                   needToBeActivated = true;
-                  Log.LogWrite("  not big danger. Can be activated\n");
+                  Log.Debug?.Write("  not big danger. Can be activated\n");
                 }
 
               }
             }
           }
           if (Usefull.Contains(component)) {
-            Log.LogWrite("  usefull\n");
+            Log.Debug?.Write("  usefull\n");
             if (component.isFailDanger() == false) {
-              Log.LogWrite("  not danger\n");
+              Log.Debug?.Write("  not danger\n");
               needToBeActivated = true;
             } else {
-              Log.LogWrite("  FailChance:" + component.FailChance() + "\n");
+              Log.Debug?.Write("  FailChance:" + component.FailChance() + "\n");
               if ((component.isDamaged() == false) || (isAnyLocationExposed == true)) {
                 if (component.FailChance() < Core.Settings.AIComponentUsefullModifyer) {
                   needToBeActivated = true;
-                  Log.LogWrite("  not big danger. Can be activated\n");
+                  Log.Debug?.Write("  not big danger. Can be activated\n");
                 }
               } else {
-                Log.LogWrite("  component is damaged and have no exposed locations. Danger level increase will not activate.\n");
+                Log.Debug?.Write("  component is damaged and have no exposed locations. Danger level increase will not activate.\n");
               }
             }
           }
           if (needToBeActivated) {
             if (ActivatableComponent.isComponentActivated(component)) {
-              Log.LogWrite("  already active\n");
+              Log.Debug?.Write("  already active\n");
               if (unit.AICheatRoll()) {
                 bool isSuccess = ActivatableComponent.rollFail(component, false, true);
                 if (isSuccess == false) {
-                  Log.LogWrite("  deactivating due to high possible fail\n");
+                  Log.Debug?.Write("  deactivating due to high possible fail\n");
                   ActivatableComponent.deactivateComponent(component);
                 } else {
                   component.setAIRollPassed(true);
                 }
               }
             } else {
-              Log.LogWrite("  activating\n");
+              Log.Debug?.Write("  activating\n");
               if (unit.AICheatRoll()) {
                 bool isSuccess = ActivatableComponent.rollFail(component, false, true);
                 if (isSuccess == false) {
-                  Log.LogWrite("  not activate due to high possible fail\n");
+                  Log.Debug?.Write("  not activate due to high possible fail\n");
                 } else {
                   component.setAIRollPassed(true);
                   ActivatableComponent.activateComponent(component, false, false);
@@ -251,17 +251,17 @@ namespace CustomActivatableEquipment {
             }
           } else {
             if (ActivatableComponent.isComponentActivated(component)) {
-              Log.LogWrite("  not active\n");
+              Log.Debug?.Write("  not active\n");
             } else {
-              Log.LogWrite("  deactivating\n");
+              Log.Debug?.Write("  deactivating\n");
               ActivatableComponent.deactivateComponent(component);
             }
           }
         }
         AITime.Stop();
-        Log.LogWrite("AI activatable time:" + AITime.ElapsedMilliseconds + " msec\n");
+        Log.Debug?.Write("AI activatable time:" + AITime.ElapsedMilliseconds + " msec\n");
       } catch (Exception e) {
-        Log.LogWrite("AI activatable exception:" + e.ToString() + "\n", true);
+        Log.WriteCritical("AI activatable exception:" + e.ToString() + "\n");
       }
 
     }

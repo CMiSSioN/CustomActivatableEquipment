@@ -45,7 +45,7 @@ namespace CustAmmoCategoriesPatches {
         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
         return false;
       } catch (Exception e) {
-        Log.LogWrite(e.ToString() + "\n");
+        Log.Debug?.Write(e.ToString() + "\n");
         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
         return false;
       }
@@ -65,12 +65,12 @@ namespace CustAmmoCategoriesPatches {
     public static bool Prepare() {
       mCanEntireEnemyTeamBeGhosted = typeof(AITeam).GetMethod("CanEntireEnemyTeamBeGhosted", BindingFlags.NonPublic | BindingFlags.Instance);
       if(mCanEntireEnemyTeamBeGhosted == null) {
-        Log.LogWrite("Can't find AITeam.CanEntireEnemyTeamBeGhosted\n",true);
+        Log.WriteCritical("Can't find AITeam.CanEntireEnemyTeamBeGhosted\n");
         return false;
       }
       mGetBehaviorVariableValue = typeof(BehaviorTree).GetMethod("GetBehaviorVariableValue", BindingFlags.NonPublic | BindingFlags.Instance);
       if (mGetBehaviorVariableValue == null) {
-        Log.LogWrite("Can't find BehaviorTree.GetBehaviorVariableValue\n",true);
+        Log.WriteCritical("Can't find BehaviorTree.GetBehaviorVariableValue\n");
         return false;
       }
       var dm = new DynamicMethod("CAECanEntireEnemyTeamBeGhosted", typeof(bool), new Type[] { typeof(AITeam) }, typeof(AITeam));
@@ -124,7 +124,7 @@ namespace CustAmmoCategoriesPatches {
         __result = result;
         return false;
       }catch(Exception e) {
-        Log.LogWrite(e.ToString() + "\n", true);
+        Log.WriteCritical(e.ToString() + "\n");
         __result = null;
         return false;
       }

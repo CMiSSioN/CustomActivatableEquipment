@@ -100,7 +100,7 @@ namespace CustomActivatablePatches {
         __result = __instance.isAuraVisible(aura,___owner, ___HUD, false)? ButtonState.Enabled : ButtonState.Disabled;
         return false;
       }catch(Exception e) {
-        Log.LogWrite(e.ToString() + "\n");
+        Log.Debug?.Write(e.ToString() + "\n");
       }
       return true;
       //__instance.GameRep.PlayVFXAt(__instance.GameRep.thisTransform, Vector3.zero, "vfxPrfPrtl_ECM_loop", true, Vector3.zero, false, -1f);
@@ -148,7 +148,7 @@ namespace CustomActivatablePatches {
           return false;
         }
       }catch(Exception e) {
-        Log.LogWrite(e.ToString() + "\n", true);
+        Log.WriteCritical(e.ToString() + "\n");
       }
       return true;
     }
@@ -195,7 +195,7 @@ namespace CustomActivatablePatches {
           return false;
         }
       } catch (Exception e) {
-        Log.LogWrite(e.ToString() + "\n", true);
+        Log.WriteCritical(e.ToString() + "\n");
       }
       return true;
     }
@@ -214,7 +214,7 @@ namespace CustomActivatablePatches {
         __result = __instance.isAuraVisible(aura,___owner,___HUD,true);
         return false;
       }catch(Exception e) {
-        Log.LogWrite(e.ToString() + "\n");
+        Log.Debug?.Write(e.ToString() + "\n");
       }
       return true;
     }
@@ -256,7 +256,7 @@ namespace CustomActivatablePatches {
         }
         return false;
       } catch (Exception e) {
-        Log.LogWrite(e.ToString() + "\n");
+        Log.Debug?.Write(e.ToString() + "\n");
       }
       return true;
     }
