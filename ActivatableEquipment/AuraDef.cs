@@ -36,7 +36,7 @@ namespace CustomActivatableEquipment {
         if (ColorUtility.TryParseHtmlString(value, out temp)) {
           AuraColor = temp;
         } else {
-          Log.LogWrite("Bad color:" + value + "\n", true);
+          Log.WriteCritical("Bad color:" + value + "\n");
           AuraColor = UnityEngine.Color.magenta;
         }
       }
@@ -130,8 +130,8 @@ namespace CustAmmoCategoriesPatches {
         }
         json = content.ToString();
       } catch (Exception e) {
-        Log.LogWrite("Error:" + e.ToString() + "\n");
-        Log.LogWrite("IN:" + json + "\n");
+        Log.Debug?.Write("Error:" + e.ToString() + "\n");
+        Log.Debug?.Write("IN:" + json + "\n");
       }
     }
   }
@@ -145,7 +145,7 @@ namespace CustAmmoCategoriesPatches {
       try {
         JObject content = JObject.Parse(json);
         if (content["Auras"] != null) {
-          Log.LogWrite("Auras WeaponDef:"+ content["Description"]["Id"]+"\n");
+          Log.Debug?.Write("Auras WeaponDef:"+ content["Description"]["Id"]+"\n");
           if (content["Auras"].Type == JTokenType.Array) {
             List<AuraDef> auras = new List<AuraDef>();
             JToken jauras = content["Auras"];
@@ -170,8 +170,8 @@ namespace CustAmmoCategoriesPatches {
         }
         json = content.ToString();
       } catch (Exception e) {
-        Log.LogWrite("Error:" + e.ToString() + "\n");
-        Log.LogWrite("IN:" + json + "\n");
+        Log.Debug?.Write("Error:" + e.ToString() + "\n");
+        Log.Debug?.Write("IN:" + json + "\n");
       }
     }
   }

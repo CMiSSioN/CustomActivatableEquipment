@@ -26,15 +26,15 @@ namespace CustomActivatablePatches {
       return unit.StatCollection.GetStatistic(ArmAbsenceStoodUpModStatName).Value<float>();
     }
     public static void Postfix(AbstractActor __instance) {
-      Log.LogWrite("AbstractActor.InitEffectStats " + __instance.DisplayName + ":" + __instance.GUID + "\n");
+      Log.Debug?.Write("AbstractActor.InitEffectStats " + __instance.DisplayName + ":" + __instance.GUID + "\n");
       if (Core.checkExistance(__instance.StatCollection, StoodUpRollModStatName) == false) {
         __instance.StatCollection.AddStatistic<float>(StoodUpRollModStatName, 0f);
       }
       if (Core.checkExistance(__instance.StatCollection, ArmAbsenceStoodUpModStatName) == false) {
         __instance.StatCollection.AddStatistic<float>(ArmAbsenceStoodUpModStatName, Core.Settings.DefaultArmsAbsenceStoodUpMod);
       }
-      Log.LogWrite(" StoodUpRollMod " + __instance.StoodUpRollMod()+"\n");
-      Log.LogWrite(" ArmAbsenceStoodUpMod " + __instance.ArmAbsenceStoodUpMod()+"\n");
+      Log.Debug?.Write(" StoodUpRollMod " + __instance.StoodUpRollMod()+"\n");
+      Log.Debug?.Write(" ArmAbsenceStoodUpMod " + __instance.ArmAbsenceStoodUpMod()+"\n");
     }
   }
   [HarmonyPatch(typeof(MechStandInvocation))]
@@ -43,24 +43,24 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(new Type[] { typeof(CombatGameState) })]
   public static class MechStandInvocation_Invoke {
     public static float StoodUpRoll(this Mech mech) {
-      Log.LogWrite(mech.DisplayName+ ".StoodUpRoll\n");
+      Log.Debug?.Write(mech.DisplayName+ ".StoodUpRoll\n");
       float result = (float)mech.pilot.Piloting*Core.Settings.StoodUpPilotingRollCoeff;
-      Log.LogWrite(" piloting:"+result+"="+ mech.pilot.Piloting + "x"+ Core.Settings.StoodUpPilotingRollCoeff + "\n");
-      Log.LogWrite(" chassis:" + result + " + " + mech.StoodUpRollMod()+" = ");
+      Log.Debug?.Write(" piloting:"+result+"="+ mech.pilot.Piloting + "x"+ Core.Settings.StoodUpPilotingRollCoeff + "\n");
+      Log.Debug?.Write(" chassis:" + result + " + " + mech.StoodUpRollMod()+" = ");
       result += mech.StoodUpRollMod();
-      Log.LogWrite(result + "\n");
+      Log.Debug?.Write(result + "\n");
       float absentArms = 0f;
       if (mech.IsLocationDestroyed(ChassisLocations.LeftArm)) { absentArms += 1f; }
       if (mech.IsLocationDestroyed(ChassisLocations.RightArm)) { absentArms += 1f; }
-      Log.LogWrite(" destroyed arms:" + result + " + " + absentArms + "x" + mech.ArmAbsenceStoodUpMod() + " = ");
+      Log.Debug?.Write(" destroyed arms:" + result + " + " + absentArms + "x" + mech.ArmAbsenceStoodUpMod() + " = ");
       result += (absentArms * mech.ArmAbsenceStoodUpMod());
-      Log.LogWrite(result + "\n");
+      Log.Debug?.Write(result + "\n");
       float absentLegs = 0f;
       if (mech.IsLocationDestroyed(ChassisLocations.LeftLeg)) { absentLegs += 1f; }
       if (mech.IsLocationDestroyed(ChassisLocations.RightLeg)) { absentLegs += 1f; }
-      Log.LogWrite(" destroyed legs:" + result + " + " + absentLegs + "x" + Core.Settings.LegAbsenceStoodUpMod + " = ");
+      Log.Debug?.Write(" destroyed legs:" + result + " + " + absentLegs + "x" + Core.Settings.LegAbsenceStoodUpMod + " = ");
       result += (absentLegs * Core.Settings.LegAbsenceStoodUpMod);
-      Log.LogWrite(result + "\n");
+      Log.Debug?.Write(result + "\n");
       return result;
     }
     public static bool Prefix(MechStartupInvocation __instance, CombatGameState combatGameState, ref bool __result) {
@@ -69,24 +69,24 @@ namespace CustomActivatablePatches {
         __result = true;
         Mech actorByGuid = combatGameState.FindActorByGUID(__instance.MechGUID) as Mech;
         if (actorByGuid == null) {
-          Log.LogWrite("MechStartupInvocation.Invoke failed! Unable to Mech!\n");
+          Log.Debug?.Write("MechStartupInvocation.Invoke failed! Unable to Mech!\n");
           return true;
         }
-        Log.LogWrite("Mech stoodup roll\n");
+        Log.Debug?.Write("Mech stoodup roll\n");
         float limit = actorByGuid.StoodUpRoll();
         float roll = Random.Range(0f, 1f);
-        Log.LogWrite(" roll = "+roll+" against "+limit+"\n");
+        Log.Debug?.Write(" roll = "+roll+" against "+limit+"\n");
         if (roll < limit) {
-          Log.LogWrite(" success\n");
+          Log.Debug?.Write(" success\n");
           return true;
         } else {
-          Log.LogWrite(" fail to stand up\n");
+          Log.Debug?.Write(" fail to stand up\n");
           combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(__instance.MechGUID, __instance.MechGUID, "__/CAE.StandUpFail/__", FloatieMessage.MessageNature.Buff));
           combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage(actorByGuid.DoneNoAnimation()));
         }
         return false;
       } catch (Exception e) {
-        Log.LogWrite(e.ToString() + "\n");
+        Log.Debug?.Write(e.ToString() + "\n");
       }
       return true;
     }
@@ -106,7 +106,7 @@ namespace CustomActivatablePatches {
         __result = true;
         Mech actorByGuid = combatGameState.FindActorByGUID(__instance.MechGUID) as Mech;
         if (actorByGuid == null) {
-          Log.LogWrite("MechStartupInvocation.Invoke failed! Unable to Mech!\n");
+          Log.Debug?.Write("MechStartupInvocation.Invoke failed! Unable to Mech!\n");
           return true;
         }
         if (actorByGuid.CurrentHeatAsRatio >= Core.Settings.StartupMinHeatRatio) {
@@ -117,7 +117,7 @@ namespace CustomActivatablePatches {
         }
         return false;
       } catch (Exception e) {
-        Log.LogWrite(e.ToString() + "\n");
+        Log.Debug?.Write(e.ToString() + "\n");
       }
       return true;
     }
@@ -129,10 +129,10 @@ namespace CustomActivatablePatches {
   public static class MechComponent_CancelCreatedEffects {
     public static bool Prefix(MechComponent __instance, bool performAuraRefresh) {
       try {
-        Log.LogWrite("MechComponent.CancelCreatedEffects "+__instance.defId+"\n");
+        Log.Debug?.Write("MechComponent.CancelCreatedEffects "+__instance.defId+"\n");
         ActivatableComponent.shutdownComponent(__instance);
       } catch (Exception e) {
-        Log.LogWrite(e.ToString() + "\n");
+        Log.Debug?.Write(e.ToString() + "\n");
       }
       return true;
     }
@@ -144,10 +144,10 @@ namespace CustomActivatablePatches {
   public static class MechComponent_RestartCreatedEffects {
     public static bool Prefix(MechComponent __instance, bool performAuraRefresh) {
       try {
-        Log.LogWrite("MechComponent.RestartPassiveEffects " + __instance.defId + "\n");
+        Log.Debug?.Write("MechComponent.RestartPassiveEffects " + __instance.defId + "\n");
         ActivatableComponent.startupComponent(__instance);
       } catch (Exception e) {
-        Log.LogWrite(e.ToString() + "\n");
+        Log.Debug?.Write(e.ToString() + "\n");
       }
       return true;
     }

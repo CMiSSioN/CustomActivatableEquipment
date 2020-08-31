@@ -51,7 +51,7 @@ namespace CustomActivatableEquipment {
   public static class CombatHUDSidePanelHoverElement_OnPointerClick {
     //public static bool Prepare() { return false; }
     public static void Postfix(CombatHUDSidePanelHoverElement __instance) {
-      Log.TWL(0, "CombatHUDSidePanelHoverElement.OnPointerClick " + __instance.Title.ToString());
+      Log.Debug?.TWL(0, "CombatHUDSidePanelHoverElement.OnPointerClick " + __instance.Title.ToString());
       if (CombatHUDEquipmentPanel.Instance != null) { CombatHUDEquipmentPanel.Instance.ProcessOnPointerClick(__instance); };
     }
   }
@@ -73,7 +73,7 @@ namespace CustomActivatableEquipment {
     public static void Postfix(CombatHUDActionButton __instance, ref bool __result) {
       CombatHUDEquipmentSlot slot = __instance as CombatHUDEquipmentSlot;
       if (slot == null) { return; }
-      Log.TWL(0, "CombatHUDEquipmentSlot.TryActivate GUID:" + __instance.GUID+" selection type:"+ (SelectionType)typeof(CombatHUDEquipmentSlot).GetProperty("SelectionType",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(slot) +" result:"+__result);
+      Log.Debug?.TWL(0, "CombatHUDEquipmentSlot.TryActivate GUID:" + __instance.GUID+" selection type:"+ (SelectionType)typeof(CombatHUDEquipmentSlot).GetProperty("SelectionType",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(slot) +" result:"+__result);
       if (__result) {
         CombatHUD HUD = (CombatHUD)p_HUD.GetValue(slot);
         HUD.AttackModeSelector.FireButton.FireText.SetText(slot.Ability.Def.Description.Name);
@@ -86,7 +86,7 @@ namespace CustomActivatableEquipment {
   public static class CombatHUDEquipmentSlot_ProcessPressedButtons {
     //public static bool Prepare() { return false; }
     public static void Prefix(CombatSelectionHandler __instance) {
-      Log.TWL(0, "CombatSelectionHandler.ProcessPressedButtons ActiveState:" + (__instance.ActiveState == null?"null":__instance.ActiveState.ToString()));
+      Log.Debug?.TWL(0, "CombatSelectionHandler.ProcessPressedButtons ActiveState:" + (__instance.ActiveState == null?"null":__instance.ActiveState.ToString()));
       foreach(string btn in __instance.PressedButtons) {
         Log.WL(1, btn);
       }
@@ -101,7 +101,7 @@ namespace CustomActivatableEquipment {
       CombatHUDAttackModeSelector_ShowFireButton.RenameFireButton = val;
     }
     public static void Postfix(CombatHUDAttackModeSelector __instance, CombatHUDFireButton.FireMode mode, string additionalDetails, bool showHeatWarnings) {
-      Log.TWL(0, "CombatHUDAttackModeSelector.ShowFireButton mode:"+mode);
+      Log.Debug?.TWL(0, "CombatHUDAttackModeSelector.ShowFireButton mode:"+mode);
       Log.WL(0, Environment.StackTrace);
       if (string.IsNullOrEmpty(RenameFireButton) == false) {
         RenameFireButton = string.Empty;
@@ -121,7 +121,7 @@ namespace CustomActivatableEquipment {
     //public static bool Prepare() { return false; }
     public static bool Prefix(CombatHUDEquipmentSlot __instance) {
       int num1 = (int)WwiseManager.PostEvent<AudioEventList_ui>(AudioEventList_ui.ui_action_generic, WwiseManager.GlobalAudioObject, (AkCallbackManager.EventCallback)null, (object)null);
-      Log.TWL(0, "CombatHUDEquipmentSlot.ExecuteClick");
+      Log.Debug?.TWL(0, "CombatHUDEquipmentSlot.ExecuteClick");
       if (CombatHUDWeaponPanel_RefreshDisplayedEquipment.EquipmentSlots != null) {
         if (CombatHUDWeaponPanel_RefreshDisplayedEquipment.EquipmentSlots.Count > 0) {
           if (CombatHUDWeaponPanel_RefreshDisplayedEquipment.EquipmentSlots[0] == __instance) {

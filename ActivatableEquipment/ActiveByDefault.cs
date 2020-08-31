@@ -15,7 +15,7 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(new Type[] { typeof(AbstractActor), typeof(Team), typeof(Lance) })]
   public static class AbstractActor_Init {
     public static void Prefix(UnitSpawnPointGameLogic __instance, AbstractActor actor, Team team, Lance lance) {
-      CustomActivatableEquipment.Log.LogWrite("UnitSpawnPointGameLogic.initializeActor " + new Text(actor.DisplayName).ToString() + ":" + new Text(__instance.DisplayName).ToString() + "\n");
+      CustomActivatableEquipment.Log.Debug?.Write("UnitSpawnPointGameLogic.initializeActor " + new Text(actor.DisplayName).ToString() + ":" + new Text(__instance.DisplayName).ToString() + "\n");
       actor.AddToActiveDefaultQueue();
     }
   }
@@ -46,7 +46,7 @@ namespace CustomActivatablePatches {
           unit.ActiveDefaultComponents();
         }
       } catch (Exception e) {
-        Log.LogWrite(e.ToString() + "\n", true);
+        Log.WriteCritical(e.ToString() + "\n");
       }
     }
   }

@@ -79,7 +79,7 @@ namespace CustomActivatableEquipment {
     public static bool Prepare() {
       FOwner = typeof(AuraCache).GetProperty("Owner", BindingFlags.Instance | BindingFlags.NonPublic).GetGetMethod(true);
       if (FOwner == null) {
-        Log.LogWrite("ERROR!:Can't find Owner property\n", true);
+        Log.WriteCritical("ERROR!:Can't find Owner property\n");
         return false;
       }
       return true;
@@ -265,7 +265,7 @@ namespace CustomActivatableEquipment {
     public static bool Prepare() {
       FOwner = typeof(AuraCache).GetProperty("Owner", BindingFlags.Instance | BindingFlags.NonPublic).GetGetMethod(true);
       if (FOwner == null) {
-        Log.LogWrite("ERROR!:Can't find Owner property\n", true);
+        Log.WriteCritical("ERROR!:Can't find Owner property\n");
         return false;
       }
       return true;
@@ -288,7 +288,7 @@ namespace CustomActivatableEquipment {
       mAddEffectIfNotPresent = typeof(AuraCache).GetMethod("AddEffectIfNotPresent", BindingFlags.Instance | BindingFlags.NonPublic);
       mRemoveEffectIfPresent = typeof(AuraCache).GetMethod("RemoveEffectIfPresent", BindingFlags.Instance | BindingFlags.NonPublic);
       if (FOwner == null) {
-        Log.LogWrite("ERROR!:Can't find Owner property\n", true);
+        Log.WriteCritical("ERROR!:Can't find Owner property\n");
         return false;
       }
       return true;
@@ -383,7 +383,7 @@ namespace CustomActivatableEquipment {
       mShouldAffectThisActor = typeof(AuraCache).GetMethod("ShouldAffectThisActor", BindingFlags.Instance | BindingFlags.NonPublic);
       mAuraConditionsPassed = typeof(AuraCache).GetMethod("AuraConditionsPassed", BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(AbstractActor) , typeof(MechComponent) , typeof(EffectData) , typeof(float) , typeof(EffectTriggerType)  },null);
       if (FOwner == null) {
-        Log.LogWrite("ERROR!:Can't find Owner property\n", true);
+        Log.WriteCritical("ERROR!:Can't find Owner property\n");
         return false;
       }
       return true;
@@ -471,7 +471,7 @@ namespace CustomActivatableEquipment {
     public static bool Prepare() {
       FOwner = typeof(AuraCache).GetProperty("Owner", BindingFlags.Instance | BindingFlags.NonPublic).GetGetMethod(true);
       if (FOwner == null) {
-        Log.LogWrite("ERROR!:Can't find Owner property\n",true);
+        Log.WriteCritical("ERROR!:Can't find Owner property\n");
         return false;
       }
       return true;
