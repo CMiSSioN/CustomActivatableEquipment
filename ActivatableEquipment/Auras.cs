@@ -78,11 +78,11 @@ namespace CustomActivatableEquipment {
       AuraActorBody body = __instance.bodyAura();
       List<AuraBubble> auras = body.affectedAurasEffects.Keys.ToList();
       foreach (AuraBubble aura in auras) {
-        if (aura.Def.RemoveOnSensorLock) {
+        if (aura.Def.RemoveOnSensorLock && __instance.IsSensorLocked) {
           body.RemoveAuraEffects(aura, false, true);
         }
       }
-      body.ReapplyAllEffects();
+      //body.ReapplyAllEffects();
     }
   }
   /*[HarmonyPatch(typeof(AbstractActor))]
@@ -95,11 +95,11 @@ namespace CustomActivatableEquipment {
       AuraActorBody body = __instance.bodyAura();
       List<AuraBubble> auras = body.affectedAurasEffects.Keys.ToList();
       foreach (AuraBubble aura in auras) {
-        if (aura.Def.RemoveOnSensorLock) {
+        if (aura.Def.RemoveOnSensorLock && __instance.IsSensorLocked) {
           body.RemoveAuraEffects(aura, false, true);
         }
       }
-      body.ReapplyAllEffects();
+      //body.ReapplyAllEffects();
     }
   }*/
   [HarmonyPatch(typeof(AbstractActor))]
