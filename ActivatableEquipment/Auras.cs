@@ -85,7 +85,7 @@ namespace CustomActivatableEquipment {
       //body.ReapplyAllEffects();
     }
   }
-  [HarmonyPatch(typeof(AbstractActor))]
+  /*[HarmonyPatch(typeof(AbstractActor))]
   [HarmonyPatch("ProcessAddedMark")]
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPriority(Priority.First)]
@@ -101,7 +101,7 @@ namespace CustomActivatableEquipment {
       }
       //body.ReapplyAllEffects();
     }
-  }
+  }*/
   [HarmonyPatch(typeof(AbstractActor))]
   [HarmonyPatch("OnEffectEnd")]
   [HarmonyPatch(MethodType.Normal)]

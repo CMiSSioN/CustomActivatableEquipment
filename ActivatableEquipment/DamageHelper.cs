@@ -180,7 +180,7 @@ namespace CustomActivatableEquipment.DamageHelpers {
   [HarmonyPriority(Priority.Last)]
   [HarmonyPatch(new Type[] { typeof(MessageCenterMessage) })]
   public static class AttackDirector_OnAttackCompleteTA {
-    public static void Postfix(AttackDirector __instance, MessageCenterMessage message, ref AbstractActor __state) {
+    public static void Postfix(AttackDirector __instance, MessageCenterMessage message) {
       __instance.Combat.commitDamage();
     }
   }
@@ -227,7 +227,7 @@ namespace CustomActivatableEquipment.DamageHelpers {
       DamageHelper.Reset();
     }
   }
-
+  
   [HarmonyPatch(typeof(Mech))]
   [HarmonyPatch("TakeWeaponDamage")]
   [HarmonyPatch(MethodType.Normal)]
@@ -249,7 +249,7 @@ namespace CustomActivatableEquipment.DamageHelpers {
       //DamageHelper.BatchDamage(__instance, damageAmount, directStructureDamage);
     }
   }
-
+  
   [HarmonyPatch(typeof(Vehicle))]
   [HarmonyPatch("TakeWeaponDamage")]
   [HarmonyPatch(MethodType.Normal)]
@@ -270,7 +270,7 @@ namespace CustomActivatableEquipment.DamageHelpers {
       }
     }
   }
-
+  
   [HarmonyPatch(typeof(Turret))]
   [HarmonyPatch("TakeWeaponDamage")]
   [HarmonyPatch(MethodType.Normal)]

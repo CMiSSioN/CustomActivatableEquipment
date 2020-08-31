@@ -25,17 +25,9 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(typeof(Mech))]
   [HarmonyPatch("TakeWeaponDamage")]
   [HarmonyPatch(MethodType.Normal)]
-#if BT1_8
   [HarmonyPatch(new Type[] { typeof(WeaponHitInfo), typeof(int), typeof(Weapon), typeof(float), typeof(float), typeof(int), typeof(DamageType) })]
-#else
-  [HarmonyPatch(new Type[] { typeof(WeaponHitInfo), typeof(int), typeof(Weapon), typeof(float), typeof(int), typeof(DamageType) })]
-#endif
   public static class Mech_TakeWeaponDamage {
-#if BT1_8
     public static void Postfix(Mech __instance, WeaponHitInfo hitInfo, int hitLocation, Weapon weapon, float damageAmount, float directStructureDamage, int hitIndex, DamageType damageType) {
-#else
-    public static void Postfix(Mech __instance, WeaponHitInfo hitInfo, int hitLocation, Weapon weapon, float damageAmount, int hitIndex, DamageType damageType) {
-#endif
       Log.LogWrite("Mech.TakeWeaponDamage " + __instance.DisplayName + ":" + __instance.GUID + "\n");
       __instance.AddDamagedLocation(hitLocation);
     }
@@ -43,17 +35,9 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(typeof(Vehicle))]
   [HarmonyPatch("TakeWeaponDamage")]
   [HarmonyPatch(MethodType.Normal)]
-#if BT1_8
   [HarmonyPatch(new Type[] { typeof(WeaponHitInfo), typeof(int), typeof(Weapon), typeof(float), typeof(float), typeof(int), typeof(DamageType) })]
-#else
-  [HarmonyPatch(new Type[] { typeof(WeaponHitInfo), typeof(int), typeof(Weapon), typeof(float), typeof(int), typeof(DamageType) })]
-#endif
   public static class Vehicle_TakeWeaponDamage {
-#if BT1_8
     public static void Postfix(Mech __instance, WeaponHitInfo hitInfo, int hitLocation, Weapon weapon, float damageAmount, float directStructureDamage, int hitIndex, DamageType damageType) {
-#else
-    public static void Postfix(Mech __instance, WeaponHitInfo hitInfo, int hitLocation, Weapon weapon, float damageAmount, int hitIndex, DamageType damageType) {
-#endif
       Log.LogWrite("Vehicle.TakeWeaponDamage " + __instance.DisplayName + ":" + __instance.GUID + "\n");
       __instance.AddDamagedLocation(hitLocation);
     }
@@ -61,17 +45,9 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(typeof(Turret))]
   [HarmonyPatch("TakeWeaponDamage")]
   [HarmonyPatch(MethodType.Normal)]
-#if BT1_8
   [HarmonyPatch(new Type[] { typeof(WeaponHitInfo), typeof(int), typeof(Weapon), typeof(float), typeof(float), typeof(int), typeof(DamageType) })]
-#else
-  [HarmonyPatch(new Type[] { typeof(WeaponHitInfo), typeof(int), typeof(Weapon), typeof(float), typeof(int), typeof(DamageType) })]
-#endif
   public static class Turret_TakeWeaponDamage {
-#if BT1_8
     public static void Postfix(Mech __instance, WeaponHitInfo hitInfo, int hitLocation, Weapon weapon, float damageAmount, float directStructureDamage, int hitIndex, DamageType damageType) {
-#else
-    public static void Postfix(Mech __instance, WeaponHitInfo hitInfo, int hitLocation, Weapon weapon, float damageAmount, int hitIndex, DamageType damageType) {
-#endif
       Log.LogWrite("Turret.TakeWeaponDamage " + __instance.DisplayName + ":" + __instance.GUID + "\n");
       __instance.AddDamagedLocation(hitLocation);
     }

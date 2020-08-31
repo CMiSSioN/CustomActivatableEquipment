@@ -17,7 +17,7 @@ namespace CustomActivatablePatches {
     public static bool Prefix(AbstractActor __instance) {
       Log.LogWrite("AbstractActor.OnNewRound(" + __instance.DisplayName + ":" + __instance.GUID + ")\n");
       try {
-        __instance.Combat.commitDamage();
+        //__instance.Combat.commitDamage();
       }catch(Exception e) {
         Log.TWL(0, e.ToString(), true);
       }

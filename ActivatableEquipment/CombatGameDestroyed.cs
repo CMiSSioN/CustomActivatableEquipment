@@ -27,7 +27,7 @@ namespace CustomActivatableEquipment {
       ActivatableComponent.Clear();
       CombatHUDEquipmentSlotEx.Clear();
       CombatHUDEquipmentPanel.Clear();
-      DamageHelpers.DamageHelper.Clear();
+      //DamageHelpers.DamageHelper.Clear();
       return true;
     }
   }
