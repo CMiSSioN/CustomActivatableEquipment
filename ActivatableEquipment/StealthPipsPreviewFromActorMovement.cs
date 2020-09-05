@@ -71,6 +71,22 @@ namespace CustomActivatablePatches {
       //__instance.setToCache(movingActor, previewPos, __result);
     }
   }
+
+  [HarmonyPatch(typeof(CombatHUDNumFlagHex))]
+  [HarmonyPatch("UpdateStealthState")]
+  [HarmonyPatch(new Type[] { })]
+  public static class CombatHUDNumFlagHex_UpdateStealthState {
+      public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codeInstructions, ILGenerator ilGenerator) {
+          return codeInstructions.MethodReplacer(
+              typeof(CombatHUDStealthBarPips).GetMethod(nameof(CombatHUDStealthBarPips.UpdateStealth)),
+              typeof(CombatHUDNumFlagHex_UpdateStealthState).GetMethod(nameof(UpdateStealNoop), AccessTools.all));
+      }
+
+      private static void UpdateStealNoop(float current, float projected, bool force) {
+            // no op.
+      }
+  }
+
   [HarmonyPatch(typeof(CombatHUDStatusPanel))]
   [HarmonyPatch("PreviewDesignMasks")]
   [HarmonyPatch(MethodType.Normal)]
