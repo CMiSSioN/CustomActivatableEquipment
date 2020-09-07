@@ -175,7 +175,7 @@ namespace CustomActivatableEquipment {
     public static AuraPreviewRecord getPreviewCache(this AbstractActor movingActor, Vector3 position) {
       int currentTurn = movingActor.Combat.TurnDirector.CurrentRound;
       int currentPhase = movingActor.Combat.TurnDirector.CurrentPhase;
-      if ((CAEAuraHelper.auraCachePhase != currentPhase) || (currentTurn != CAEAuraHelper.auraCachePhase)) {
+      if ((CAEAuraHelper.auraCachePhase != currentPhase) || (currentTurn != CAEAuraHelper.auraCacheTurn)) {
         auraPreviewCache = new Dictionary<AbstractActor, Dictionary<Vector3, AuraPreviewRecord>>();
         CAEAuraHelper.auraCacheTurn = currentTurn; auraCachePhase = currentPhase;
       };
