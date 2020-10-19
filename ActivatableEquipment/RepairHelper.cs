@@ -260,13 +260,13 @@ namespace CustomActivatableEquipment {
         foreach (int Location in affectedArmorLocations) {
           Statistic stat = component.parent.GetArmorStatisticForLocation(Location);
           if(stat == null) {
-            Log.TWriteCritical(0, "Can't get armor stat " + new Text(component.parent.DisplayName).ToString() + " location:" +Location);
+            Log.Debug?.TWriteCritical(0, "Can't get armor stat " + new Text(component.parent.DisplayName).ToString() + " location:" +Location);
             continue;
           }
           Log.Debug?.TWL(0, "turnsSinceLocationDamage:"+ component.parent.turnsSinceLocationDamage(Location)+" component:"+TurnsSinceDamage);
           if (TurnsSinceDamage >= 0) {
             if (component.parent.turnsSinceLocationDamage(Location) > TurnsSinceDamage) {
-              Log.WL(1, "damage too long ago. No reparing performed.");
+              Log.Debug?.WL(1, "damage too long ago. No reparing performed.");
               continue;
             }
           }
@@ -279,7 +279,7 @@ namespace CustomActivatableEquipment {
           currentArmor += this.Armor;
           if (currentArmor > maxArmor) { currentArmor = maxArmor; };
           float delta = currentArmor - component.parent.ArmorForLocation(Location);
-          Log.WL(2, "location:"+Location+" maxArmor:"+ maxArmor + " currentArmor:"+ currentArmor+"("+delta+")");
+          Log.Debug?.WL(2, "location:"+Location+" maxArmor:"+ maxArmor + " currentArmor:"+ currentArmor+"("+delta+")");
           if (delta > Core.Epsilon) {
             if (mech != null) {
               Log.Debug?.Write("  mech stat armor location:" + mech.GetStringForArmorLocation((ArmorLocation)Location) + "\n");

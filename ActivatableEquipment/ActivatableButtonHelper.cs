@@ -88,7 +88,7 @@ namespace CustomActivatableEquipment {
     public static void Prefix(CombatSelectionHandler __instance) {
       Log.Debug?.TWL(0, "CombatSelectionHandler.ProcessPressedButtons ActiveState:" + (__instance.ActiveState == null?"null":__instance.ActiveState.ToString()));
       foreach(string btn in __instance.PressedButtons) {
-        Log.WL(1, btn);
+        Log.Debug?.WL(1, btn);
       }
     }
   }
@@ -102,7 +102,7 @@ namespace CustomActivatableEquipment {
     }
     public static void Postfix(CombatHUDAttackModeSelector __instance, CombatHUDFireButton.FireMode mode, string additionalDetails, bool showHeatWarnings) {
       Log.Debug?.TWL(0, "CombatHUDAttackModeSelector.ShowFireButton mode:"+mode);
-      Log.WL(0, Environment.StackTrace);
+      Log.Debug?.WL(0, Environment.StackTrace);
       if (string.IsNullOrEmpty(RenameFireButton) == false) {
         RenameFireButton = string.Empty;
         __instance.FireButton.FireText.SetText(RenameFireButton);

@@ -48,10 +48,10 @@
       <HintPath>..\..\BattleTech_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="CustomAmmoCategories">
-      <HintPath>..\..\Battletech-Revised\CustomAmmoCategories\CustomAmmoCategories.dll</HintPath>
+      <HintPath>D:\Games\BATTLETECH\Mods\CustomAmmoCategories\CustomAmmoCategories.dll</HintPath>
     </Reference>
     <Reference Include="CustomComponents">
-      <HintPath>..\..\Battletech-Revised\CustomComponents\CustomComponents.dll</HintPath>
+      <HintPath>D:\Games\BATTLETECH\Mods\CustomComponents\CustomComponents.dll</HintPath>
     </Reference>
     <Reference Include="DOTweenPro, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
     <Reference Include="InControl">
@@ -123,6 +123,7 @@
     <PostBuildEvent>copy /Y "$(TargetPath)" "$(ProjectDir)..\..\Mods\ActivatableEquipment"
 copy /Y "$(TargetPath)" "$(ProjectDir)..\..\RogueTechWorking\CustomActivatableEquipment"
 xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles" "$(ProjectDir)..\..\RogueTechWorking\CustomActivatableEquipment"
+xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles" "$(ProjectDir)..\..\Mods\ActivatableEquipment"
 copy /Y "$(TargetPath)" "$(ProjectDir)..\..\Release_CAC\Release\CustomBundle\CustomActivatableEquipment"
 xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles" "$(ProjectDir)..\..\Release_CAC\Release\CustomBundle\CustomActivatableEquipment"</PostBuildEvent>
   </PropertyGroup>

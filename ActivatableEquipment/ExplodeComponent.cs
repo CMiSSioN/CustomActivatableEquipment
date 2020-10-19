@@ -684,15 +684,17 @@ namespace CustomActivatableEquipment {
       }
       Log.Debug?.Write(" fire at " + component.parent.CurrentPosition + "\n");
       if (component.AoEExplodeFireFireTerrainCellRadius() == 0) {
-        if (cell.hexCell.TryBurnCell(fakeWeapon,component.AoEExplodeFireTerrainChance(),component.AoEExplodeFireTerrainStrength(),component.AoEExplodeFireDurationWithoutForest())) {
-          DynamicMapHelper.burningHexes.Add(cell.hexCell);
-        };
+        cell.hexCell.TryBurnCellAsync(fakeWeapon, component.AoEExplodeFireTerrainChance(), component.AoEExplodeFireTerrainStrength(), component.AoEExplodeFireDurationWithoutForest());
+        //if (cell.hexCell.TryBurnCell(fakeWeapon,component.AoEExplodeFireTerrainChance(),component.AoEExplodeFireTerrainStrength(),component.AoEExplodeFireDurationWithoutForest())) {
+        //  DynamicMapHelper.burningHexes.Add(cell.hexCell);
+        //};
       } else {
         List<MapTerrainHexCell> affectedHexCells = MapTerrainHexCell.listHexCellsByCellRadius(cell, component.AoEExplodeFireFireTerrainCellRadius());
         foreach (MapTerrainHexCell hexCell in affectedHexCells) {
-          if (hexCell.TryBurnCell(fakeWeapon, component.AoEExplodeFireTerrainChance(), component.AoEExplodeFireTerrainStrength(), component.AoEExplodeFireDurationWithoutForest())) {
-            DynamicMapHelper.burningHexes.Add(hexCell);
-          };
+          hexCell.TryBurnCellAsync(fakeWeapon, component.AoEExplodeFireTerrainChance(), component.AoEExplodeFireTerrainStrength(), component.AoEExplodeFireDurationWithoutForest());
+          //if (hexCell.TryBurnCell(fakeWeapon, component.AoEExplodeFireTerrainChance(), component.AoEExplodeFireTerrainStrength(), component.AoEExplodeFireDurationWithoutForest())) {
+          //  DynamicMapHelper.burningHexes.Add(hexCell);
+          //};
         }
       }
     }
@@ -711,12 +713,12 @@ namespace CustomActivatableEquipment {
       DesignMaskDef mask = component.AoEExplodeTempDesignMask();
       if (radius == 0) {
         cell.hexCell.addTempTerrainVFX(component.parent.Combat, vfx, turns, scale);
-        if (mask != null) DynamicMapHelper.addDesignMaskAsync(cell.hexCell, mask, turns);
+        if (mask != null) cell.hexCell.addDesignMaskAsync(mask, turns);
       } else {
         List<MapTerrainHexCell> affectedHexCells = MapTerrainHexCell.listHexCellsByCellRadius(cell, radius);
         foreach (MapTerrainHexCell hexCell in affectedHexCells) {
           hexCell.addTempTerrainVFX(component.parent.Combat, vfx, turns, scale);
-          if (mask != null) DynamicMapHelper.addDesignMaskAsync(hexCell, mask, turns);
+          if (mask != null) hexCell.addDesignMaskAsync(mask, turns);
         }
       }
     }

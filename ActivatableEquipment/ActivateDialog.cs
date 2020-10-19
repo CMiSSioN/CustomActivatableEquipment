@@ -131,7 +131,7 @@ namespace CustomActivatableEquipment {
       if (dataline.ability != null) {
         Log.Debug?.Write("Toggle ability " + dataline.ability.Def.Description.Id + "\n");
         List<CombatHUDEquipmentSlot> equipmentSlots = CombatHUDWeaponPanel_RefreshDisplayedEquipment.EquipmentSlots;
-        Log.WL(1, "EquipmentSlots:"+ equipmentSlots.Count);
+        Log.Debug?.WL(1, "EquipmentSlots:"+ equipmentSlots.Count);
         equipmentSlots[1].InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(dataline.ability.Def.Targeting, false), dataline.ability, dataline.ability.Def.AbilityIcon, dataline.ability.Def.Description.Id, dataline.ability.Def.Description.Name, HUD.SelectedActor);
         equipmentSlots[1].gameObject.SetActive(false);
         equipmentSlots[1].ResetButtonIfNotActive(HUD.SelectedActor);
@@ -202,7 +202,7 @@ namespace CustomActivatableEquipment {
       if (states != null) {
         var WPStateValues = Enum.GetValues(states);
         foreach (var WPStateValue in WPStateValues) {
-          Log.WL(1, WPStateValue.ToString());
+          Log.Debug?.WL(1, WPStateValue.ToString());
           WPStates.Add(WPStateValue.ToString(),WPStateValue);
         }
       }

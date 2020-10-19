@@ -110,6 +110,7 @@ namespace CustomActivatablePatches {
           return true;
         }
         if (actorByGuid.CurrentHeatAsRatio >= Core.Settings.StartupMinHeatRatio) {
+          //actorByGuid.Unused
           combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(__instance.MechGUID, __instance.MechGUID, "__/CAE.ReactroTooHot/__", FloatieMessage.MessageNature.Buff));
           combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage(actorByGuid.DoneNoAnimation()));
         } else {

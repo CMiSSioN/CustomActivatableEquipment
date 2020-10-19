@@ -1,6 +1,8 @@
 ﻿using BattleTech;
 using BattleTech.UI;
 using BattleTech.UI.TMProWrapper;
+using CustomAmmoCategoriesPatches;
+using CustomAmmoCategoriesPathes;
 using CustomComponents;
 using CustomComponents.ExtendedDetails;
 using Harmony;
@@ -106,6 +108,42 @@ namespace CustomActivatableEquipment {
       //line.SetText(dataline.ToString(false));
     }
   }
+  public class ComponentsPanelHeaderAligner : MonoBehaviour {
+    public CombatHUDEquipmentPanel panelEx;
+    public RectTransform text_WeaponText;
+    public RectTransform text_State;
+    public RectTransform text_Charges;
+    public RectTransform text_FailChance;
+    private bool ui_inited = false;
+    public void ResetUI() {
+      ui_inited = false;
+    }
+    public void Init(CombatHUDEquipmentPanel panelEx) {
+      this.panelEx = panelEx;
+      text_WeaponText = panelEx.label_WeaponText.gameObject.GetComponent<RectTransform>();
+      text_State = panelEx.label_State.gameObject.GetComponent<RectTransform>();
+      text_Charges = panelEx.label_Charges.gameObject.GetComponent<RectTransform>();
+      text_FailChance = panelEx.label_FailChance.gameObject.GetComponent<RectTransform>();
+      ui_inited = false;
+    }
+    public void Update() {
+      if (ui_inited) { return; }
+      if (panelEx == null) { return; }
+      if (panelEx.slots.Count == 0) { return; }
+      CombatHUDEquipmentSlotEx slot = panelEx.slots[0];
+      if (panelEx.slots[0].ui_inited == false) { return; }
+      Log.Debug?.TWL(0, "ComponentsPanelHeaderAligner.Update ui init");
+      if (text_WeaponText != null) text_WeaponText.SetPosX(slot.nameText.transform.position.x);
+      if (text_State != null) text_State.SetPosX(slot.stateText.transform.position.x);
+      if (text_Charges != null) text_Charges.SetPosX(slot.chargesText.transform.position.x);
+      if (text_FailChance != null) text_FailChance.SetPosX(slot.failText.transform.position.x + 20f);
+      if (text_WeaponText != null) Log.Debug?.WL(1, "text_WeaponText x:" + text_WeaponText.transform.position.x);
+      if (text_State != null) Log.Debug?.WL(1, "text_State x:" + text_State.transform.position.x);
+      if (text_Charges != null) Log.Debug?.WL(1, "text_Charges x:" + text_Charges.transform.position.x);
+      if (text_FailChance != null) Log.Debug?.WL(1, "text_FailChance x:" + text_FailChance.transform.position.x);
+      ui_inited = true;
+    }
+  }
   public class CombatHUDEquipmentPanel : EventTrigger {
     public static CombatHUDEquipmentPanel Instance { get; set; } = null;
     public List<CombatHUDEquipmentSlotEx> slots;
@@ -200,39 +238,38 @@ namespace CustomActivatableEquipment {
         Instance.label_State = labels_ex.transform.Find("text_Ammo").gameObject.GetComponent<LocalizableText>();
         Instance.label_Charges = labels_ex.transform.Find("text_Damage").gameObject.GetComponent<LocalizableText>();
         Instance.label_FailChance = labels_ex.transform.Find("text_HitChance").gameObject.GetComponent<LocalizableText>();
+        GameObject text_Mode = labels_ex.transform.Find("text_Mode").gameObject;
+        if (text_Mode != null) { GameObject.Destroy(text_Mode); }
+        GameObject text_AmmoName = labels_ex.transform.Find("text_AmmoName").gameObject;
+        if (text_AmmoName != null) { GameObject.Destroy(text_AmmoName); }
         Instance.timeInCurrentState = 0f;
         Instance.state = WPState.Off;
-        Instance.label_WeaponText.SetText("COMPONENT");
-        //GameObject.Destroy(text_Damage.gameObject);
-        //Instance.label_State.alignment = TMPro.TextAlignmentOptions.MidlineLeft;
-        //Instance.label_State.enableAutoSizing = false;
-        //Instance.label_State.enableWordWrapping = false;
-        Instance.label_State.SetText("STATE");
-        Instance.label_Charges.SetText("CHARGES");
-        //Instance.label_FailChance.alignment = TMPro.TextAlignmentOptions.MidlineLeft;
-        //Instance.label_FailChance.enableAutoSizing = false;
-        //Instance.label_FailChance.enableWordWrapping = false;
-        Instance.label_FailChance.SetText("FAIL%");
+        Instance.label_WeaponText.SetText("__/CAE.COMPONENT_LABEL/__");
+        Instance.label_State.SetText("__/CAE.COMPONENT_STATE/__");
+        Instance.label_Charges.SetText("__/CAE.COMPONENT_CHARGES/__");
+        Instance.label_FailChance.SetText("__/CAE.COMPONENT_FAIL/__");
+        ComponentsPanelHeaderAligner headerAligner = Instance.GetComponent<ComponentsPanelHeaderAligner>();
+        if (headerAligner == null) { headerAligner = Instance.gameObject.AddComponent<ComponentsPanelHeaderAligner>(); }
+        headerAligner.Init(Instance);
       }
     }
     public void InitDisplayedEquipment(AbstractActor unit) {
       operatinalSlots.Clear();
       if (unit == null) { return; }
       Log.Debug?.TWL(0, "CombatHUDEquipmentPanel.InitDisplayedEquipment unit:" + new Localize.Text(unit.DisplayName).ToString() + " pilot:" + unit.GetPilot().pilotDef.Description.Id);
-      //Log.WL(1, "unit:" + new Localize.Text(unit.DisplayName).ToString());
       HashSet<MechComponent> acomps = new HashSet<MechComponent>();
       foreach (Ability ability in unit.ComponentAbilities) {
         acomps.Add(ability.parentComponent);
       }
       List<MechComponent> ncomps = new List<MechComponent>();
       foreach (MechComponent component in unit.allComponents) {
-        Log.WL(1, "component:" + component.defId);
+        Log.Debug?.WL(1, "component:" + component.defId);
         ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
-        if (acomps.Contains(component)) { Log.WL(2, "have ability"); ncomps.Add(component); continue; };
-        if (activatable == null) { Log.WL(2, "not activatable"); continue; }
-        if (ActivatableComponent.isComponentActivated(component)) { Log.WL(2, "activated"); ncomps.Add(component); continue; };
-        if (activatable.CanBeactivatedManualy) { Log.WL(2, "can be activated manualy"); ncomps.Add(component); continue; };
-        if (activatable.AutoActivateOnHeat > Core.Epsilon) { Log.WL(2, "activate by heat"); ncomps.Add(component); continue; }
+        if (acomps.Contains(component)) { Log.Debug?.WL(2, "have ability"); ncomps.Add(component); continue; };
+        if (activatable == null) { Log.Debug?.WL(2, "not activatable"); continue; }
+        if (ActivatableComponent.isComponentActivated(component)) { Log.Debug?.WL(2, "activated"); ncomps.Add(component); continue; };
+        if (activatable.CanBeactivatedManualy) { Log.Debug?.WL(2, "can be activated manualy"); ncomps.Add(component); continue; };
+        if (activatable.AutoActivateOnHeat > Core.Epsilon) { Log.Debug?.WL(2, "activate by heat"); ncomps.Add(component); continue; }
       }
       for (int index = 0; index < ncomps.Count; ++index) {
         if (index >= slots.Count) {
@@ -312,6 +349,7 @@ namespace CustomActivatableEquipment {
   }
 
   public class CombatHUDEquipmentSlotEx : EventTrigger {
+    public CombatHUDWeaponPanelEx panelEx { get; set; }
     public CombatHUD HUD { get; private set; }
     public CombatHUDWeaponPanel weaponPanel { get; private set; }
     public CombatHUDEquipmentPanel equipPanel { get; private set; }
@@ -328,6 +366,7 @@ namespace CustomActivatableEquipment {
     public List<Ability> abilities { get; set; }
     public bool RealState { get; set; }
     private bool hovered { get; set; }
+    public bool ui_inited { get; private set; }
     private bool isNeedFlashing() {
       if (component == null) { return false; }
       if (activeDef == null) { return false; }
@@ -392,7 +431,25 @@ namespace CustomActivatableEquipment {
       this.checkImage.color = this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor;
       this.ShowTextColor(this.LookAndColorConstants.WeaponSlotColors.AvailableTextColor, this.GetFailTextColor(CombatHUDEquipmentSlotEx.FailChance(component)));
     }
+    public void UIInit() {
+      if (panelEx == null) { return; }
+      if (panelEx.isUIInted == false) { return; }
+      if (panelEx.panelBackground == null) { return; }
+      if (panelEx.slotsEx[0].isUIInited == false) { return; }
+      if (panelEx.slotsEx[0].modeHover.ui_inited == false) { return; }
+      if (panelEx.slotsEx[0].ammoHover.ui_inited == false) { return; }
+      RectTransform tr = this.nameText.transform.parent.GetComponent<RectTransform>();
+      if (tr == null) { return; }
+      float width = tr.worldWidth();
+      float destWidth = panelEx.panelBackground.worldWidth() - 50f;
+      Vector2 size = tr.sizeDelta;
+      float widthMod = destWidth / width;
+      size.x = size.x * (widthMod);
+      tr.sizeDelta = size;
+      ui_inited = true;
+    }
     public void Update() {
+      if (ui_inited == false) { UIInit(); }
       if (flashing == false) { return; }
       flashT += Time.deltaTime * flashSpeedCurrent;
       if (flashT > 1f) { flashT = 1f; flashSpeedCurrent = -2f; }
@@ -542,6 +599,7 @@ namespace CustomActivatableEquipment {
     }
     public void Init(MechComponent component) {
       hovered = false;
+      ui_inited = false;
       this.component = component;
       this.activeDef = component.componentDef.GetComponent<ActivatableComponent>();
       this.hoverSidePanel.Title = new Localize.Text(component.Description.UIName);
@@ -549,13 +607,13 @@ namespace CustomActivatableEquipment {
       ExtendedDetails extDescr = component.componentDef.GetComponent<ExtendedDetails>();
       if (extDescr == null) {
         this.hoverSidePanel.Description = new Localize.Text(component.Description.Details);
-        Log.WL(1, "no extended description:"+ this.hoverSidePanel.Description);
+        Log.Debug?.WL(1, "no extended description:"+ this.hoverSidePanel.Description);
       } else {
         StringBuilder description = new StringBuilder();
-        Log.WL(1, "extended description:" + description);
+        Log.Debug?.WL(1, "extended description:" + description);
         foreach (ExtendedDetail detail in extDescr.GetDetails()) {
           if (detail.UnitType != UnitType.UNDEFINED) { if (detail.UnitType != component.parent.UnitType) { continue; } };
-          Log.WL(2, "detail:" + detail.Identifier + ":"+detail.Text);
+          Log.Debug?.WL(2, "detail:" + detail.Identifier + ":"+detail.Text);
           string addtext = new Localize.Text(detail.Text).ToString();
           addtext = addtext.Replace("\n\n","\n");
           description.Append("<size=80%>"+addtext+"</size>");
@@ -602,15 +660,32 @@ namespace CustomActivatableEquipment {
     public static CombatHUDEquipmentSlotEx Init(CombatHUD HUD, CombatHUDWeaponPanel weaponPanel, CombatHUDEquipmentPanel equipPanel) {
       Transform slot = weaponPanel.gameObject.transform.Find("wp_Slot1");
       GameObject slot_ex = null;
+      Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.static Init");
       if (slot != null) {
+        Log.Debug?.WL(1, "wp_Slot1 found");
         slot_ex = GameObject.Instantiate(slot.gameObject);
-        CombatHUDWeaponSlot hudslot = slot_ex.GetComponentInChildren<CombatHUDWeaponSlot>();
-        GameObject.Destroy(hudslot);
+        CombatHUDWeaponSlot hudslot = slot_ex.GetComponentInChildren<CombatHUDWeaponSlot>(true);
+        if(hudslot != null) GameObject.Destroy(hudslot);
+        WeaponDamageHover dmghover = slot_ex.GetComponentInChildren<WeaponDamageHover>(true);
+        if(dmghover!= null) GameObject.Destroy(dmghover);
+        WeaponNameHover namehover = slot_ex.GetComponentInChildren<WeaponNameHover>(true);
+        if (namehover != null) GameObject.Destroy(namehover);
+        WeaponAmmoCounterHover ammohover = slot_ex.GetComponentInChildren<WeaponAmmoCounterHover>(true);
+        if (ammohover != null) GameObject.Destroy(ammohover);
+        WeaponHitChanceHover hithover = slot_ex.GetComponentInChildren<WeaponHitChanceHover>(true);
+        if (hithover != null) GameObject.Destroy(hithover);
+        CombatHUDWeaponSlotEx weaponSlotEx = slot_ex.GetComponentInChildren<CombatHUDWeaponSlotEx>(true);
+        if (weaponSlotEx != null) { GameObject.Destroy(weaponSlotEx); };
+        WeaponModeHover modeHover = slot_ex.GetComponentInChildren<WeaponModeHover>(true);
+        if (modeHover != null) { GameObject.Destroy(modeHover); };
+        WeaponAmmoHover ammoNameHover = slot_ex.GetComponentInChildren<WeaponAmmoHover>(true);
+        if (ammoNameHover != null) { GameObject.Destroy(ammoNameHover); };
         slot_ex.transform.SetParent(weaponPanel.transform);
         slot_ex.SetActive(false);
         slot_ex.transform.localScale = new Vector3(1f, 1f, 1f);
         Log.Debug?.TWL(0, "found wp_Slot1 parent:" + slot_ex.transform.parent.name);
       } else {
+        Log.Debug?.WL(1, "wp_Slot1 not found");
         return null;
       }
       CombatHUDEquipmentSlotEx result = null;
@@ -620,6 +695,7 @@ namespace CustomActivatableEquipment {
         result.HUD = HUD;
         result.weaponPanel = weaponPanel;
         result.equipPanel = equipPanel;
+        result.panelEx = weaponPanel.gameObject.GetComponent<CombatHUDWeaponPanelEx>();
         result.buttons = new List<CombatHUDEquipmentSlot>();
         result.abilities = new List<Ability>();
         result.LookAndColorConstants = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants;
@@ -627,14 +703,28 @@ namespace CustomActivatableEquipment {
         result.stateText = ui.Find("ammo_Text").GetComponent<LocalizableText>();
         result.failText = ui.Find("hitChance_Text").GetComponent<LocalizableText>();
         result.chargesText = ui.Find("damage_Text").GetComponent<LocalizableText>();
+
+        GameObject button_down = ui.gameObject.FindRecursive("weapon_button_down");
+        if (button_down != null) { GameObject.Destroy(button_down); }
+        GameObject button_up = ui.gameObject.FindRecursive("weapon_button_up");
+        if (button_up != null) { GameObject.Destroy(button_up); }
+        GameObject mode_text_back = ui.gameObject.FindRecursive("mode_text_background");
+        if (mode_text_back != null) { GameObject.Destroy(mode_text_back); }
+        GameObject ammo_text_back = ui.gameObject.FindRecursive("ammo_name_text_background");
+        if (ammo_text_back != null) { GameObject.Destroy(ammo_text_back); }
+        GameObject modText = ui.gameObject.FindRecursive("mode_text");
+        if (modText != null) { modText.GetComponent<LocalizableText>().SetText("  "); }
+        GameObject ammoText = ui.gameObject.FindRecursive("ammo_name_text");
+        if (ammoText != null) { ammoText.GetComponent<LocalizableText>().SetText("  "); }
+
         result.mainImage = ui.gameObject.GetComponent<SVGImage>();
         result.checkImage = ui.Find("check_Image").gameObject.GetComponent<SVGImage>();
         Log.Debug?.TWL(0, "check_Image:" + ui.Find("check_Image").gameObject.GetComponent<SVGImage>().color);
         GameObject.Destroy(ui.gameObject.GetComponent<CombatHUDTooltipHoverElement>());
         result.hoverSidePanel = ui.gameObject.AddComponent<CombatHUDSidePanelHoverElement>();
         result.hoverSidePanel.Init(HUD);
-        result.hoverSidePanel.Title = new Localize.Text("COMPONENT");
-        result.hoverSidePanel.Description = new Localize.Text("Description");
+        result.hoverSidePanel.Title = new Localize.Text("__/CAE.COMPONENT/__");
+        result.hoverSidePanel.Description = new Localize.Text("__/CAE.COMPONENT_DESCRIPTION/__");
         //GameObject.Destroy(ui.Find("check_Image").gameObject);
         //GameObject.Destroy(slot_ex.transform.Find("flag_multiTarget_Diamond (1)").gameObject);
       }
@@ -662,7 +752,7 @@ namespace CustomActivatableEquipment {
           CombatHUDEquipmentSlot eqslot = slot_ex.transform.Find("equipmentButton_1").GetComponent<CombatHUDEquipmentSlot>();
           if (eqslot != null) {
             buttons.Add(eqslot);
-            Log.WL(1, "found CombatHUDEquipmentSlot parent:" + eqslot.transform.parent.name);
+            Log.Debug?.WL(1, "found CombatHUDEquipmentSlot parent:" + eqslot.transform.parent.name);
           }
         }
       }catch(Exception e) {
@@ -673,14 +763,15 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(typeof(CombatHUDWeaponPanel))]
   [HarmonyPatch("Init")]
   [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPriority(Priority.Last)]
   [HarmonyPatch(new Type[] { typeof(CombatGameState), typeof(CombatHUD) })]
   public static class CombatHUDWeaponPanel_Init {
     //public static bool Prepare() { return false; }
     public static void Postfix(CombatHUDWeaponPanel __instance, CombatGameState Combat, CombatHUD HUD) {
       CombatHUDWeaponPanelExHelper.HUD = HUD;
-      CombatHUDWeaponPanelExHelper.panelEx = __instance.gameObject.GetComponent<CombatHUDWeaponPanelEx>();
+      CombatHUDWeaponPanelExHelper.panelEx = __instance.gameObject.GetComponent<CombatHUDEquipWeaponPanelEx>();
       if (CombatHUDWeaponPanelExHelper.panelEx == null) {
-        CombatHUDWeaponPanelExHelper.panelEx = __instance.gameObject.AddComponent<CombatHUDWeaponPanelEx>();
+        CombatHUDWeaponPanelExHelper.panelEx = __instance.gameObject.AddComponent<CombatHUDEquipWeaponPanelEx>();
         CombatHUDWeaponPanelExHelper.panelEx.Init(__instance, HUD);
         Transform labels = __instance.gameObject.transform.Find("wp_Labels");
         if (labels != null) {
@@ -712,7 +803,7 @@ namespace CustomActivatableEquipment {
 
   public static class CombatHUDWeaponPanelExHelper {
     public static CombatHUD HUD = null;
-    public static CombatHUDWeaponPanelEx panelEx = null;
+    public static CombatHUDEquipWeaponPanelEx panelEx = null;
     public static void Clear() {
       HUD = null;
       if (panelEx != null) { GameObject.Destroy(panelEx); panelEx = null; }
@@ -725,7 +816,7 @@ namespace CustomActivatableEquipment {
     Loaded,
     Unloading
   }
-  public class CombatHUDWeaponPanelEx : MonoBehaviour {
+  public class CombatHUDEquipWeaponPanelEx : MonoBehaviour {
     private CombatHUDWeaponPanel panel;
     private CombatHUD HUD;
     private List<CombatHUDWeaponSlot> WeaponSlots;

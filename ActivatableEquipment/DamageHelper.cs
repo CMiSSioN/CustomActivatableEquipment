@@ -244,7 +244,7 @@ namespace CustomActivatableEquipment.DamageHelpers {
         Log.Debug?.Write($"{__instance.DisplayName} :{__instance.GUID } took Damage from {wname} - {damageType.ToString()}\n");
         __instance.IncomingDamage().Damage(hitLocation, damageAmount, directStructureDamage);
       } catch (Exception e) {
-        Log.TWriteCritical(0,e.ToString());
+        Log.Debug?.TWriteCritical(0,e.ToString());
       }
       //DamageHelper.BatchDamage(__instance, damageAmount, directStructureDamage);
     }
@@ -266,7 +266,7 @@ namespace CustomActivatableEquipment.DamageHelpers {
         Log.Debug?.Write($"{__instance.DisplayName} :{__instance.GUID } took Damage from {wname} - {damageType.ToString()}\n");
         __instance.IncomingDamage().Damage(hitLocation, damageAmount, directStructureDamage);
       } catch (Exception e) {
-        Log.TWriteCritical(0, e.ToString());
+        Log.Debug?.TWriteCritical(0, e.ToString());
       }
     }
   }
@@ -287,7 +287,7 @@ namespace CustomActivatableEquipment.DamageHelpers {
         Log.Debug?.Write($"{__instance.DisplayName} :{__instance.GUID } took Damage from {wname} - {damageType.ToString()}\n");
         __instance.IncomingDamage().Damage(hitLocation, damageAmount, directStructureDamage);
       } catch (Exception e) {
-        Log.TWriteCritical(0, e.ToString());
+        Log.Debug?.TWriteCritical(0, e.ToString());
       }
     }
   }

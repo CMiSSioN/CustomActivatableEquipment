@@ -2,6 +2,7 @@
 using BattleTech.Rendering;
 using BattleTech.Rendering.UrbanWarfare;
 using BattleTech.UI;
+using CustAmmoCategories;
 using CustomActivatablePatches;
 using CustomComponents;
 using Harmony;
@@ -38,6 +39,11 @@ namespace CustomActivatableEquipment {
         Log.Debug?.Write(" aura bubble\n");
         return false;
       }
+      MineFieldCollider minefiled = other.GetComponent<MineFieldCollider>();
+      if (minefiled != null) {
+        Log.Debug?.Write(" minefield\n");
+        return false;
+      }
       return true;
     }
   }
@@ -51,8 +57,8 @@ namespace CustomActivatableEquipment {
       __instance.StatCollection.AddStatistic<bool>(Core.Settings.unaffectedByHeadHitStatName, false);
       foreach (MechComponent component in __instance.allComponents) {
         try {
-          if (component == null) { Log.TWriteCritical(0, "WARNING!! null component in " + new Text(__instance.DisplayName).ToString()); continue; }
-          if (component.componentDef == null) { Log.TWriteCritical(0, "WARNING!! null componentDef in " + new Text(__instance.DisplayName).ToString()); continue; }
+          if (component == null) { Log.Debug?.TWriteCritical(0, "WARNING!! null component in " + new Text(__instance.DisplayName).ToString()); continue; }
+          if (component.componentDef == null) { Log.Debug?.TWriteCritical(0, "WARNING!! null componentDef in " + new Text(__instance.DisplayName).ToString()); continue; }
           List<AuraDef> adefs = component.componentDef.GetAuras();
           foreach (AuraDef adef in adefs) {
             if (string.IsNullOrEmpty(adef.RangeStatistic) == false) {
@@ -60,7 +66,7 @@ namespace CustomActivatableEquipment {
             }
           }
         }catch(Exception e) {
-          Log.TWriteCritical(0, e.ToString());
+          Log.Debug?.TWriteCritical(0, e.ToString());
         }
       }
       if (string.IsNullOrEmpty(Core.Settings.sensorsAura.RangeStatistic) == false) {
@@ -380,12 +386,12 @@ namespace CustomActivatableEquipment {
       if (owner.GUID == auraOwner.GUID) { isAlly = true; } else
         if (owner.TeamId == auraOwner.TeamId) { isAlly = true; } else {
         if (owner.team == null) {
-          Log.TWriteCritical(0, "!!!WARNING!!! "+new Text(owner.DisplayName).ToString() + " have no team. Fix this!!");
+          Log.Debug?.TWriteCritical(0, "!!!WARNING!!! "+new Text(owner.DisplayName).ToString() + " have no team. Fix this!!");
         } else {
           if (auraOwner.team == null) {
-            Log.TWriteCritical(0, "!!!WARNING!!! " + new Text(auraOwner.DisplayName).ToString() + " have no team. Fix this!!");
+            Log.Debug?.TWriteCritical(0, "!!!WARNING!!! " + new Text(auraOwner.DisplayName).ToString() + " have no team. Fix this!!");
           } else {
-            try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.TWriteCritical(0, e.ToString()); };
+            try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.Debug?.TWriteCritical(0, e.ToString()); };
           }
         }
       }
@@ -411,17 +417,17 @@ namespace CustomActivatableEquipment {
           if ((owner.team == null)||(auraOwner.team == null)) {
             isAlly = false;
             if (owner.team == null) {
-              Log.TWriteCritical(0, "!!!WARNING!!! " + new Text(owner.DisplayName).ToString() + "  have no team. Fix this!!");
+              Log.Debug?.TWriteCritical(0, "!!!WARNING!!! " + new Text(owner.DisplayName).ToString() + "  have no team. Fix this!!");
             } else {
-              Log.TWriteCritical(0, "!!!WARNING!!! " + new Text(auraOwner.DisplayName).ToString() + "  have no team. Fix this!!");
+              Log.Debug?.TWriteCritical(0, "!!!WARNING!!! " + new Text(auraOwner.DisplayName).ToString() + "  have no team. Fix this!!");
             }
           } else {
-            try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.TWriteCritical(0, e.ToString()); isAlly = false; };
+            try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.Debug?.TWriteCritical(0, e.ToString()); isAlly = false; };
           }
         }
         this.ShowDelFloatie(aura, isAlly);
       } catch (Exception e) {
-        Log.TWriteCritical(0, e.ToString());
+        Log.Debug?.TWriteCritical(0, e.ToString());
       }
     }
     public void ShowDelFloatie(AuraBubble aura, bool isAlly) {
@@ -432,17 +438,17 @@ namespace CustomActivatableEquipment {
         if (this.owner.IsSensorLocked && aura.Def.RemoveOnSensorLock) { action = "SUPPRESSED"; }
         if (nature != FloatieMessage.MessageNature.NotSet) {
           if (owner.Combat == null) {
-            Log.TWriteCritical(0, "This is reall fucking shit. Combatant without Combat inited");
+            Log.Debug?.TWriteCritical(0, "This is reall fucking shit. Combatant without Combat inited");
           } else {
             if (owner.Combat.MessageCenter == null) {
               owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(aura.owner.GUID, owner.GUID, new Text("{0} {1}", aura.Def.Name, action), nature));
             } else {
-              Log.TWriteCritical(0, "This is reall fucking shit. Combat without message center");
+              Log.Debug?.TWriteCritical(0, "This is reall fucking shit. Combat without message center");
             }
           }
         }
       }catch(Exception e) {
-        Log.TWriteCritical(0, e.ToString());
+        Log.Debug?.TWriteCritical(0, e.ToString());
       }
     }
     public void ApplyAuraEffects(AuraBubble aura, bool forcedFloatie) {
@@ -454,9 +460,9 @@ namespace CustomActivatableEquipment {
           if (owner.TeamId == auraOwner.TeamId) { isAlly = true; } else {
           if (owner.team == null) {
             isAlly = false;
-            Log.TWriteCritical(0, "!!!WARNING!!! " + new Text(owner.DisplayName).ToString() + " have no team. Fix this!!");
+            Log.Debug?.TWriteCritical(0, "!!!WARNING!!! " + new Text(owner.DisplayName).ToString() + " have no team. Fix this!!");
           } else {
-            try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.TWriteCritical(0, e.ToString()); };
+            try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.Debug?.TWriteCritical(0, e.ToString()); };
           }
         }
         if (affectedAurasEffects.ContainsKey(aura) == false) {
@@ -526,9 +532,9 @@ namespace CustomActivatableEquipment {
           if (owner.GUID == auraOwner.GUID) { isAlly = true; } else
             if (owner.TeamId == auraOwner.TeamId) { isAlly = true; } else {
             if (owner.team == null) {
-              Log.TWriteCritical(0, "!!!WARNING!!! " + new Text(owner.DisplayName).ToString() + " have no team. Fix this!!");
+              Log.Debug?.TWriteCritical(0, "!!!WARNING!!! " + new Text(owner.DisplayName).ToString() + " have no team. Fix this!!");
             } else {
-              try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.TWriteCritical(0, e.ToString()); };
+              try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.Debug?.TWriteCritical(0, e.ToString()); };
             }
           }
           if ((owner.GUID == auraOwner.GUID) && (def.ApplySelf == false)) { continue; };
@@ -678,6 +684,12 @@ namespace CustomActivatableEquipment {
     private float Speed { get; set; }
     private float StartupCounter { get; set; }
     public bool isMainSensors { get { return source == null; } }
+    //public void OnTriggerEnter(Collider other) {
+    //  Log.Debug?.TWL(0, "AuraBubble.OnTriggerEnter "+other.name);
+    //}
+    //public void OnTriggerExit(Collider other) {
+    //  Log.Debug?.TWL(0, "AuraBubble.OnTriggerExit " + other.name);
+    //}
     public ParticleSystem PlayVFXAt(Vector3 offset, string vfxName) {
       if (string.IsNullOrEmpty(vfxName))
         return (ParticleSystem)null;
@@ -755,6 +767,10 @@ namespace CustomActivatableEquipment {
         this.gameObject.GetComponent<Rigidbody>().isKinematic = true;
         this.gameObject.GetComponent<Rigidbody>().useGravity = false;
         this.gameObject.layer = LayerMask.NameToLayer("VFXPhysics");
+        if(def.MinefieldDetector) {
+          this.gameObject.AddComponent<MineFieldDetector>();
+          this.gameObject.GetComponent<MineFieldDetector>().Init(owner);
+        }
         this.collider = this.gameObject.AddComponent<SphereCollider>();
         this.collider.enabled = false;
         this.collider.isTrigger = true;

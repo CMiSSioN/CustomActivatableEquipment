@@ -19,7 +19,7 @@ namespace CustomActivatablePatches {
       try {
         //__instance.Combat.commitDamage();
       }catch(Exception e) {
-        Log.TWriteCritical(0, e.ToString());
+        Log.Debug?.TWriteCritical(0, e.ToString());
       }
         if (__instance.IsDead) { return true; };
       CAEAIHelper.AIActivatableProc(__instance);

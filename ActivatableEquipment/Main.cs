@@ -85,6 +85,20 @@ namespace CustomActivatablePatches {
       }
     }
   }
+  [HarmonyPatch(typeof(SelectionState))]
+  [HarmonyPatch("CanDeselect")]
+  [HarmonyPatch(MethodType.Getter)]
+  [HarmonyPatch(new Type[] { })]
+  public static class SelectionState_CanDeselect
+  {
+    public static void Postfix(SelectionState __instance, ref bool __result)
+    {
+      Log.Debug?.TWL(0,"SelectionState.CanDeselect " + __instance.SelectedActor.DisplayName + ":" + __result);
+      Log.Debug?.WL(1, "HasActivatedThisRound:" + __instance.SelectedActor.HasActivatedThisRound);
+      Log.Debug?.WL(1, "HasBegunActivation:" + __instance.SelectedActor.HasBegunActivation);
+      Log.Debug?.WL(1, "HasMovedThisRound:" + __instance.SelectedActor.HasMovedThisRound);
+    }
+  }
   [HarmonyPatch(typeof(MechMeleeSequence))]
   [HarmonyPatch("CompleteOrders")]
   [HarmonyPatch(MethodType.Normal)]
@@ -278,21 +292,21 @@ namespace CustomActivatableEquipment {
       m_fs = new StreamWriter(m_logfile);
       m_fs.AutoFlush = true;
     }
-    public static void W(string line, bool isCritical = false) {
+    public void W(string line, bool isCritical = false) {
       m_log.Write(line, isCritical);
     }
-    public static void WL(string line, bool isCritical = false) {
+    public void WL(string line, bool isCritical = false) {
       line += "\n"; W(line, isCritical);
     }
-    public static void W(int initiation, string line, bool isCritical = false) {
+    public void W(int initiation, string line, bool isCritical = false) {
       string init = new string(' ', initiation);
       line = init + line; W(line, isCritical);
     }
-    public static void WL(int initiation, string line, bool isCritical = false) {
+    public void WL(int initiation, string line, bool isCritical = false) {
       string init = new string(' ', initiation);
       line = init + line; WL(line, isCritical);
     }
-    public static void TW(int initiation, string line, bool isCritical = false) {
+    public void TW(int initiation, string line, bool isCritical = false) {
       string init = new string(' ', initiation);
       line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
       W(line, isCritical);
@@ -302,7 +316,7 @@ namespace CustomActivatableEquipment {
       line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
       WL(line, isCritical);
     }
-    public static void TWriteCritical(int initiation, string line) {
+    public void TWriteCritical(int initiation, string line) {
       string init = new string(' ', initiation);
       line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
       WL(line, true);
@@ -503,6 +517,7 @@ namespace CustomActivatableEquipment {
     private CustAmmoCategories.CustomAudioSource FDeactivateSound;
     [JsonIgnore]
     private CustAmmoCategories.CustomAudioSource FDestroySound;
+    public bool SafeActivation { get; set; }
     public ActivatableComponent() {
       ButtonName = "NotSet";
       FailFlatChance = 0f;
@@ -558,6 +573,7 @@ namespace CustomActivatableEquipment {
       presistantVFXOutOfLOSHide = false;
       activateVFXOutOfLOSHide = false;
       incomingHeatActivationType = DamageActivationType.Threshhold;
+      SafeActivation = false;
       Log.Debug?.Write("ActivatableComponent constructor\n");
     }
     public void playActivateSound(AkGameObj soundObject) {
@@ -1249,7 +1265,7 @@ namespace CustomActivatableEquipment {
         Log.Debug?.Write(" not activatable\n");
         return;
       }
-      component.parent.OnActivationBegin(component.parent.GUID, -1);
+      if(activatable.SafeActivation == false) { component.parent.OnActivationBegin(component.parent.GUID, -1); };
       if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentActiveStatName) == false) {
         component.StatCollection.AddStatistic<bool>(ActivatableComponent.CAEComponentActiveStatName, false);
       }
@@ -1635,11 +1651,11 @@ namespace CustomActivatableEquipment {
 
     public static Settings Settings = new Settings();
     public static void FinishedLoading(List<string> loadOrder) {
-      Log.TWriteCritical(0, "FinishedLoading");
+      Log.Debug?.TWriteCritical(0, "FinishedLoading");
       try {
         //ExtendedDescriptionHelper.DetectMechEngineer();
       } catch (Exception e) {
-        Log.TWriteCritical(0, e.ToString());
+        Log.Debug?.TWriteCritical(0, e.ToString());
       }
     }
     public static void Init(string directory, string settingsJson) {
@@ -1662,7 +1678,7 @@ namespace CustomActivatableEquipment {
                 new BaseDescriptionDef(id, name, details, icon);
         }
 
-        CustomActivatableEquipment.Log.LogWrite("Initing... " + directory + " version: " + Assembly.GetExecutingAssembly().GetName().Version + "\n"
+        CustomActivatableEquipment.Log.Debug?.TWL(0,"Initing... " + directory + " version: " + Assembly.GetExecutingAssembly().GetName().Version + "\n"
                                               + "Settings = [" + JsonConvert.SerializeObject(Core.Settings, Formatting.Indented, new JsonSerializerSettings()
                                                                                                                                      {
                                                                                                                                          ReferenceLoopHandling = ReferenceLoopHandling.Ignore
@@ -1672,6 +1688,7 @@ namespace CustomActivatableEquipment {
           Log.Debug?.Write(LayerMask.LayerToName(layer1)+"->"+LayerMask.LayerToName(layer2)+" ignore collisions:"+ Physics.GetIgnoreLayerCollision(layer1,layer2)+"\n");
         }
       }
+      Core.Settings.sensorsAura.MinefieldDetector = true;
       /*try {
         string apath = Path.Combine(directory, "assets");
         Log.LogWrite("additional assets:" + Core.Settings.AdditionalAssets.Count + "\n");

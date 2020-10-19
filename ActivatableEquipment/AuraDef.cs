@@ -55,6 +55,7 @@ namespace CustomActivatableEquipment {
     public bool IsNegativeToAlly { get; set; }
     public bool IsNegativeToEnemy { get; set; }
     public bool IsPositiveToEnemy { get; set; }
+    public bool MinefieldDetector { get; set; }
     public List<EffectData> OnFireEffects { get; set; }
     public List<AuraBubbleVFXDef> onlineVFX { get; set; }
     public List<string> targetVFX { get; set; }
@@ -91,6 +92,7 @@ namespace CustomActivatableEquipment {
       FloatieAtEndOfMove = true;
       LineType = AuraLineType.Dashes;
       isSpining = false;
+      MinefieldDetector = false;
     }
   }
 }
