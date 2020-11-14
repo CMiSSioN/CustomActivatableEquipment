@@ -95,9 +95,9 @@ namespace CustomActivatableEquipment {
     }
   }
   public static class AoEComponentExplodeHelper {
-    public static Dictionary<int, float> MechHitLocations = null;
-    public static Dictionary<int, float> VehicleLocations = null;
-    public static Dictionary<int, float> OtherLocations = null;
+    //public static Dictionary<int, float> MechHitLocations = null;
+    //public static Dictionary<int, float> VehicleLocations = null;
+    //public static Dictionary<int, float> OtherLocations = null;
     public static readonly float AOEHitIndicator = -10f;
     public static void InitActorStat(this MechComponent component,float value,string name) {
       if (value >= 0f) {
@@ -797,7 +797,7 @@ namespace CustomActivatableEquipment {
       }
       return impactPoint;
     }
-    public static void InitHitLocationsAOE() {
+    /*public static void InitHitLocationsAOE() {
       AoEComponentExplodeHelper.MechHitLocations = new Dictionary<int, float>();
       AoEComponentExplodeHelper.MechHitLocations[(int)ArmorLocation.CenterTorso] = 100f;
       AoEComponentExplodeHelper.MechHitLocations[(int)ArmorLocation.CenterTorsoRear] = 100f;
@@ -818,7 +818,7 @@ namespace CustomActivatableEquipment {
       AoEComponentExplodeHelper.VehicleLocations[(int)VehicleChassisLocations.Turret] = 80f;
       AoEComponentExplodeHelper.OtherLocations = new Dictionary<int, float>();
       AoEComponentExplodeHelper.OtherLocations[1] = 100f;
-    }
+    }*/
     public static void AoEExplodeComponent(this MechComponent component) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) { return; }
@@ -868,62 +868,55 @@ namespace CustomActivatableEquipment {
         }
         Mech mech = target as Mech;
         Vehicle vehicle = target as Vehicle;
-        if (target.isHasHeat() == false) {
-          Damage += HeatDamage;
-          HeatDamage = 0f;
-        };
-        if (target.isHasStability() == false) {
-          StabDamage = 0f;
-        }
-        List<int> hitLocations = null;
-        Dictionary<int, float> AOELocationDict = null;
+        if (target.isHasHeat() == false) { Damage += HeatDamage; HeatDamage = 0f; };
+        if (target.isHasStability() == false) { StabDamage = 0f; }
+        HashSet<int> reachableLocations = new HashSet<int>();
+        Dictionary<int, float> SpreadLocations = null;
         if (mech != null) {
-          hitLocations = component.parent.Combat.HitLocation.GetPossibleHitLocations(component.parent.CurrentPosition, mech);
-          if (AoEComponentExplodeHelper.MechHitLocations == null) { AoEComponentExplodeHelper.InitHitLocationsAOE(); };
-          AOELocationDict = AoEComponentExplodeHelper.MechHitLocations;
-          int HeadIndex = hitLocations.IndexOf((int)ArmorLocation.Head);
-          if ((HeadIndex >= 0) && (HeadIndex < hitLocations.Count)) { hitLocations.RemoveAt(HeadIndex); };
+          List<int> hitLocations = mech.GetAOEPossibleHitLocations(pos);//unit.Combat.HitLocation.GetPossibleHitLocations(pos, mech);
+          foreach (int loc in hitLocations) { reachableLocations.Add(loc); }
+          SpreadLocations = mech.GetAOESpreadArmorLocations();
         } else
-        if (target is Vehicle) {
-          hitLocations = component.parent.Combat.HitLocation.GetPossibleHitLocations(component.parent.CurrentPosition, target as Vehicle);
-          if (AoEComponentExplodeHelper.VehicleLocations == null) { AoEComponentExplodeHelper.InitHitLocationsAOE(); };
-          AOELocationDict = AoEComponentExplodeHelper.VehicleLocations;
+        if (vehicle != null) {
+          List<int> hitLocations = vehicle.Combat.HitLocation.GetPossibleHitLocations(pos, vehicle);
+          if (CustomAmmoCategories.VehicleLocations == null) { CustomAmmoCategories.InitHitLocationsAOE(); };
+          foreach (int loc in hitLocations) { reachableLocations.Add(loc); }
+          SpreadLocations = CustomAmmoCategories.VehicleLocations;
         } else {
-          hitLocations = new List<int>() { 1 };
-          if (AoEComponentExplodeHelper.OtherLocations == null) { AoEComponentExplodeHelper.InitHitLocationsAOE(); };
-          AOELocationDict = AoEComponentExplodeHelper.OtherLocations;
+          List<int> hitLocations = new List<int>() { 1 };
+          if (CustomAmmoCategories.OtherLocations == null) { CustomAmmoCategories.InitHitLocationsAOE(); };
+          foreach (int loc in hitLocations) { reachableLocations.Add(loc); }
+          SpreadLocations = CustomAmmoCategories.OtherLocations;
         }
-        float fullLocationDamage = 0.0f;
-        foreach (int hitLocation in hitLocations) {
-          if (AOELocationDict.ContainsKey(hitLocation)) {
-            fullLocationDamage += AOELocationDict[hitLocation];
-          } else {
-            fullLocationDamage += 100f;
-          }
+        float locationsCoeff = 0f;
+        foreach (var sLoc in SpreadLocations) {
+          if (reachableLocations.Contains(sLoc.Key)) { locationsCoeff += sLoc.Value; }
         }
-        Log.Debug?.Write(" hitLocations: ");
-        foreach (int hitLocation in hitLocations) {
-          Log.Debug?.Write(" " + hitLocation);
+        Dictionary<int, float> AOELocationDamage = new Dictionary<int, float>();
+        Log.Debug?.W(2, "Location spread:");
+        foreach (var sLoc in SpreadLocations) {
+          if (reachableLocations.Contains(sLoc.Key) == false) { continue; }
+          if (sLoc.Value < CustomAmmoCategories.Epsilon) { continue; }
+          AOELocationDamage.Add(sLoc.Key, sLoc.Value / locationsCoeff);
+          string lname = sLoc.Key.ToString();
+          if (mech != null) { lname = ((ArmorLocation)sLoc.Key).ToString(); } else
+          if (vehicle != null) { lname = ((VehicleChassisLocations)sLoc.Key).ToString(); } else
+            lname = ((BuildingLocation)sLoc.Key).ToString();
+          Log.Debug?.W(1, lname + ":" + sLoc.Value / locationsCoeff);
         }
-        Log.Debug?.Write("\n");
-        Log.Debug?.Write(" full location damage coeff " + fullLocationDamage + "\n");
+        Log.Debug?.WL(0, "");
         AoEComponentExplosionRecord AoERecord = new AoEComponentExplosionRecord(target);
         AoERecord.HeatDamage = HeatDamage;
         AoERecord.StabDamage = StabDamage;
-        foreach (int hitLocation in hitLocations) {
-          float currentDamageCoeff = 100f;
-          if (AOELocationDict.ContainsKey(hitLocation)) {
-            currentDamageCoeff = AOELocationDict[hitLocation];
-          }
-          currentDamageCoeff /= fullLocationDamage;
-          float CurrentLocationDamage = Damage * currentDamageCoeff;
-          if(AoERecord.hitRecords.ContainsKey(hitLocation)) {
-            AoERecord.hitRecords[hitLocation].Damage += CurrentLocationDamage;
+        foreach (var hitLocation in AOELocationDamage) {
+          float CurrentLocationDamage = Damage * hitLocation.Value;
+          if (AoERecord.hitRecords.ContainsKey(hitLocation.Key)) {
+            AoERecord.hitRecords[hitLocation.Key].Damage += CurrentLocationDamage;
           } else {
-            Vector3 pos = target.getImpactPositionSimple(component.parent, component.parent.CurrentPosition, hitLocation);
-            AoERecord.hitRecords[hitLocation] = new AoEComponentExplosionHitRecord(pos, CurrentLocationDamage);
+            Vector3 pos = target.getImpactPositionSimple(component.parent, component.parent.CurrentPosition, hitLocation.Key);
+            AoERecord.hitRecords.Add(hitLocation.Key,new AoEComponentExplosionHitRecord(pos, CurrentLocationDamage));
           }
-          Log.Debug?.Write("  location " + hitLocation + " damage " + AoERecord.hitRecords[hitLocation].Damage + "\n");
+          Log.Debug?.Write("  location " + hitLocation + " damage " + AoERecord.hitRecords[hitLocation.Key].Damage + "\n");
         }
         AoEDamage.Add(AoERecord);
       }

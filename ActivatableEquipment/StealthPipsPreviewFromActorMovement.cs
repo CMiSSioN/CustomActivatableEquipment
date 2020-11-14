@@ -82,7 +82,7 @@ namespace CustomActivatablePatches {
               typeof(CombatHUDNumFlagHex_UpdateStealthState).GetMethod(nameof(UpdateStealNoop), AccessTools.all));
       }
 
-      private static void UpdateStealNoop(float current, float projected, bool force) {
+      private static void UpdateStealNoop(CombatHUDStealthBarPips StealthDisplay, float current, float projected, bool force) {
             // no op.
       }
   }

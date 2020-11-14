@@ -518,6 +518,7 @@ namespace CustomActivatableEquipment {
     [JsonIgnore]
     private CustAmmoCategories.CustomAudioSource FDestroySound;
     public bool SafeActivation { get; set; }
+    public bool CanActivateAfterMove { get; set; }
     public ActivatableComponent() {
       ButtonName = "NotSet";
       FailFlatChance = 0f;
@@ -574,6 +575,7 @@ namespace CustomActivatableEquipment {
       activateVFXOutOfLOSHide = false;
       incomingHeatActivationType = DamageActivationType.Threshhold;
       SafeActivation = false;
+      CanActivateAfterMove = false;
       Log.Debug?.Write("ActivatableComponent constructor\n");
     }
     public void playActivateSound(AkGameObj soundObject) {

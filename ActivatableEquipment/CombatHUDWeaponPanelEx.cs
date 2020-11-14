@@ -473,7 +473,11 @@ namespace CustomActivatableEquipment {
       if (activeDef.CanBeactivatedManualy == false) { return; }
       if (HUD.SelectedTarget != null) { return; }
       if (component.IsFunctional == false) { return; }
-      if (component.parent.HasMovedThisRound) { return; }
+      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+      if (activatable == null) { return; }
+      if (activatable.CanActivateAfterMove == false) {
+        if (component.parent.HasMovedThisRound) { return; }
+      }
       if (ActivatableComponent.isOutOfCharges(component)) { return; }
       if (component.parent.IsAvailableThisPhase == false) { return; }
       Log.Debug?.Write("Toggle activatable " + component.defId + "\n");
