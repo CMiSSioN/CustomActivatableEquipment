@@ -171,7 +171,10 @@ namespace CustomActivatablePatches {
             }
           }
         } else {
-          Log.Debug?.Write(" " + component.defId + " not active " + __instance.CurrentHeat + "/" + activatable.AutoActivateOnHeat + "\n");
+          int activatedRound = ActivatableComponent.getComponentActivedRound(component);
+          int currentRound = __instance.Combat.TurnDirector.CurrentRound;
+          Log.Debug?.Write(" " + component.defId + " not active " + __instance.CurrentHeat + "/" + activatable.AutoActivateOnHeat + " oncePerRound:"+ activatable.ActivateOncePerRound+ " actRound:"+ activatedRound + " currentRound:"+currentRound+"\n");
+          if (activatable.ActivateOncePerRound && (activatedRound == currentRound)) { return; }
           if (activatable.AutoActivateOnOverheatLevel <= CustomActivatableEquipment.Core.Epsilon) {
             if (activatable.AutoActivateOnHeat > Core.Epsilon) {
               if (__instance.CurrentHeat >= activatable.AutoActivateOnHeat) {
@@ -454,6 +457,7 @@ namespace CustomActivatableEquipment {
   public partial class ActivatableComponent : SimpleCustomComponent, IPreValidateDrop {
     public static string CAEComponentActiveStatName = "CAEComnonentActive";
     public static string CAEComponentActiveRounds = "CAEComnonentActiveRounds";
+    public static string CAEComponentActivedRound = "CAEComnonentActivedRound";
     public static string CAEComponentFailChance = "CAEFailChance";
     public static string CAEComponentChargesCount = "CAEChargesCount";
     public string ButtonName { get; set; }
@@ -519,6 +523,8 @@ namespace CustomActivatableEquipment {
     private CustAmmoCategories.CustomAudioSource FDestroySound;
     public bool SafeActivation { get; set; }
     public bool CanActivateAfterMove { get; set; }
+    public bool CanActivateAfterFire { get; set; }
+    public bool ActivateOncePerRound { get; set; }
     public ActivatableComponent() {
       ButtonName = "NotSet";
       FailFlatChance = 0f;
@@ -576,6 +582,8 @@ namespace CustomActivatableEquipment {
       incomingHeatActivationType = DamageActivationType.Threshhold;
       SafeActivation = false;
       CanActivateAfterMove = false;
+      CanActivateAfterFire = true;
+      ActivateOncePerRound = false;
       Log.Debug?.Write("ActivatableComponent constructor\n");
     }
     public void playActivateSound(AkGameObj soundObject) {
@@ -959,6 +967,14 @@ namespace CustomActivatableEquipment {
       }
       return component.StatCollection.GetStatistic(ActivatableComponent.CAEComponentActiveRounds).Value<int>();
     }
+    public static int getComponentActivedRound(MechComponent component) {
+      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+      if (activatable == null) { return -1; }
+      if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentActivedRound) == false) {
+        return -1;
+      }
+      return component.StatCollection.GetStatistic(ActivatableComponent.CAEComponentActivedRound).Value<int>();
+    }
     public static void setComponentActiveRounds(MechComponent component, int aRounds) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) { return; }
@@ -1110,6 +1126,7 @@ namespace CustomActivatableEquipment {
             }
           }
         }
+        PrintActorStatistic(component.parent);
         component.parent.ResetPathing(false);
         //if (isInital == false) {
         //  Log.LogWrite(" Updating auras\n");
@@ -1118,6 +1135,12 @@ namespace CustomActivatableEquipment {
         //}
         Log.Debug?.Write(" sprint:" + component.parent.MaxSprintDistance + "\n");
         Log.Debug?.Write(" walk:" + component.parent.MaxWalkDistance + "\n");
+      }
+    }
+    public void PrintActorStatistic(AbstractActor actor) {
+      Log.Debug?.TWL(0,actor.DisplayName+" statistic");
+      foreach(var stat in actor.StatCollection) {
+        Log.Debug?.WL(1, stat.Key + ":" + stat.Value.CurrentValue);
       }
     }
     public void applyOfflineEffects(MechComponent component,bool isInital) {
@@ -1142,6 +1165,7 @@ namespace CustomActivatableEquipment {
             }
           }
         }
+        PrintActorStatistic(component.parent);
         component.parent.ResetPathing(false);
         //if (isInital == false) {
         //  Log.LogWrite(" Updating auras\n");
@@ -1171,6 +1195,7 @@ namespace CustomActivatableEquipment {
         }
         component.createdEffectIDs.Remove(effId);
       }
+      PrintActorStatistic(component.parent);
     }
     public void removeOfflineEffects(MechComponent component) {
       List<string> actEffectsIDs = new List<string>();
@@ -1191,6 +1216,7 @@ namespace CustomActivatableEquipment {
         }
         component.createdEffectIDs.Remove(effId);
       }
+      PrintActorStatistic(component.parent);
     }
     public static void shutdownComponent(MechComponent component) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
@@ -1277,6 +1303,11 @@ namespace CustomActivatableEquipment {
       if (ActivatableComponent.isComponentActivated(component) == false) {
         Log.Debug?.Write(" activating\n");
         ActivatableComponent.activateComponent(component,false,false);
+        if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentActivedRound) == false) {
+          component.StatCollection.AddStatistic<int>(ActivatableComponent.CAEComponentActivedRound, component.parent.Combat.TurnDirector.CurrentRound);
+        } else {
+          component.StatCollection.Set<int>(ActivatableComponent.CAEComponentActivedRound, component.parent.Combat.TurnDirector.CurrentRound);
+        }
       } else {
         ActivatableComponent.deactivateComponent(component);
       }

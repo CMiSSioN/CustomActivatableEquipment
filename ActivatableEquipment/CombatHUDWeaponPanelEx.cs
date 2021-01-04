@@ -1,6 +1,7 @@
 ﻿using BattleTech;
 using BattleTech.UI;
 using BattleTech.UI.TMProWrapper;
+using CustAmmoCategories;
 using CustomAmmoCategoriesPatches;
 using CustomAmmoCategoriesPathes;
 using CustomComponents;
@@ -478,8 +479,12 @@ namespace CustomActivatableEquipment {
       if (activatable.CanActivateAfterMove == false) {
         if (component.parent.HasMovedThisRound) { return; }
       }
+      if(activatable.CanActivateAfterFire == false) {
+        if (component.parent.HasFiredThisRound) { return; }
+      }
       if (ActivatableComponent.isOutOfCharges(component)) { return; }
       if (component.parent.IsAvailableThisPhase == false) { return; }
+      if (component.parent.BlockComponentsActivation()) { return; }
       Log.Debug?.Write("Toggle activatable " + component.defId + "\n");
       ActivatableComponent.toggleComponentActivation(this.component);
       equipPanel.RefreshDisplayedEquipment(component.parent);

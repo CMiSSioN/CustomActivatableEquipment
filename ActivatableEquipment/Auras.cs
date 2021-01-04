@@ -117,6 +117,10 @@ namespace CustomActivatableEquipment {
     public static void Postfix(AbstractActor __instance) {
       if (__instance.IsSensorLocked) { return; }
       AuraActorBody body = __instance.bodyAura();
+      if (body == null) {
+        Log.Debug?.TWL(0,"!WARNING: "+__instance.DisplayName+":"+__instance.PilotableActorDef.Description.Id+" without body aura",true);
+        return;
+      }
       Collider[] colliders = Physics.OverlapSphere(body.transform.position, body.collider.radius);
       foreach (Collider collider in colliders) { body.OnTriggerEnter(collider); }
     }
@@ -380,31 +384,40 @@ namespace CustomActivatableEquipment {
     //public Queue<AuraChangeRequest> changeQueue;
     public Dictionary<AuraBubble,bool> aurasToChange;
     public void ShowAddFloatie(AuraBubble aura) {
-      bool isAlly = false;
-      AuraDef def = aura.Def;
-      AbstractActor auraOwner = aura.owner;
-      if (owner.GUID == auraOwner.GUID) { isAlly = true; } else
-        if (owner.TeamId == auraOwner.TeamId) { isAlly = true; } else {
-        if (owner.team == null) {
-          Log.Debug?.TWriteCritical(0, "!!!WARNING!!! "+new Text(owner.DisplayName).ToString() + " have no team. Fix this!!");
-        } else {
-          if (auraOwner.team == null) {
-            Log.Debug?.TWriteCritical(0, "!!!WARNING!!! " + new Text(auraOwner.DisplayName).ToString() + " have no team. Fix this!!");
+      try {
+        bool isAlly = false;
+        AuraDef def = aura.Def;
+        AbstractActor auraOwner = aura.owner;
+        if (owner.GUID == auraOwner.GUID) { isAlly = true; } else
+          if (owner.TeamId == auraOwner.TeamId) { isAlly = true; } else {
+          if (owner.team == null) {
+            Log.Debug?.TWriteCritical(0, "!!!WARNING!!! " + new Text(owner.DisplayName).ToString() + " have no team. Fix this!!");
           } else {
-            try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.Debug?.TWriteCritical(0, e.ToString()); };
+            if (auraOwner.team == null) {
+              Log.Debug?.TWriteCritical(0, "!!!WARNING!!! " + new Text(auraOwner.DisplayName).ToString() + " have no team. Fix this!!");
+            } else {
+              try { isAlly = owner.team.IsFriendly(auraOwner.team); } catch (Exception e) { Log.Debug?.TWriteCritical(0, e.ToString()); };
+            }
           }
         }
+        this.ShowAddFloatie(aura, isAlly);
+      }catch(Exception e) {
+        Log.Debug?.TWL(0, e.ToString());
       }
-      this.ShowAddFloatie(aura, isAlly);
     }
     public void ShowAddFloatie(AuraBubble aura, bool isAlly) {
-      FloatieMessage.MessageNature nature = FloatieMessage.MessageNature.NotSet;
-      if (owner.Combat == null) { return; }
-      if (owner.Combat.MessageCenter == null) { return; }
-      string action = "";
-      if (isAlly && aura.Def.IsPositiveToAlly) { action = "PROTECTED"; nature = FloatieMessage.MessageNature.Buff; } else if ((isAlly == false) && aura.Def.IsNegativeToEnemy) { action = "AFFECTED"; nature = FloatieMessage.MessageNature.Debuff; } else if ((isAlly == false) && aura.Def.IsPositiveToEnemy) { action = "PROTECTED"; nature = FloatieMessage.MessageNature.Buff; } else if ((isAlly == true) && aura.Def.IsNegativeToAlly) { action = "AFFECTED"; nature = FloatieMessage.MessageNature.Debuff; }
-      if (nature != FloatieMessage.MessageNature.NotSet) {
-        owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(aura.owner.GUID, owner.GUID, new Text("{0} {1}", aura.Def.Name, action), nature));
+      try {
+        FloatieMessage.MessageNature nature = FloatieMessage.MessageNature.NotSet;
+        if (this.owner == null) { return; }
+        if (owner.Combat == null) { return; }
+        if (owner.Combat.MessageCenter == null) { return; }
+        string action = "";
+        if (isAlly && aura.Def.IsPositiveToAlly) { action = "PROTECTED"; nature = FloatieMessage.MessageNature.Buff; } else if ((isAlly == false) && aura.Def.IsNegativeToEnemy) { action = "AFFECTED"; nature = FloatieMessage.MessageNature.Debuff; } else if ((isAlly == false) && aura.Def.IsPositiveToEnemy) { action = "PROTECTED"; nature = FloatieMessage.MessageNature.Buff; } else if ((isAlly == true) && aura.Def.IsNegativeToAlly) { action = "AFFECTED"; nature = FloatieMessage.MessageNature.Debuff; }
+        if (nature != FloatieMessage.MessageNature.NotSet) {
+          owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(aura.owner.GUID, owner.GUID, new Text("{0} {1}", aura.Def.Name, action), nature));
+        }
+      }catch(Exception e) {
+        Log.Debug?.TWL(0, e.ToString());
       }
     }
     public void ShowDelFloatie(AuraBubble aura) {

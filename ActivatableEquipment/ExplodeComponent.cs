@@ -873,12 +873,12 @@ namespace CustomActivatableEquipment {
         HashSet<int> reachableLocations = new HashSet<int>();
         Dictionary<int, float> SpreadLocations = null;
         if (mech != null) {
-          List<int> hitLocations = mech.GetAOEPossibleHitLocations(pos);//unit.Combat.HitLocation.GetPossibleHitLocations(pos, mech);
+          List<int> hitLocations = mech.GetAOEPossibleHitLocations(component.parent.CurrentPosition);//unit.Combat.HitLocation.GetPossibleHitLocations(pos, mech);
           foreach (int loc in hitLocations) { reachableLocations.Add(loc); }
           SpreadLocations = mech.GetAOESpreadArmorLocations();
         } else
         if (vehicle != null) {
-          List<int> hitLocations = vehicle.Combat.HitLocation.GetPossibleHitLocations(pos, vehicle);
+          List<int> hitLocations = vehicle.Combat.HitLocation.GetPossibleHitLocations(component.parent.CurrentPosition, vehicle);
           if (CustomAmmoCategories.VehicleLocations == null) { CustomAmmoCategories.InitHitLocationsAOE(); };
           foreach (int loc in hitLocations) { reachableLocations.Add(loc); }
           SpreadLocations = CustomAmmoCategories.VehicleLocations;
