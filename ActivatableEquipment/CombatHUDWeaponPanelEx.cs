@@ -268,6 +268,7 @@ namespace CustomActivatableEquipment {
         ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
         if (acomps.Contains(component)) { Log.Debug?.WL(2, "have ability"); ncomps.Add(component); continue; };
         if (activatable == null) { Log.Debug?.WL(2, "not activatable"); continue; }
+        if (activatable.HideInUI) { Log.Debug?.WL(2, "should be hidden in UI"); continue; }
         if (ActivatableComponent.isComponentActivated(component)) { Log.Debug?.WL(2, "activated"); ncomps.Add(component); continue; };
         if (activatable.CanBeactivatedManualy) { Log.Debug?.WL(2, "can be activated manualy"); ncomps.Add(component); continue; };
         if (activatable.AutoActivateOnHeat > Core.Epsilon) { Log.Debug?.WL(2, "activate by heat"); ncomps.Add(component); continue; }
@@ -473,6 +474,7 @@ namespace CustomActivatableEquipment {
       if (component == null) { return; }
       if (activeDef.CanBeactivatedManualy == false) { return; }
       if (HUD.SelectedTarget != null) { return; }
+      if (HUD.SelectionHandler.ActiveState is SelectionStateJump) { return; }
       if (component.IsFunctional == false) { return; }
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) { return; }
@@ -517,10 +519,14 @@ namespace CustomActivatableEquipment {
       stateCache.Add(component, state);
       return state;
     }
+    public static string InterpolateUIName(MechComponent component) {
+      return component.UIName.ToString().Replace("{location}",component.parent.GetAbbreviatedChassisLocation(component.Location));
+      //return component.UIName.ToString();
+    }
     public void RefreshComponent() {
       this.Show();
       if (hovered == false) { RefreshNonHighlighted(); } else { RefreshHighlighted(); };
-      nameText.SetText(component.UIName);
+      nameText.SetText(InterpolateUIName(component));
       if ((component.IsFunctional == false) || (activeDef == null)) {
         chargesText.SetText("--");
         stateText.SetText("--");

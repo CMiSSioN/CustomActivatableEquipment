@@ -29,11 +29,13 @@ namespace CustomActivatableEquipment {
     public static void LinkageActivate(this MechComponent component, bool isInital) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if(activatable == null) { return; }
-      foreach(string toActivateBtn in activatable.Linkage.OnActivate.Activate) {
-        foreach(MechComponent CompToActivate in component.parent.allComponents) {
+      Log.Debug?.TWL(0, "LinkageActivate " + component.defId);
+      foreach (string toActivateBtn in activatable.Linkage.OnActivate.Activate) {
+        Log.Debug?.WL(1, "searching " + toActivateBtn);
+        foreach (MechComponent CompToActivate in component.parent.allComponents) {
           ActivatableComponent tactivatable = CompToActivate.componentDef.GetComponent<ActivatableComponent>();
           if (tactivatable == null) { continue; }
-          if (tactivatable.CanBeactivatedManualy == false) { continue; };
+          //if (tactivatable.CanBeactivatedManualy == false) { continue; };
           if (tactivatable.ButtonName != toActivateBtn) { continue; }
           if (ActivatableComponent.isComponentActivated(CompToActivate) == true) { continue; };
           ActivatableComponent.activateComponent(CompToActivate, true, isInital);
@@ -43,7 +45,7 @@ namespace CustomActivatableEquipment {
         foreach (MechComponent CompToDeactivate in component.parent.allComponents) {
           ActivatableComponent tactivatable = CompToDeactivate.componentDef.GetComponent<ActivatableComponent>();
           if (tactivatable == null) { continue; }
-          if (tactivatable.CanBeactivatedManualy == false) { continue; };
+          //if (tactivatable.CanBeactivatedManualy == false) { continue; };
           if (tactivatable.ButtonName != toActivateBtn) { continue; }
           if (ActivatableComponent.isComponentActivated(CompToDeactivate) == false) { continue; };
           ActivatableComponent.deactivateComponent(CompToDeactivate);
@@ -53,11 +55,12 @@ namespace CustomActivatableEquipment {
     public static void LinkageDectivate(this MechComponent component, bool isInital) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) { return; }
+      Log.Debug?.TWL(0,"LinkageDectivate "+component.defId);
       foreach (string toActivateBtn in activatable.Linkage.OnDeactivate.Activate) {
         foreach (MechComponent CompToActivate in component.parent.allComponents) {
           ActivatableComponent tactivatable = CompToActivate.componentDef.GetComponent<ActivatableComponent>();
           if (tactivatable == null) { continue; }
-          if (tactivatable.CanBeactivatedManualy == false) { continue; };
+          //if (tactivatable.CanBeactivatedManualy == false) { continue; };
           if (tactivatable.ButtonName != toActivateBtn) { continue; }
           if (ActivatableComponent.isComponentActivated(CompToActivate) == true) { continue; };
           ActivatableComponent.activateComponent(CompToActivate, true, isInital);
@@ -67,7 +70,7 @@ namespace CustomActivatableEquipment {
         foreach (MechComponent CompToDeactivate in component.parent.allComponents) {
           ActivatableComponent tactivatable = CompToDeactivate.componentDef.GetComponent<ActivatableComponent>();
           if (tactivatable == null) { continue; }
-          if (tactivatable.CanBeactivatedManualy == false) { continue; };
+          //if (tactivatable.CanBeactivatedManualy == false) { continue; };
           if (tactivatable.ButtonName != toActivateBtn) { continue; }
           if (ActivatableComponent.isComponentActivated(CompToDeactivate) == false) { continue; };
           ActivatableComponent.deactivateComponent(CompToDeactivate);

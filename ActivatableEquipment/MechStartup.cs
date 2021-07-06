@@ -1,5 +1,6 @@
 ﻿using BattleTech;
 using CustomActivatableEquipment;
+using CustomComponents;
 using Harmony;
 using System;
 using UnityEngine;
@@ -134,6 +135,28 @@ namespace CustomActivatablePatches {
         ActivatableComponent.shutdownComponent(__instance);
       } catch (Exception e) {
         Log.Debug?.Write(e.ToString() + "\n");
+      }
+      return true;
+    }
+  }
+  [HarmonyPatch(typeof(Mech))]
+  [HarmonyPatch("GenerateFallSequence")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(int),typeof(string),typeof(Vector2), typeof(SequenceFinished) })]
+  public static class MechComponent_GenerateFallSequence {
+    public static bool Prefix(Mech __instance, int previousStackID, string sourceID, Vector2 attackDirection, SequenceFinished fallSequenceCompletedCallback) {
+      try {
+        Log.Debug?.TWL(0,"Mech.GenerateFallSequence");
+        foreach (MechComponent component in __instance.allComponents) {
+          ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+          if (activatable == null) { continue; }
+          if (activatable.SwitchOffOnFall == false) { continue; }
+          if (ActivatableComponent.isComponentActivated(component)) {
+            ActivatableComponent.deactivateComponent(component);
+          }
+        }
+      } catch (Exception e) {
+        Log.Debug?.TWL(0,e.ToString());
       }
       return true;
     }

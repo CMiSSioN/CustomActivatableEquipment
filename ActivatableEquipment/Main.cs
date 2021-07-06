@@ -492,6 +492,13 @@ namespace CustomActivatableEquipment {
     public bool NoUniqueCheck { get; set; }
     public int ChargesCount { get; set; }
     public ChassisLocations[] FailDamageLocations { get; set; }
+    public VehicleChassisLocations[] FailDamageVehicleLocations { get; set; }
+    public bool FailDamageToInstalledLocation { get; set; }
+    public bool FailCritComponents { get; set; }
+    public ChassisLocations[] FailCritLocations { get; set; }
+    public VehicleChassisLocations[] FailCritVehicleLocations { get; set; }
+    public string[] FailCritExcludeComponentsTags { get; set; }
+    public string[] FailCritOnlyComponentsTags { get; set; }
     public EffectData[] statusEffects { get; set; }
     public EffectData[] offlineStatusEffects { get; set; }
     public VFXInfo presistantVFX { get; set; }
@@ -525,6 +532,11 @@ namespace CustomActivatableEquipment {
     public bool CanActivateAfterMove { get; set; }
     public bool CanActivateAfterFire { get; set; }
     public bool ActivateOncePerRound { get; set; }
+    public List<string> PassiveEncounterTags { get; set; }
+    public List<string> OnlineEncounterTags { get; set; }
+    public List<string> OfflineEncounterTags { get; set; }
+    public bool SwitchOffOnFall { get; set; }
+    public bool HideInUI { get; set; }
     public ActivatableComponent() {
       ButtonName = "NotSet";
       FailFlatChance = 0f;
@@ -584,7 +596,19 @@ namespace CustomActivatableEquipment {
       CanActivateAfterMove = false;
       CanActivateAfterFire = true;
       ActivateOncePerRound = false;
-      Log.Debug?.Write("ActivatableComponent constructor\n");
+      PassiveEncounterTags = new List<string>();
+      OnlineEncounterTags = new List<string>();
+      OfflineEncounterTags = new List<string>();
+      SwitchOffOnFall = false;
+      HideInUI = false;
+      FailCritExcludeComponentsTags = new string[0];
+      FailCritOnlyComponentsTags = new string[0];
+      FailDamageVehicleLocations = new VehicleChassisLocations[0];
+      FailDamageLocations = new ChassisLocations[0];
+      FailCritComponents = false;
+      FailCritLocations = new ChassisLocations[0];
+      FailCritVehicleLocations = new VehicleChassisLocations[0];
+      FailDamageToInstalledLocation = false;
     }
     public void playActivateSound(AkGameObj soundObject) {
       if (FActivateSound != null) {
@@ -731,7 +755,6 @@ namespace CustomActivatableEquipment {
         Log.Debug?.Write(" crit to empty slot. possibly only if no components in location\n");
       }
     }
-
     public static bool rollFail(MechComponent component, bool isInital = false, bool testRoll = false) {
       Log.Debug?.TWL(0,"rollFail " + component.defId);
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
@@ -745,20 +768,12 @@ namespace CustomActivatableEquipment {
         Log.Debug?.Write(" check not needed\n");
         return true;
       }
-      //if (activatable.FailDamageLocations.Length <= 0) {
-      //Log.LogWrite(" no locations to hit\n");
-      //return true;
-      //}
-      if (!(component.parent is Mech)) {
-        Log.Debug?.Write(" owner is not mech\n");
+      if (!(component.parent is AbstractActor)) {
+        Log.Debug?.Write(" owner is not AbstractActor\n");
         return true;
       }
-      Mech owner = component.parent as Mech;
+      AbstractActor owner = component.parent as AbstractActor;
       float chance = ActivatableComponent.getEffectiveComponentFailChance(component);
-      //if(chance < activatable.FailFlatChance) {
-      //  chance = activatable.FailFlatChance;
-      //  ActivatableComponent.setComponentFailChance(component, activatable.FailFlatChance);
-      //}
       Log.Debug?.Write(" chance:" + chance + "\n");
       float roll = Random.Range(0f, 1f);
       if (activatable.AlwaysFail) {
@@ -773,37 +788,32 @@ namespace CustomActivatableEquipment {
       Log.Debug?.Write(" roll:" + roll + "\n");
       if (roll < chance) {
         if (activatable.EjectOnFail) { component.parent.EjectPilot(component.parent.GUID, -1, DeathMethod.PilotEjection, false); };
-        /*ObjectSpawnDataSelf activateEffect = component.ActivateVFX();
-        if (activateEffect != null) {
-          Log.LogWrite(" "+component.defId+" activate VFX is not null\n");
-          activateEffect.SpawnSelf(component.parent.Combat);
-        } else {
-          Log.LogWrite(" " + component.defId + " activate VFX is null\n");
-        }
-        component.AoEExplodeComponent();*/
-        var fakeHit = new WeaponHitInfo(-1, -1, -1, -1, component.parent.GUID, component.parent.GUID, -1, null, null, null, null, null, null, null, null, null, null, null);
-        if (activatable.FailISDamage >= 1f) {
-          foreach (ChassisLocations location in activatable.FailDamageLocations) {
-            Log.Debug?.Write(" apply inner structure damage:" + location + "\n");
-            owner.ApplyStructureStatDamage(location, activatable.FailISDamage, fakeHit);
-            if (owner.IsLocationDestroyed(location)) {
-              owner.NukeStructureLocation(fakeHit, (int)location, location, Vector3.zero, DamageType.OverheatSelf);
-            }
-          }
-          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, "STRUCTURE DAMAGE", FloatieMessage.MessageNature.CriticalHit));
-        }
-        if (activatable.FailCrit) {
-          foreach (ChassisLocations location in activatable.FailDamageLocations) {
-            Log.Debug?.Write(" apply crit:" + location + "\n");
-            ActivatableComponent.CritLocation(owner, location, ref fakeHit);
-          }
+        //var fakeHit = new WeaponHitInfo(-1, -1, -1, -1, component.parent.GUID, component.parent.GUID, -1, null, null, null, null, null, null, null, null, null, null, null);
+        //if (activatable.FailISDamage >= 1f) {
+          owner.StructureDamage(activatable, component);
+          //foreach (ChassisLocations location in activatable.FailDamageLocations) {
+          //  Log.Debug?.Write(" apply inner structure damage:" + location + "\n");
+          //  owner.ApplyStructureStatDamage(location, activatable.FailISDamage, fakeHit);
+          //  if (owner.IsLocationDestroyed(location)) {
+          //    owner.NukeStructureLocation(fakeHit, (int)location, location, Vector3.zero, DamageType.OverheatSelf);
+          //  }
+          //}
+          //component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, "STRUCTURE DAMAGE", FloatieMessage.MessageNature.CriticalHit));
+        //}
+        if (activatable.FailCritComponents) {
+          owner.CritComponentInLocations(activatable, component);
         }
         if (activatable.SelfCrit) {
           Log.Debug?.Write(" apply crit to self\n");
-          ActivatableComponent.critComponent(owner, component, MechStructureRules.GetChassisLocationFromArmorLocation((ArmorLocation)component.Location), ref fakeHit);
+          component.CritComponent();
+          //ActivatableComponent.critComponent(owner, component, MechStructureRules.GetChassisLocationFromArmorLocation((ArmorLocation)component.Location), ref fakeHit);
         }
         if (activatable.FailStabDamage > Core.Epsilon) {
-          owner.AddAbsoluteInstability(activatable.FailStabDamage, StabilityChangeSource.Effect, owner.GUID);
+          if (owner is Mech mech) {
+            if (mech.isHasStability()) {
+              mech.AddAbsoluteInstability(activatable.FailStabDamage, StabilityChangeSource.Effect, owner.GUID);
+            }
+          }
         }
         Log.Debug?.Write(" owner status. Death:" + owner.IsFlaggedForDeath + " Knockdown:" + owner.IsFlaggedForKnockdown + "\n");
         bool needToDone = false;
@@ -1716,10 +1726,18 @@ namespace CustomActivatableEquipment {
                                                                                                                                      {
                                                                                                                                          ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                                                                                                                                      }) + "]", true);
-      for(int layer1 = 8; layer1 < 32; ++layer1) {
+      Physics.IgnoreLayerCollision(LayerMask.NameToLayer("NoCollision"), LayerMask.NameToLayer("NoCollision"), false); //makes not ignore collision between "NoCollision" layer
+      Log.Debug?.W("Layer Name;");
+      for (int layer1 = 8; layer1 < 32; ++layer1) {
+        Log.Debug?.W(LayerMask.LayerToName(layer1) + "(" + layer1 + ");");
+      }
+      Log.Debug?.WL("");
+      for (int layer1 = 8; layer1 < 32; ++layer1) {
+        Log.Debug?.W(LayerMask.LayerToName(layer1)+"("+layer1+");");
         for (int layer2 = 8; layer2 < 32; ++layer2) {
-          Log.Debug?.Write(LayerMask.LayerToName(layer1)+"->"+LayerMask.LayerToName(layer2)+" ignore collisions:"+ Physics.GetIgnoreLayerCollision(layer1,layer2)+"\n");
+          Log.Debug?.W((Physics.GetIgnoreLayerCollision(layer1, layer2) ? "":"X") +";");
         }
+        Log.Debug?.WL("");
       }
       Core.Settings.sensorsAura.MinefieldDetector = true;
       /*try {

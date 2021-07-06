@@ -110,6 +110,7 @@
     <Compile Include="ComponentVFXHelper.cs" />
     <Compile Include="ComponetnsLinkage.cs" />
     <Compile Include="ExplodeComponent.cs" />
+    <Compile Include="FailDamageHelper.cs" />
     <Compile Include="HeadHitsHelper.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="MechStartup.cs" />

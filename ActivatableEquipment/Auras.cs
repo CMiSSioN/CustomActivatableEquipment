@@ -274,7 +274,7 @@ namespace CustomActivatableEquipment {
         body.gameObject.GetComponent<Rigidbody>().name = "RBODY:" + unit.DisplayName + ":" + unit.GUID;
         body.gameObject.GetComponent<Rigidbody>().isKinematic = true;
         body.gameObject.GetComponent<Rigidbody>().useGravity = false;
-        body.gameObject.layer = LayerMask.NameToLayer("Combatant");
+        body.gameObject.layer = LayerMask.NameToLayer("NoCollision");
         body.gameObject.AddComponent<SphereCollider>();
         body.gameObject.GetComponent<SphereCollider>().enabled = false;
         body.gameObject.GetComponent<SphereCollider>().isTrigger = true;
@@ -779,7 +779,7 @@ namespace CustomActivatableEquipment {
         this.gameObject.GetComponent<Rigidbody>().name = "RBODY:" + owner.DisplayName + ":" + owner.GUID;
         this.gameObject.GetComponent<Rigidbody>().isKinematic = true;
         this.gameObject.GetComponent<Rigidbody>().useGravity = false;
-        this.gameObject.layer = LayerMask.NameToLayer("VFXPhysics");
+        this.gameObject.layer = LayerMask.NameToLayer("NoCollision");
         if(def.MinefieldDetector) {
           this.gameObject.AddComponent<MineFieldDetector>();
           this.gameObject.GetComponent<MineFieldDetector>().Init(owner);

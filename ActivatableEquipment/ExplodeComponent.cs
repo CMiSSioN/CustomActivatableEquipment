@@ -844,7 +844,7 @@ namespace CustomActivatableEquipment {
         if (target.GUID == component.parent.GUID) { continue; };
         if (target.IsDead) { continue; };
         if (target.isDropshipNotLanded()) { continue; };
-        Vector3 CurrentPosition = target.CurrentPosition + Vector3.up * target.AoEHeightFix();
+        Vector3 CurrentPosition = target.CurrentPosition + Vector3.up * target.FlyingHeight();
         float distance = Vector3.Distance(CurrentPosition, component.parent.CurrentPosition);
         if (CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range < CustomAmmoCategories.Epsilon) { CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range = 1f; }
         distance /= CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range;
