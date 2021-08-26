@@ -465,6 +465,7 @@ namespace CustomActivatableEquipment {
     public int FailRoundsStart { get; set; }
     public float FailChancePerTurn { get; set; }
     public float FailISDamage { get; set; }
+    public float FailArmorDamage { get; set; }
     public float FailStabDamage { get; set; }
     public int FailPilotingBase { get; set; }
     public float FailPilotingMult { get; set; }
@@ -790,7 +791,8 @@ namespace CustomActivatableEquipment {
         if (activatable.EjectOnFail) { component.parent.EjectPilot(component.parent.GUID, -1, DeathMethod.PilotEjection, false); };
         //var fakeHit = new WeaponHitInfo(-1, -1, -1, -1, component.parent.GUID, component.parent.GUID, -1, null, null, null, null, null, null, null, null, null, null, null);
         //if (activatable.FailISDamage >= 1f) {
-          owner.StructureDamage(activatable, component);
+        owner.StructureDamage(activatable, component);
+        owner.ArmorDamage(activatable, component);
           //foreach (ChassisLocations location in activatable.FailDamageLocations) {
           //  Log.Debug?.Write(" apply inner structure damage:" + location + "\n");
           //  owner.ApplyStructureStatDamage(location, activatable.FailISDamage, fakeHit);

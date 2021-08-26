@@ -40,6 +40,29 @@ namespace CustomActivatableEquipment {
         if (critComponents) { target.CritComponentsInLocation(location, ref fakeHit, excludeTags, onlyTags); }
       }
     }
+    public static void ArmorDamage(this AbstractActor target, List<int> locations, float amount, bool critComponents, HashSet<string> excludeTags, HashSet<string> onlyTags) {
+      WeaponHitInfo fakeHit = new WeaponHitInfo(-1, -1, -1, -1, target.GUID, target.GUID, 1, null, null, null, null, null, null, null, null, null, null, null);
+      fakeHit.toHitRolls = new float[1] { 1.0f };
+      fakeHit.locationRolls = new float[1] { 1.0f };
+      fakeHit.dodgeRolls = new float[1] { 0.0f };
+      fakeHit.dodgeSuccesses = new bool[1] { false };
+      fakeHit.hitLocations = new int[1] { 0 };
+      fakeHit.hitVariance = new int[1] { 0 };
+      fakeHit.hitQualities = new AttackImpactQuality[1] { AttackImpactQuality.Solid };
+      fakeHit.attackDirections = new AttackDirection[1] { AttackDirection.FromArtillery };
+      fakeHit.hitPositions = new Vector3[1] { target.CurrentPosition };
+      fakeHit.secondaryTargetIds = new string[1] { null };
+      fakeHit.secondaryHitLocations = new int[1] { 0 };
+      Log.Debug?.TWL(0, "StructureDamage:" + target.DisplayName + " amount:" + amount + " critComponents:" + critComponents);
+      foreach (int location in locations) {
+        Log.Debug?.WL(1, "location:" + location);
+        fakeHit.hitLocations[0] = location;
+        fakeHit.hitPositions[0] = target.GameRep.GetHitPosition(location);
+        float prev_armor = target.ArmorForLocation(location);
+        if (amount >= 1f) target.TakeWeaponDamage(fakeHit, location, target.ImaginaryLaserWeapon, amount, 0, 0, DamageType.ComponentExplosion);
+        if ((critComponents)&&(prev_armor < amount)) { target.CritComponentsInLocation(location, ref fakeHit, excludeTags, onlyTags); }
+      }
+    }
     public static List<MechComponent> GetComponentsInLocation(this AbstractActor target, int location, HashSet<string> excludeTags, HashSet<string> onlyTags) {
       List<MechComponent> result = new List<MechComponent>();
       TagSet oTags = new TagSet(onlyTags);
@@ -243,6 +266,42 @@ namespace CustomActivatableEquipment {
       foreach (string tag in activatable.FailCritExcludeComponentsTags) { excludeTags.Add(tag); }
       foreach (string tag in activatable.FailCritOnlyComponentsTags) { onlyTags.Add(tag); }
       target.StructureDamage(affectedLocation.ToList(), activatable.FailISDamage, activatable.FailCrit, excludeTags, onlyTags);
+    }
+    public static void ArmorDamage(this AbstractActor target, ActivatableComponent activatable, MechComponent component) {
+      Mech mech = target as Mech;
+      Vehicle vehicle = target as Vehicle;
+      Turret turret = target as Turret;
+      HashSet<int> affectedLocation = new HashSet<int>();
+      if (mech != null) {
+        if (mech.FakeVehicle() == false) {
+          foreach (ChassisLocations loc in activatable.FailCritLocations) {
+            LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
+            if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor == 0f)) { continue; }
+            affectedLocation.Add((int)loc);
+          }
+        } else {
+          foreach (VehicleChassisLocations vloc in activatable.FailCritVehicleLocations) {
+            ChassisLocations loc = vloc.FakeVehicleLocation();
+            LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
+            if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor <= 0f)) { continue; }
+            affectedLocation.Add((int)loc);
+          }
+        }
+      } else if (vehicle != null) {
+        foreach (VehicleChassisLocations vloc in activatable.FailCritVehicleLocations) {
+          VehicleLocationDef locDef = vehicle.VehicleDef.Chassis.GetLocationDef(vloc);
+          if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor <= 0f)) { continue; }
+          affectedLocation.Add((int)vloc);
+        }
+      } else if (turret != null) {
+        affectedLocation.Add((int)BuildingLocation.Structure);
+      }
+      if (activatable.FailDamageToInstalledLocation) { affectedLocation.Add(component.Location); }
+      HashSet<string> excludeTags = new HashSet<string>();
+      HashSet<string> onlyTags = new HashSet<string>();
+      foreach (string tag in activatable.FailCritExcludeComponentsTags) { excludeTags.Add(tag); }
+      foreach (string tag in activatable.FailCritOnlyComponentsTags) { onlyTags.Add(tag); }
+      target.ArmorDamage(affectedLocation.ToList(), activatable.FailArmorDamage, activatable.FailCrit, excludeTags, onlyTags);
     }
   }
 }
