@@ -454,7 +454,7 @@ namespace CustomActivatableEquipment {
   }
   public enum DamageActivationType { Threshhold, Single, Level }
   [CustomComponent("ActivatableComponent")]
-  public partial class ActivatableComponent : SimpleCustomComponent, IPreValidateDrop {
+  public partial class ActivatableComponent : SimpleCustomComponent {
     public static string CAEComponentActiveStatName = "CAEComnonentActive";
     public static string CAEComponentActiveRounds = "CAEComnonentActiveRounds";
     public static string CAEComponentActivedRound = "CAEComnonentActivedRound";
@@ -1326,76 +1326,6 @@ namespace CustomActivatableEquipment {
       } else {
         ActivatableComponent.deactivateComponent(component);
       }
-    }
-
-    public string PreValidateDrop(MechLabItemSlotElement item, LocationHelper location, MechLabHelper mechlab) {
-      Log.Debug?.Write("PreValidateDrop\n");
-      if (this.MechTonnageWeightMult > CustomActivatableEquipment.Core.Epsilon) {
-        float self_tonnage = (float)Math.Ceiling((double)this.Def.Tonnage);
-        float upLimit = (float)Math.Ceiling((double)(self_tonnage * this.MechTonnageWeightMult));
-        float downLimit = (float)Math.Ceiling((double)((self_tonnage - 1f) * this.MechTonnageWeightMult));
-        Log.Debug?.Write(" checking on tonnage. mech : " + downLimit + " - " + upLimit + "\n");
-        if ((mechlab.MechLab.activeMechDef.Chassis.Tonnage <= downLimit) || (mechlab.MechLab.activeMechDef.Chassis.Tonnage > upLimit)) {
-          string result = "This component is not sutable for this chassis. Tonnage must be " + (downLimit + 1f) + "-" + upLimit;
-          return result;
-        }
-      }
-      if (this.MechTonnageSlotsMult > CustomActivatableEquipment.Core.Epsilon) {
-        float self_tonnage = this.Def.InventorySize;
-        float upLimit = (float)Math.Ceiling((double)(self_tonnage * this.MechTonnageSlotsMult));
-        float downLimit = (float)Math.Ceiling((double)((self_tonnage - 1f) * this.MechTonnageSlotsMult));
-        Log.Debug?.Write(" checking on tonnage. mech : " + downLimit + " - " + upLimit + "\n");
-        if ((mechlab.MechLab.activeMechDef.Chassis.Tonnage <= downLimit) || (mechlab.MechLab.activeMechDef.Chassis.Tonnage > upLimit)) {
-          string result = "This component is not sutable for this chassis. Tonnage must be " + (downLimit + 1f) + "-" + upLimit;
-          return result;
-        }
-      }
-      if ((this.EngineTonnageWeightMult > CustomActivatableEquipment.Core.Epsilon) || (this.EngineTonnageSlotsMult > CustomActivatableEquipment.Core.Epsilon)) {
-        Log.Debug?.Write(" checking on engine weight\n");
-        List<MechComponentRef> components = mechlab.MechLab.activeMechInventory;
-        float engineTonnage = 0f;
-        foreach (var comp in components) {
-          if (comp.Def.IsCategory("EnginePart")) {
-            engineTonnage += comp.Def.Tonnage;
-          };
-        }
-        if (engineTonnage < CustomActivatableEquipment.Core.Epsilon) {
-          return string.Empty;
-        }
-        if (this.EngineTonnageWeightMult > CustomActivatableEquipment.Core.Epsilon) {
-          float self_tonnage = (float)Math.Ceiling((double)this.Def.Tonnage);
-          float upLimit = (float)Math.Ceiling((double)(self_tonnage * this.EngineTonnageWeightMult));
-          float downLimit = (float)Math.Ceiling((double)((self_tonnage - 1f) * this.EngineTonnageWeightMult));
-          Log.Debug?.Write(" checking on tonnage. engine : " + downLimit + " - " + upLimit + "\n");
-          if ((engineTonnage <= downLimit) || (engineTonnage > upLimit)) {
-            string result = "This component is not sutable for this chassis. Engine tonnage must be " + (downLimit + 1f) + "-" + upLimit;
-            return result;
-          }
-        }
-        if (this.EngineTonnageSlotsMult > CustomActivatableEquipment.Core.Epsilon) {
-          float self_tonnage = this.Def.InventorySize;
-          float upLimit = (float)Math.Ceiling((double)(self_tonnage * this.EngineTonnageSlotsMult));
-          float downLimit = (float)Math.Ceiling((double)((self_tonnage - 1f) * this.EngineTonnageSlotsMult));
-          Log.Debug?.Write(" checking on tonnage. engine : " + downLimit + " - " + upLimit + "\n");
-          if ((engineTonnage <= downLimit) || (engineTonnage > upLimit)) {
-            string result = "This component is not sutable for this chassis. Engine tonnage must be " + (downLimit + 1f) + "-" + upLimit;
-            return result;
-          }
-        }
-      }
-      if (this.NoUniqueCheck == false) {
-        foreach (var comp in mechlab.MechLab.activeMechInventory) {
-          ActivatableComponent activatable = comp.Def.GetComponent<ActivatableComponent>();
-          if (activatable != null) {
-            if (activatable.ButtonName == this.ButtonName) {
-              string result = "This mech already have component of the same type";
-              return result;
-            }
-          }
-        }
-      }
-      return string.Empty;
-      //mechlab.MechLab.activeMechDef.
     }
   }
   public enum AuraUpdateFix {
