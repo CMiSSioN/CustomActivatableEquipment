@@ -1006,8 +1006,11 @@ namespace CustomActivatableEquipment {
     }
     public static float getEffectiveComponentFailChance(MechComponent component) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
-      if (activatable == null) { return 0; }
+      if (activatable == null) { return 0f; }
       float FailChance = 0f;
+      //if ((activatable.CanBeactivatedManualy == false) && (ActivatableComponent.isComponentActivated(component) == false)) {
+      //  return 0f;
+      //}
       if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentFailChance) == true) {
         FailChance = component.StatCollection.GetStatistic(ActivatableComponent.CAEComponentFailChance).Value<float>();
       }
@@ -1401,58 +1404,6 @@ namespace CustomActivatableEquipment {
     Time,
     Position
   };
-  public class Settings {
-    public bool debug { get; set; }
-    public float AIComponentUsefullModifyer { get; set; }
-    public float AIComponentExtreamlyUsefulModifyer { get; set; }
-    public float AIOffenceUsefullCoeff { get; set; }
-    public float AIDefenceUsefullCoeff { get; set; }
-    public float AIHeatCoeffCoeff { get; set; }
-    public float AIOverheatCoeffCoeff { get; set; }
-    public float ToolTipWarningFailChance { get; set; }
-    public float ToolTipAlertFailChance { get; set; }
-    public float StartupMinHeatRatio { get; set; }
-    public bool StartupByHeatControl { get; set; }
-    public bool StoodUpPilotingRoll { get; set; }
-    public float StoodUpPilotingRollCoeff { get; set; }
-    public float DefaultArmsAbsenceStoodUpMod { get; set; }
-    public float LegAbsenceStoodUpMod { get; set; }
-    public List<string> AdditionalAssets { get; set; }
-    public float AIActivatableCheating { get; set; }
-    public AuraUpdateFix auraUpdateFix { get; set; }
-    public float auraUpdateMinTimeDelta { get; set; }
-    public float auraUpdateMinPosDelta { get; set; }
-    public AuraDef sensorsAura { get; set; }
-    public string unaffectedByHeadHitStatName { get; set; }
-    public float auraStartupTime { get; set; }
-    public float equipmentFlashFailChance { get; set; }
-    public Settings() {
-      debug = true;
-      AdditionalAssets = new List<string>();
-      AIComponentUsefullModifyer = 0.4f;
-      AIComponentExtreamlyUsefulModifyer = 0.6f;
-      AIOffenceUsefullCoeff = 0.2f;
-      AIDefenceUsefullCoeff = 0.2f;
-      AIHeatCoeffCoeff = 0.9f;
-      AIOverheatCoeffCoeff = 0.8f;
-      ToolTipWarningFailChance = 0.2f;
-      ToolTipAlertFailChance = 0.4f;
-      StartupByHeatControl = false;
-      StartupMinHeatRatio = 0.4f;
-      StoodUpPilotingRoll = false;
-      StoodUpPilotingRollCoeff = 0.1f;
-      DefaultArmsAbsenceStoodUpMod = -0.1f;
-      LegAbsenceStoodUpMod = -0.1f;
-      AIActivatableCheating = 0.8f;
-      auraUpdateFix = AuraUpdateFix.None;
-      auraUpdateMinTimeDelta = 1f;
-      auraUpdateMinPosDelta = 20f;
-      auraStartupTime = 10f;
-      sensorsAura = new AuraDef();
-      unaffectedByHeadHitStatName = "unaffectedByHeadHit";
-      equipmentFlashFailChance = 0.1f;
-    }
-  }
   public class ComponentToggle {
     public MechComponent component;
     public ActivatableComponent activatable;
@@ -1695,9 +1646,11 @@ namespace CustomActivatableEquipment {
     }
 
     public static Settings Settings = new Settings();
+    public static Settings GlobalSettings = new Settings();
     public static void FinishedLoading(List<string> loadOrder) {
       Log.Debug?.TWriteCritical(0, "FinishedLoading");
       try {
+        CustomSettings.ModsLocalSettingsHelper.RegisterLocalSettings("ActivatebleEquipment", "Activatable Equipment", LocalSettingsHelper.ResetSettings, LocalSettingsHelper.ReadSettings);
         //ExtendedDescriptionHelper.DetectMechEngineer();
       } catch (Exception e) {
         Log.Debug?.TWriteCritical(0, e.ToString());
@@ -1707,7 +1660,8 @@ namespace CustomActivatableEquipment {
       CustomActivatableEquipment.Log.BaseDirectory = directory;
       CustomActivatableEquipment.Log.InitLog();
       Core.Settings = JsonConvert.DeserializeObject<CustomActivatableEquipment.Settings>(settingsJson);
-        var settingsObject = (JObject)JsonConvert.DeserializeObject(settingsJson);
+      Core.GlobalSettings = JsonConvert.DeserializeObject<CustomActivatableEquipment.Settings>(settingsJson);
+      var settingsObject = (JObject)JsonConvert.DeserializeObject(settingsJson);
         var sensorAura = settingsObject["sensorsAura"];
         var statusEffects = (JArray)sensorAura?["statusEffects"];
         var firstStatusEffect = statusEffects?[0];

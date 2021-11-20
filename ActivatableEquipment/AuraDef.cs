@@ -29,8 +29,12 @@ namespace CustomActivatableEquipment {
     public string Name { get; set; }
     public AuraLineType LineType { get; set; }
     public bool isSpining { get; set; }
+    [JsonIgnore]
     public Color AuraColor { get; private set; }
     public string ReticleColor {
+      get {
+        return "#" + ColorUtility.ToHtmlStringRGB(this.AuraColor);
+      }
       set {
         Color temp;
         if (ColorUtility.TryParseHtmlString(value, out temp)) {

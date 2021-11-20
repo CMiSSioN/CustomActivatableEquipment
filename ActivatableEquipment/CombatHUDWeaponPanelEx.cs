@@ -263,28 +263,51 @@ namespace CustomActivatableEquipment {
         acomps.Add(ability.parentComponent);
       }
       List<MechComponent> ncomps = new List<MechComponent>();
+      Dictionary<string, List<MechComponent>> stackComps = new Dictionary<string, List<MechComponent>>();
       foreach (MechComponent component in unit.allComponents) {
         Log.Debug?.WL(1, "component:" + component.defId);
         ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
         if (acomps.Contains(component)) { Log.Debug?.WL(2, "have ability"); ncomps.Add(component); continue; };
         if (activatable == null) { Log.Debug?.WL(2, "not activatable"); continue; }
         if (activatable.HideInUI) { Log.Debug?.WL(2, "should be hidden in UI"); continue; }
-        if (ActivatableComponent.isComponentActivated(component)) { Log.Debug?.WL(2, "activated"); ncomps.Add(component); continue; };
-        if (activatable.CanBeactivatedManualy) { Log.Debug?.WL(2, "can be activated manualy"); ncomps.Add(component); continue; };
-        if (activatable.AutoActivateOnHeat > Core.Epsilon) { Log.Debug?.WL(2, "activate by heat"); ncomps.Add(component); continue; }
+        if(component.IsFunctional == false){ Log.Debug?.WL(2, "not functional"); }
+        if (activatable.CanBeactivatedManualy) {
+          Log.Debug?.WL(2, "can be activated manualy"); ncomps.Add(component);
+        } else {
+          if((activatable.AutoActivateOnHeat > Core.Epsilon)||(activatable.AutoActivateOnOverheatLevel > Core.Epsilon)) {
+            if(stackComps.TryGetValue(component.defId, out List<MechComponent> actComps) == false) {
+              actComps = new List<MechComponent>();
+              stackComps.Add(component.defId, actComps);
+            }
+            actComps.Add(component);
+          }
+        }
+        //if (ActivatableComponent.isComponentActivated(component)) { Log.Debug?.WL(2, "activated"); ncomps.Add(component); continue; };
+        //if (activatable.CanBeactivatedManualy) { Log.Debug?.WL(2, "can be activated manualy"); ncomps.Add(component); continue; };
+        //if (activatable.AutoActivateOnHeat > Core.Epsilon) { Log.Debug?.WL(2, "activate by heat"); ncomps.Add(component); continue; }
       }
-      for (int index = 0; index < ncomps.Count; ++index) {
+      int desiredSlots = ncomps.Count + stackComps.Count;
+      for (int index = 0; index < desiredSlots; ++index) {
         if (index >= slots.Count) {
           CombatHUDEquipmentSlotEx nslot = CombatHUDEquipmentSlotEx.Init(HUD, weaponPanel, this);
           if (nslot != null) clickReceivers.Add(nslot.hoverSidePanel, nslot);
         }
-        if (index < slots.Count) {
+        if ((index < slots.Count)&&(index < ncomps.Count)) {
           operatinalSlots.Add(slots[index]);
-          slots[index].Init(ncomps[index]);
+          slots[index].Init(ncomps[index], 1);
           slots[index].RealState = true;
         }
       }
-      for (int index = ncomps.Count; index < slots.Count; ++index) {
+      int slot_index = ncomps.Count;
+      foreach (var stackSlot in stackComps) {
+        if ((slot_index < slots.Count)) {
+          operatinalSlots.Add(slots[slot_index]);
+          slots[slot_index].Init(stackSlot.Value[0], stackSlot.Value.Count);
+          slots[slot_index].RealState = true;
+        }
+        ++slot_index;
+      }
+      for (int index = desiredSlots; index < slots.Count; ++index) {
         slots[index].Hide();
       }
       CombatHUDEquipmentSlotEx.Clear();
@@ -349,12 +372,131 @@ namespace CustomActivatableEquipment {
       }
     }
   }
+  public class CombatHUDEqupmentSlotHeat: MonoBehaviour {
+    public CombatHUDEquipmentSlotEx parent { get; set; } = null;
+    public RectTransform parent_rect { get; set; } = null;
+    public RectTransform background_rect { get; set; } = null;
+    public SVGImage background_image { get; set; } = null;
+    public RectTransform heatbar_rect { get; set; } = null;
+    public SVGImage heatbar_image { get; set; } = null;
+    public RectTransform activate_rect { get; set; } = null;
+    public SVGImage activate_image { get; set; } = null;
+    public RectTransform deactivate_rect { get; set; } = null;
+    public SVGImage deactivate_image { get; set; } = null;
+    public void Init(CombatHUDEquipmentSlotEx parent) {
+      this.parent = parent;
+      parent_rect = parent.mainImage.gameObject.GetComponent<RectTransform>();
 
+      GameObject heatbar_go = GameObject.Instantiate(parent.mainImage.gameObject.transform.Find("check_Image").gameObject);
+      heatbar_go.name = "heat_bar";
+      heatbar_go.GetComponent<LayoutElement>().ignoreLayout = true;
+      heatbar_go.transform.SetParent(this.gameObject.transform);
+      heatbar_image = heatbar_go.GetComponent<SVGImage>();
+      CustomSvgCache.setIcon(heatbar_image, "activatable_heat", parent.HUD.Combat.DataManager);
+      heatbar_rect = heatbar_go.GetComponent<RectTransform>();
+      heatbar_rect.sizeDelta = new Vector2(parent_rect.sizeDelta.x, parent_rect.sizeDelta.y * Core.Settings.componentHeatBarSize);
+      heatbar_go.transform.localScale = Vector3.one;
+      heatbar_go.transform.localPosition = new Vector3(0f, parent_rect.sizeDelta.y * Core.Settings.componentHeatBarSize - parent_rect.sizeDelta.y, 0f);
+      heatbar_go.transform.localRotation = Quaternion.identity;
+      heatbar_rect.pivot = new Vector2(0f, 1f);
+
+      GameObject activate_go = GameObject.Instantiate(parent.mainImage.gameObject.transform.Find("check_Image").gameObject);
+      activate_go.name = "activate_bar";
+      activate_go.GetComponent<LayoutElement>().ignoreLayout = true;
+      activate_go.transform.SetParent(this.gameObject.transform);
+      activate_image = activate_go.GetComponent<SVGImage>();
+      CustomSvgCache.setIcon(activate_image, "activatable_heat", parent.HUD.Combat.DataManager);
+      activate_rect = activate_go.GetComponent<RectTransform>();
+      activate_rect.sizeDelta = new Vector2(parent_rect.sizeDelta.x / 100f, parent_rect.sizeDelta.y * Core.Settings.componentHeatBarSize);
+      activate_go.transform.localScale = Vector3.one;
+      activate_go.transform.localPosition = new Vector3(0f, parent_rect.sizeDelta.y * Core.Settings.componentHeatBarSize - parent_rect.sizeDelta.y, 0f);
+      activate_go.transform.localRotation = Quaternion.identity;
+      activate_rect.pivot = new Vector2(0.5f, 1f);
+
+      GameObject deactivate_go = GameObject.Instantiate(parent.mainImage.gameObject.transform.Find("check_Image").gameObject);
+      deactivate_go.name = "activate_bar";
+      deactivate_go.GetComponent<LayoutElement>().ignoreLayout = true;
+      deactivate_go.transform.SetParent(this.gameObject.transform);
+      deactivate_image = deactivate_go.GetComponent<SVGImage>();
+      CustomSvgCache.setIcon(deactivate_image, "activatable_heat", parent.HUD.Combat.DataManager);
+      deactivate_rect = deactivate_go.GetComponent<RectTransform>();
+      deactivate_rect.sizeDelta = new Vector2(parent_rect.sizeDelta.x / 100f, parent_rect.sizeDelta.y * Core.Settings.componentHeatBarSize);
+      deactivate_go.transform.localScale = Vector3.one;
+      deactivate_go.transform.localPosition = new Vector3(0f, parent_rect.sizeDelta.y * Core.Settings.componentHeatBarSize - parent_rect.sizeDelta.y, 0f);
+      deactivate_go.transform.localRotation = Quaternion.identity;
+      deactivate_rect.pivot = new Vector2(0.5f, 1f);
+
+      GameObject background_go = GameObject.Instantiate(parent.mainImage.gameObject.transform.Find("check_Image").gameObject);
+      background_go.name = "heat_background";
+      background_go.GetComponent<LayoutElement>().ignoreLayout = true;
+      background_go.transform.SetParent(this.gameObject.transform);
+      background_image = background_go.GetComponent<SVGImage>();
+      CustomSvgCache.setIcon(background_image, "activatable_heat_border", parent.HUD.Combat.DataManager);
+      background_rect = background_go.GetComponent<RectTransform>();
+      background_rect.sizeDelta = new Vector2(parent_rect.sizeDelta.x, parent_rect.sizeDelta.y * Core.Settings.componentHeatBarSize);
+      background_go.transform.localScale = Vector3.one;
+      background_go.transform.localPosition = new Vector3(0f, parent_rect.sizeDelta.y * Core.Settings.componentHeatBarSize - parent_rect.sizeDelta.y, 0f);
+      background_go.transform.localRotation = Quaternion.identity;
+      background_rect.pivot = new Vector2(0f, 1f);
+    }
+    public void UIInit() {
+      Vector2 size = background_rect.sizeDelta;
+      size.x = parent_rect.sizeDelta.x;
+      background_rect.sizeDelta = size;
+      background_image.color = Core.Settings.componentHeatBarBorderColor.color;
+      activate_image.color = Core.Settings.componentHeatBarActivateColor.color;
+      deactivate_image.color = Core.Settings.componentHeatBarDeactivateColor.color;
+    }
+
+    public void UpdateHeatBounds() {
+      float activateSize = 1f;
+      float deactivateSize = 1f;
+      if (this.parent.component.parent is Mech mech) {
+        if (this.parent.activeDef.AutoActivateOnOverheatLevel > Core.Epsilon) {
+          activateSize = this.parent.activeDef.AutoActivateOnOverheatLevel * mech.OverheatLevel / mech.MaxHeat;
+        } else if (this.parent.activeDef.AutoActivateOnHeat > Core.Epsilon) {
+          activateSize = this.parent.activeDef.AutoActivateOnHeat / mech.MaxHeat;
+        }
+        if (this.parent.activeDef.AutoDeactivateOverheatLevel > Core.Epsilon) {
+          deactivateSize = this.parent.activeDef.AutoDeactivateOverheatLevel * mech.OverheatLevel / mech.MaxHeat;
+        } else if (this.parent.activeDef.AutoDeactivateOnHeat > Core.Epsilon) {
+          deactivateSize = this.parent.activeDef.AutoDeactivateOnHeat / mech.MaxHeat;
+        }
+        Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.UIInit " + this.parent.component.defId);
+        Log.Debug?.WL(1, "AutoActivateOnOverheatLevel:" + this.parent.activeDef.AutoActivateOnOverheatLevel);
+        Log.Debug?.WL(1, "AutoDeactivateOverheatLevel:" + this.parent.activeDef.AutoDeactivateOverheatLevel);
+        Log.Debug?.WL(1, "AutoActivateOnHeat:" + this.parent.activeDef.AutoActivateOnHeat);
+        Log.Debug?.WL(1, "activateSize:" + activateSize);
+        Log.Debug?.WL(1, "deactivateSize:" + deactivateSize);
+        Log.Debug?.WL(1, "OverheatLevel:" + mech.OverheatLevel);
+        Log.Debug?.WL(1, "MaxHeat:" + mech.MaxHeat);
+      }
+      Vector2 size = background_rect.sizeDelta;
+      activate_rect.localPosition = new Vector3(size.x * activateSize, activate_rect.localPosition.y, 0f);
+      deactivate_rect.localPosition = new Vector3(size.x * deactivateSize, deactivate_rect.localPosition.y, 0f);
+    }
+    public CombatHUDHeatMeter HeatMeter { get; set; }
+    public void Update() {
+      Vector2 size = background_rect.sizeDelta;
+      if (parent.component.parent is Mech mech) {
+        if (mech.isHasHeat()) {
+          size.x = parent_rect.sizeDelta.x * ((float)CombatHUDHeatDisplay.GetProjectedHeat(mech,this.parent.HUD) / (float)mech.MaxHeat);
+          if (size.x < 0f) { size.x = 0f; }
+          heatbar_rect.sizeDelta = size;
+          //Color color = this.parent.HUD.MechTray.ActorInfo.HeatDisplay.PredictiveBarHighFlash.color;
+          //color.a = 0.5f;
+          heatbar_image.color = this.parent.HUD.MechTray.ActorInfo.HeatDisplay.PredictiveBarHighFlash.color;
+        }
+      }
+    }
+  }
   public class CombatHUDEquipmentSlotEx : EventTrigger {
+    public int ComponentsCount { get; set; } = 1;
     public CombatHUDWeaponPanelEx panelEx { get; set; }
     public CombatHUD HUD { get; private set; }
     public CombatHUDWeaponPanel weaponPanel { get; private set; }
     public CombatHUDEquipmentPanel equipPanel { get; private set; }
+    public CombatHUDEqupmentSlotHeat heatMeter { get; private set; }
     public MechComponent component { get; private set; }
     public ActivatableComponent activeDef { get; private set; }
     public LocalizableText nameText { get; set; }
@@ -369,6 +511,7 @@ namespace CustomActivatableEquipment {
     public bool RealState { get; set; }
     private bool hovered { get; set; }
     public bool ui_inited { get; private set; }
+    public bool useProjectedHeat { get; private set; } = false;
     private bool isNeedFlashing() {
       if (component == null) { return false; }
       if (activeDef == null) { return false; }
@@ -377,7 +520,7 @@ namespace CustomActivatableEquipment {
       if (component.FailChance() < Core.Settings.equipmentFlashFailChance) { return false; }
       return true;
     }
-    private bool flashing { get; set; }
+    private bool background_flashing { get; set; }
     private float flashSpeedCurrent;
     private float flashT;
     private UILookAndColorConstants LookAndColorConstants { get; set; }
@@ -388,7 +531,7 @@ namespace CustomActivatableEquipment {
       this.chargesText.color = color;
     }
     private void RefreshHighlighted() {
-      flashing = false;
+      background_flashing = false;
       flashSpeedCurrent = 2f;
       flashT = 0f;
       if (this.component.IsFunctional == false) {
@@ -408,9 +551,9 @@ namespace CustomActivatableEquipment {
       this.ShowTextColor(this.LookAndColorConstants.WeaponSlotColors.HighlightedTextColor, this.LookAndColorConstants.WeaponSlotColors.HighlightedTextColor);
     }
     private Color GetFailTextColor(float failChance) {
-      if (failChance <= 0.15f) { return this.LookAndColorConstants.WeaponSlotColors.qualityColorA; }
-      if (failChance <= 0.30f) { return this.LookAndColorConstants.WeaponSlotColors.qualityColorB; }
-      if (failChance <= 0.50f) { return this.LookAndColorConstants.WeaponSlotColors.qualityColorC; }
+      if (failChance <= 15f) { return this.LookAndColorConstants.WeaponSlotColors.qualityColorA; }
+      if (failChance <= 30f) { return this.LookAndColorConstants.WeaponSlotColors.qualityColorB; }
+      if (failChance <= 50f) { return this.LookAndColorConstants.WeaponSlotColors.qualityColorC; }
       return this.LookAndColorConstants.WeaponSlotColors.qualityColorD;
     }
     private void RefreshNonHighlighted() {
@@ -426,12 +569,12 @@ namespace CustomActivatableEquipment {
         this.ShowTextColor(this.LookAndColorConstants.WeaponSlotColors.UnavailableSelTextColor, this.LookAndColorConstants.WeaponSlotColors.UnavailableSelTextColor);
         return;
       }
-      flashing = isNeedFlashing();
-      if (flashing == false) {
+      background_flashing = isNeedFlashing();
+      if (background_flashing == false) {
         this.mainImage.color = this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor;
       }
       this.checkImage.color = this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor;
-      this.ShowTextColor(this.LookAndColorConstants.WeaponSlotColors.AvailableTextColor, this.GetFailTextColor(CombatHUDEquipmentSlotEx.FailChance(component)));
+      this.ShowTextColor(this.LookAndColorConstants.WeaponSlotColors.AvailableTextColor, this.GetFailTextColor(this.failChance));
     }
     public void UIInit() {
       if (panelEx == null) { return; }
@@ -448,15 +591,57 @@ namespace CustomActivatableEquipment {
       float widthMod = destWidth / width;
       size.x = size.x * (widthMod);
       tr.sizeDelta = size;
+      this.heatMeter.UIInit();
+      //float activateSize = 1f;
+      //float deactivateSize = 1f;
+      //if (this.component.parent is Mech mech) {
+      //  if (this.activeDef.AutoActivateOnOverheatLevel > Core.Epsilon) {
+      //    activateSize = this.activeDef.AutoActivateOnOverheatLevel * mech.OverheatLevel / mech.MaxHeat;
+      //  } else if (this.activeDef.AutoActivateOnHeat > Core.Epsilon) {
+      //    activateSize = this.activeDef.AutoActivateOnHeat / mech.MaxHeat;
+      //  }
+      //  if (this.activeDef.AutoDeactivateOverheatLevel > Core.Epsilon) {
+      //    deactivateSize = this.activeDef.AutoDeactivateOverheatLevel * mech.OverheatLevel / mech.MaxHeat;
+      //  } else if (this.activeDef.AutoDeactivateOnHeat > Core.Epsilon) {
+      //    deactivateSize = this.activeDef.AutoDeactivateOnHeat / mech.MaxHeat;
+      //  }
+      //  Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.UIInit " + this.component.defId);
+      //  Log.Debug?.WL(1, "AutoActivateOnOverheatLevel:"+ this.activeDef.AutoActivateOnOverheatLevel);
+      //  Log.Debug?.WL(1, "AutoDeactivateOverheatLevel:" + this.activeDef.AutoDeactivateOverheatLevel);
+      //  Log.Debug?.WL(1, "AutoActivateOnHeat:" + this.activeDef.AutoActivateOnHeat);
+      //  Log.Debug?.WL(1, "activateSize:" + activateSize);
+      //  Log.Debug?.WL(1, "deactivateSize:" + deactivateSize);
+      //  Log.Debug?.WL(1, "OverheatLevel:" + mech.OverheatLevel);
+      //  Log.Debug?.WL(1, "MaxHeat:" + mech.MaxHeat);
+      //}
+      //heatBackground.GetComponent<RectTransform>().sizeDelta = new Vector2(size.x, size.y/2f);
+      //heatActivateBorder.GetComponent<RectTransform>().sizeDelta = new Vector2(activateSize * size.x, size.y/2f);
+      //heatDeactivateBorder.GetComponent<RectTransform>().sizeDelta = new Vector2(deactivateSize * size.x, size.y/2f);
+      //heatBackground.GetComponent<SVGImage>().color = new Color(1f, 1f, 1f, 0.5f);
+      //Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.UIInit color:"+ heatBackground.GetComponent<SVGImage>().color);
       ui_inited = true;
     }
+    //private RectTransform heatBackgroundRT = null;
+    //private RectTransform backgroundRT = null;
     public void Update() {
       if (ui_inited == false) { UIInit(); }
-      if (flashing == false) { return; }
-      flashT += Time.deltaTime * flashSpeedCurrent;
-      if (flashT > 1f) { flashT = 1f; flashSpeedCurrent = -2f; }
-      if (flashT < 0f) { flashT = 0f; flashSpeedCurrent = 2f; }
-      this.mainImage.color = Color.Lerp(this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor,Color.red, flashT);
+      if (background_flashing) {
+        flashT += Time.deltaTime * flashSpeedCurrent;
+        if (flashT > 1f) { flashT = 1f; flashSpeedCurrent = -2f; }
+        if (flashT < 0f) { flashT = 0f; flashSpeedCurrent = 2f; }
+        this.mainImage.color = Color.Lerp(this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor, Color.red, flashT);
+      }
+      //if (heatBackgroundRT == null) {
+      //  heatBackgroundRT = heatBackground.GetComponent<RectTransform>();
+      //}
+      //if (backgroundRT == null) {
+      //  backgroundRT = this.mainImage.gameObject.GetComponent<RectTransform>();
+      //}
+      //if (this.component.parent is Mech mech) {
+      //  int heat = CombatHUDHeatDisplay.GetProjectedHeat(mech, this.HUD);
+      //  float heatSize = (float)heat / (float)mech.MaxHeat;
+      //  heatBackgroundRT.sizeDelta = new Vector2(backgroundRT.sizeDelta.x * heatSize, backgroundRT.sizeDelta.y / 2f);
+      //}
     }
     public override void OnPointerEnter(PointerEventData eventData) {
       Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.OnPointerEnter " + component.defId);
@@ -481,7 +666,7 @@ namespace CustomActivatableEquipment {
       if (activatable.CanActivateAfterMove == false) {
         if (component.parent.HasMovedThisRound) { return; }
       }
-      if(activatable.CanActivateAfterFire == false) {
+      if (activatable.CanActivateAfterFire == false) {
         if (component.parent.HasFiredThisRound) { return; }
       }
       if (ActivatableComponent.isOutOfCharges(component)) { return; }
@@ -520,13 +705,32 @@ namespace CustomActivatableEquipment {
       return state;
     }
     public static string InterpolateUIName(MechComponent component) {
-      return component.UIName.ToString().Replace("{location}",component.parent.GetAbbreviatedChassisLocation(component.Location));
+      return component.UIName.ToString().Replace("{location}", component.parent.GetAbbreviatedChassisLocation(component.Location));
       //return component.UIName.ToString();
     }
+
+    public float failChance { get; private set; }
+    public float shownFailChance { get; private set; } = float.NaN;
+    public void updateFailChance() {
+      if ((this.useProjectedHeat == false)||(this.HUD.MechTray.HeatMeterHolder.activeInHierarchy == false)) {
+        if (this.shownFailChance != failChance) {
+          this.shownFailChance = failChance;
+          this.failText.SetText(string.Format("{0}%", this.failChance));
+        }
+        return;
+      }
+    }
+    //public bool TestPredictedHeat(out bool isActivated) {
+    //  isActivated = ActivatableComponent.isComponentActivated(this.component);
+    //  if (useProjectedHeat == false) { return false; }
+    //  if (this.component.parent is Mech mech) {
+    //    int projectedHeat = CombatHUDHeatDisplay.GetProjectedHeat(mech, this.HUD);
+    //  }
+    //}
     public void RefreshComponent() {
       this.Show();
       if (hovered == false) { RefreshNonHighlighted(); } else { RefreshHighlighted(); };
-      nameText.SetText(InterpolateUIName(component));
+      nameText.SetText(InterpolateUIName(component) + (this.ComponentsCount>1?("x"+ComponentsCount.ToString()):""));
       if ((component.IsFunctional == false) || (activeDef == null)) {
         chargesText.SetText("--");
         stateText.SetText("--");
@@ -538,8 +742,8 @@ namespace CustomActivatableEquipment {
         }
         string state = CombatHUDEquipmentSlotEx.GetState(component, activeDef);
         stateText.SetText(state);
-        //float failChance = Mathf.Round(CombatHUDEquipmentSlotEx.FailChance(component)*100.0f);
-        failText.SetText("{0}%", Mathf.Round(CombatHUDEquipmentSlotEx.FailChance(component) * 100.0f));
+        this.failChance = Mathf.Round(CombatHUDEquipmentSlotEx.FailChance(component)*100.0f);
+        this.failText.SetText(string.Format("{0}%", this.failChance));
       }
       AbstractActor actor = component.parent;
       bool forceInactive = actor.HasActivatedThisRound || actor.MovingToPosition != null || actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved;
@@ -551,7 +755,7 @@ namespace CustomActivatableEquipment {
       if (RealState) {
         //Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.Show "+component.defId+" abilities:"+abilities.Count);
         if(this.gameObject.activeInHierarchy == false) {
-          flashing = isNeedFlashing();
+          background_flashing = isNeedFlashing();
           flashSpeedCurrent = 2f;
           flashT = 0f;
         }
@@ -572,7 +776,7 @@ namespace CustomActivatableEquipment {
         button.transform.parent.gameObject.SetActive(false);
         button.gameObject.SetActive(false);
       }
-      flashing = false;
+      background_flashing = false;
       flashSpeedCurrent = 2f;
       flashT = 0f;
     }
@@ -612,12 +816,27 @@ namespace CustomActivatableEquipment {
           button.ResetButtonIfNotActive(actor);
       }
     }
-    public void Init(MechComponent component) {
+    public void Init(MechComponent component, int count) {
+      ComponentsCount = count;
+      useProjectedHeat = false;
+      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+      if(activatable != null) {
+        if (activatable.CanBeactivatedManualy == false) {
+          if(activatable.AutoActivateOnHeat > Core.Epsilon || activatable.AutoActivateOnOverheatLevel > Core.Epsilon) {
+            useProjectedHeat = true;
+          }
+        }
+      }
+      if (component.parent.isHasHeat() == false) { useProjectedHeat = false; }
+      this.heatMeter.gameObject.SetActive(useProjectedHeat);
+      //this.heatBackground.SetActive(useProjectedHeat);
+      //this.heatActivateBorder.SetActive(useProjectedHeat);
+      //this.heatDeactivateBorder.SetActive(useProjectedHeat);
       hovered = false;
       ui_inited = false;
       this.component = component;
       this.activeDef = component.componentDef.GetComponent<ActivatableComponent>();
-      this.hoverSidePanel.Title = new Localize.Text(component.Description.UIName);
+      this.hoverSidePanel.Title = new Localize.Text(component.Description.UIName + (ComponentsCount > 1 ? " x" + ComponentsCount.ToString() : ""));
       Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.Init "+component.defId);
       ExtendedDetails extDescr = component.componentDef.GetComponent<ExtendedDetails>();
       if (extDescr == null) {
@@ -670,6 +889,10 @@ namespace CustomActivatableEquipment {
         }
       }
       for (int t = abilities.Count; t < buttons.Count; ++t) { buttons[t].gameObject.SetActive(false); buttons[t].gameObject.transform.parent.gameObject.SetActive(false); };
+
+      if (useProjectedHeat) {
+        this.heatMeter.UpdateHeatBounds();
+      }
       Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.Init " + component.defId + " abilities:" + this.abilities.Count);
     }
     public static CombatHUDEquipmentSlotEx Init(CombatHUD HUD, CombatHUDWeaponPanel weaponPanel, CombatHUDEquipmentPanel equipPanel) {
@@ -740,6 +963,15 @@ namespace CustomActivatableEquipment {
         result.hoverSidePanel.Init(HUD);
         result.hoverSidePanel.Title = new Localize.Text("__/CAE.COMPONENT/__");
         result.hoverSidePanel.Description = new Localize.Text("__/CAE.COMPONENT_DESCRIPTION/__");
+
+        GameObject heatmetergo = new GameObject("heatmeter");
+        heatmetergo.transform.SetParent(result.mainImage.gameObject.transform);
+        heatmetergo.transform.SetAsFirstSibling();
+        heatmetergo.transform.localScale = Vector3.one;
+        heatmetergo.transform.localPosition = Vector3.zero;
+        heatmetergo.transform.localRotation = Quaternion.identity;
+        result.heatMeter = heatmetergo.AddComponent<CombatHUDEqupmentSlotHeat>();
+        result.heatMeter.Init(result);
         //GameObject.Destroy(ui.Find("check_Image").gameObject);
         //GameObject.Destroy(slot_ex.transform.Find("flag_multiTarget_Diamond (1)").gameObject);
       }
