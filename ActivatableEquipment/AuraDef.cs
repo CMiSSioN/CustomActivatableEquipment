@@ -48,6 +48,8 @@ namespace CustomActivatableEquipment {
     public float Range { get; set; }
     public string RangeStatistic { get; set; }
     public bool RemoveOnSensorLock { get; set; }
+    public bool NotApplyMoving { get; set; } = false;
+    public bool ApplyOnlyMoving { get; set; } = false;
     public bool HideOnNotSelected { get; set; }
     public bool NotShowOnSelected { get; set; }
     public bool FloatieAtEndOfMove { get; set; }

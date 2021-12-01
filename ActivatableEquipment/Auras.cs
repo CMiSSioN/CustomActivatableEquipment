@@ -81,14 +81,41 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(Effect) })]
   public static class AbstractActor_ProcessAddedMark {
     public static void Postfix(AbstractActor __instance) {
-      AuraActorBody body = __instance.bodyAura();
-      List<AuraBubble> auras = body.affectedAurasEffects.Keys.ToList();
-      foreach (AuraBubble aura in auras) {
-        if (aura.Def.RemoveOnSensorLock && __instance.IsSensorLocked) {
-          body.RemoveAuraEffects(aura, false, true);
+      try {
+        AuraActorBody body = __instance.bodyAura();
+        if (body != null) {
+          List<AuraBubble> auras = body.affectedAurasEffects.Keys.ToList();
+          foreach (AuraBubble aura in auras) {
+            if (aura.Def.RemoveOnSensorLock && __instance.IsSensorLocked) {
+              body.RemoveAuraEffects(aura, false, true);
+            }
+          }
         }
+      }catch(Exception e) {
+        Log.Error?.TWL(0,e.ToString(), true);
       }
       //body.ReapplyAllEffects();
+    }
+  }
+  [HarmonyPatch(typeof(AbstractActor))]
+  [HarmonyPatch("DistMovedThisRound")]
+  [HarmonyPatch(MethodType.Setter)]
+  [HarmonyPatch(new Type[] { typeof(float) })]
+  public static class AbstractActor_DistMovedThisRound_set {
+    public static void Postfix(AbstractActor __instance, float value) {
+      try {
+        AuraActorBody body = __instance.bodyAura();
+        if (body != null) {
+          List<AuraBubble> auras = body.affectedAurasEffects.Keys.ToList();
+          foreach (AuraBubble aura in auras) {
+            if (aura.Def.NotApplyMoving && value > 1.0f) { body.RemoveAuraEffects(aura, false, true); }
+            if (aura.Def.ApplyOnlyMoving && value < 1.0f) { body.RemoveAuraEffects(aura, false, true); }
+          }
+          body.RetriggerEnter(false, true);
+        }
+      }catch(Exception e) {
+        Log.Error?.TWL(0,e.ToString(),true);
+      }
     }
   }
   /*[HarmonyPatch(typeof(AbstractActor))]
@@ -121,8 +148,7 @@ namespace CustomActivatableEquipment {
         Log.Debug?.TWL(0,"!WARNING: "+__instance.DisplayName+":"+__instance.PilotableActorDef.Description.Id+" without body aura",true);
         return;
       }
-      Collider[] colliders = Physics.OverlapSphere(body.transform.position, body.collider.radius);
-      foreach (Collider collider in colliders) { body.OnTriggerEnter(collider); }
+      body.RetriggerEnter(true, false);
     }
   }
   public static partial class CAEAuraHelper {
@@ -451,7 +477,7 @@ namespace CustomActivatableEquipment {
         if (this.owner.IsSensorLocked && aura.Def.RemoveOnSensorLock) { action = "SUPPRESSED"; }
         if (nature != FloatieMessage.MessageNature.NotSet) {
           if (owner.Combat == null) {
-            Log.Debug?.TWriteCritical(0, "This is reall fucking shit. Combatant without Combat inited");
+            Log.Debug?.TWriteCritical(0, "This is really fucking shit. Combatant without Combat inited");
           } else {
             if (owner.Combat.MessageCenter == null) {
               owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(aura.owner.GUID, owner.GUID, new Text("{0} {1}", aura.Def.Name, action), nature));
@@ -629,6 +655,16 @@ namespace CustomActivatableEquipment {
     void Awake() {
       Log.Debug?.Write("Body collider awake " + owner.DisplayName + ":" + owner.GUID + "\n");
     }
+    public void RetriggerEnter(bool sensorLock, bool moveDist) {
+      Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, this.collider.radius);
+      foreach (Collider collider in hitColliders) {
+        AuraBubble aura = collider.gameObject.GetComponent<AuraBubble>();
+        if (aura == null) { continue; }
+        if ((aura.Def.RemoveOnSensorLock) && (sensorLock)) { this.OnTriggerEnter(collider); }
+        if ((aura.Def.NotApplyMoving) && (moveDist)) { this.OnTriggerEnter(collider); }
+        if ((aura.Def.ApplyOnlyMoving) && (moveDist)) { this.OnTriggerEnter(collider); }
+      }
+    }
     public void OnTriggerEnter(Collider other) {
       AuraBubble aura = other.gameObject.GetComponent<AuraBubble>();
       if (aura == null) { return; }
@@ -637,17 +673,14 @@ namespace CustomActivatableEquipment {
       if (aura.owner.IsDead) { return; }
       if (affectedAurasEffects.ContainsKey(aura)) { return; }
       if (owner.IsSensorLocked && aura.Def.RemoveOnSensorLock) { return; };
+      if ((owner.DistMovedThisRound > 1.0f) && aura.Def.NotApplyMoving) { return; }
+      if ((owner.DistMovedThisRound < 1.0f) && aura.Def.ApplyOnlyMoving) { return; }
       if (aurasToChange.TryGetValue(aura, out bool isAdd)) {
         if (isAdd == true) { return; }
         aurasToChange[aura] = true;
       } else {
         aurasToChange.Add(aura, true);
       }
-      //ApplyAuraEffects(aura, false);
-      //aura.owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(owner.GUID, owner.GUID,
-      //"AURA FROM " + aura.owner.DisplayName + " ADD",
-      //FloatieMessage.MessageNature.Buff
-      //));
       Log.Debug?.Write("Collision enter " + owner.DisplayName + ":" + owner.GUID + " -> " + aura.owner.DisplayName + ":" + aura.owner.GUID + " r:" + aura.collider.radius + "/" + Vector3.Distance(owner.CurrentPosition, aura.owner.CurrentPosition) + "\n");
     }
     public void OnTriggerExit(Collider other) {
@@ -660,13 +693,6 @@ namespace CustomActivatableEquipment {
       } else {
         aurasToChange.Add(aura, false);
       }
-      //changeQueue.Enqueue(new AuraChangeRequest(false, aura));
-
-      //RemoveAuraEffects(aura, true, false);
-      //aura.owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(owner.GUID, owner.GUID,
-      //"AURA FROM " + aura.owner.DisplayName + " REMOVE",
-      //FloatieMessage.MessageNature.Debuff
-      //));
       Log.Debug?.Write("Collision exit " + owner.DisplayName + ":" + owner.GUID + " -> " + aura.owner.DisplayName + ":" + aura.owner.GUID + " r:" + aura.collider.radius + "/" + Vector3.Distance(owner.CurrentPosition, aura.owner.CurrentPosition) + "\n");
     }
     public void Update() {

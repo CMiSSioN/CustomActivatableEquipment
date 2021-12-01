@@ -507,6 +507,18 @@ COMPOPNENT
       "Range": 100,                               - aura effect radius
       "RangeStatistic":""                         - unit's statistic name used to inflict aura range at runtime
       "RemoveOnSensorLock": true,                 - if true all aura effects will be removed if unit become sensor locked
+      "NotApplyMoving": false,					  - if true all aura effects
+	                                                     1. will not apply to target when target goes to aura range if target moved this round
+														 2. will be removed from target at end of move if target still in aura range
+														 3. will be applied to target at target activation if not applied previously 
+														 4. will be applied to target at the end of target activation if target had not been moved and not applied previously
+														 summary: if target is in aura range effect will exist only if target not moving during activation
+      "ApplyOnlyMoving": false,                   - if true all aura effects
+	                                                     1. will not apply to target when target goes to aura range if target not moved this round
+														 2. will be applied to target at end of move if target still in aura range
+														 3. will be removed from target at target activation
+														 4. will be removed from target the end of target activation if target had not been moved
+														 summary: if target is in aura range effect will exists from movement end till next activation
       "State": "Online",                          - Settings describing relationship with component activation state.
                                                     Possible values: Online/Offline/Persistent
                                                     Online - aura enabled if component is actived

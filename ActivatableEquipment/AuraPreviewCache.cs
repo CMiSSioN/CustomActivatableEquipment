@@ -204,6 +204,7 @@ namespace CustomActivatableEquipment {
         AuraBubble aura = collider.gameObject.GetComponent<AuraBubble>();
         if (aura == null) { continue; }
         if (aura.Def.RemoveOnSensorLock && movingActor.IsSensorLocked) { continue; }
+        if (aura.Def.NotApplyMoving && Vector3.Distance(movingActor.CurrentPosition, position) > 1.0f) { continue; }
         if (aura.owner.GUID == movingActor.GUID) { continue; }
         if (body.affectedAurasEffects.ContainsKey(aura) == false) {
           newAuras.Add(aura);
