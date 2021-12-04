@@ -82,6 +82,7 @@ namespace CustomActivatableEquipment {
   public static class AbstractActor_ProcessAddedMark {
     public static void Postfix(AbstractActor __instance) {
       AuraActorBody body = __instance.bodyAura();
+      if (body == null) { return; }
       List<AuraBubble> auras = body.affectedAurasEffects.Keys.ToList();
       foreach (AuraBubble aura in auras) {
         if (aura.Def.RemoveOnSensorLock && __instance.IsSensorLocked) {
