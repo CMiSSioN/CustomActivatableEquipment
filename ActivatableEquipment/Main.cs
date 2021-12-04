@@ -333,6 +333,11 @@ namespace CustomActivatableEquipment {
             return null;
         }
     }
+    public static Log Error {
+      get {
+        return m_log;
+      }
+    }
     public static void WriteCritical(string line) {
         m_log.Write(line, true);
     }
@@ -352,9 +357,9 @@ namespace CustomActivatableEquipment {
 }
 
 namespace CustomActivatableEquipment {
-    using Newtonsoft.Json.Linq;
+  using Newtonsoft.Json.Linq;
 
-    public class AoEExplosion {
+  public class AoEExplosion {
     public static Dictionary<ICombatant, Dictionary<string, List<EffectData>>> ExposionStatusEffects = new Dictionary<ICombatant, Dictionary<string, List<EffectData>>>();
     public float Range { get; set; }
     public float Damage { get; set; }

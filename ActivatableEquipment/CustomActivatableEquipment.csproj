@@ -40,32 +40,29 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\0Harmony.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\ModTek\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="CustomAmmoCategories">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\Mods\CustomAmmoCategories\CustomAmmoCategories.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\CustomAmmoCategories\CustomAmmoCategories.dll</HintPath>
     </Reference>
     <Reference Include="CustomComponents">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\Mods\CustomComponents\CustomComponents.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\CustomComponents\CustomComponents.dll</HintPath>
     </Reference>
     <Reference Include="CustomLocalSettings">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\Mods\CustomLocalSettings\CustomLocalSettings.dll</HintPath>
-    </Reference>
-    <Reference Include="DOTweenPro, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\DOTweenPro.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\CustomLocalSettings\CustomLocalSettings.dll</HintPath>
     </Reference>
     <Reference Include="InControl">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\InControl.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\InControl.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\BattleTech_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -74,26 +71,26 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="Unity.TextMeshPro">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ParticleSystemModule">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>..\..\..\SteamLibrary\steamapps\common\BATTLETECH\BattleTech_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -115,6 +112,7 @@
     <Compile Include="ComponentsMenu.cs" />
     <Compile Include="ComponentVFXHelper.cs" />
     <Compile Include="ComponetnsLinkage.cs" />
+    <Compile Include="EffectData.cs" />
     <Compile Include="ExplodeComponent.cs" />
     <Compile Include="FailDamageHelper.cs" />
     <Compile Include="HeadHitsHelper.cs" />
@@ -128,15 +126,28 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>if exist "$(ProjectDir)..\..\Mods\ActivatableEquipmen" (
-   xcopy "$(TargetPath)" "$(ProjectDir)..\..\Mods\ActivatableEquipmen" /y
+    <PostBuildEvent>if exist "$(BattleTechGameDir)\Mods\ActivatableEquipment" (
+   echo %25BattleTechGameDir%25
+   xcopy "$(TargetPath)" "$(BattleTechGameDir)\Mods\ActivatableEquipment" /y
+   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods\ActivatableEquipment\Localization"
+   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods\ActivatableEquipment"
 )
-if exist "$(ProjectDir)..\..\Mods\CustomActivatableEquipment" (
-   copy /Y "$(TargetPath)" "$(ProjectDir)..\..\Mods\CustomActivatableEquipment"
+if exist "$(BattleTechGameDir)\Mods\CustomActivatableEquipment" (
+   echo %25BattleTechGameDir%25
+   copy /Y "$(TargetPath)" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment"
+   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment\Localization"
+   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment"
 )
-copy /Y "$(TargetPath)" "$(ProjectDir)..\..\RogueTechWorking\CustomActivatableEquipment"
-copy /Y "$(TargetPath)" "$(ProjectDir)..\..\BattleTech-Advanced\CustomActivatableEquipment"
-copy /Y "$(TargetPath)" "$(ProjectDir)..\..\Release_CAC\Release\CustomBundle\CustomActivatableEquipment"
-xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles" "$(ProjectDir)..\..\Release_CAC\Release\CustomBundle\CustomActivatableEquipment"</PostBuildEvent>
+if exist "$(RogueTechRepo)\CustomActivatableEquipment" (
+   echo %25RogueTechRepo%25
+   copy /Y "$(TargetPath)" "$(RogueTechRepo)\CustomActivatableEquipment"
+   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(RogueTechRepo)\CustomActivatableEquipment\Localization"
+   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(RogueTechRepo)\CustomActivatableEquipment"
+)
+if exist "$(BTARepo)\CustomActivatableEquipment" (
+   echo %25BTARepo%25
+   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BTARepo)\CustomActivatableEquipment\Localization"
+   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BTARepo)\CustomActivatableEquipment"
+)</PostBuildEvent>
   </PropertyGroup>
 </Project>
