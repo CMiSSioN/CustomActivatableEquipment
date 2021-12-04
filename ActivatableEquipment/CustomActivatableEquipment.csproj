@@ -57,6 +57,10 @@
     <Reference Include="CustomLocalSettings">
       <HintPath>$(BattleTechGameDir)\Mods\CustomLocalSettings\CustomLocalSettings.dll</HintPath>
     </Reference>
+    <Reference Include="DOTweenPro, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\DOTweenPro.dll</HintPath>
+    </Reference>
     <Reference Include="InControl">
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\InControl.dll</HintPath>
     </Reference>
