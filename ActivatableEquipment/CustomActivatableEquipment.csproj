@@ -139,6 +139,12 @@ if exist "$(BattleTechGameDir)\Mods\CustomActivatableEquipment" (
    xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment\Localization"
    xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment"
 )
+if exist "$(BattleTechGameDir)\Mods_CBDE\ActivatableEquipment" (
+   echo %25BattleTechGameDir%25
+   copy /Y "$(TargetPath)" "$(BattleTechGameDir)\Mods_CBDE\ActivatableEquipment"
+   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods_CBDE\ActivatableEquipment\Localization"
+   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods_CBDE\ActivatableEquipment"
+)
 if exist "$(RogueTechRepo)\CustomActivatableEquipment" (
    echo %25RogueTechRepo%25
    copy /Y "$(TargetPath)" "$(RogueTechRepo)\CustomActivatableEquipment"

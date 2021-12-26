@@ -8,13 +8,14 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace CustomActivatableEquipment {
-  [HarmonyPatch(typeof(Mech))]
-  [HarmonyPatch("InitGameRep")]
-  [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPatch(new Type[] { typeof(Transform) })]
+  //[HarmonyPatch(typeof(Mech))]
+  //[HarmonyPatch("InitGameRep")]
+  //[HarmonyPatch(MethodType.Normal)]
+  //[HarmonyPatch(new Type[] { typeof(Transform) })]
   public static class Mech_InitGameRep {
     public static void Postfix(Mech __instance) {
       try {
+        Log.Debug?.TWL(0, "Mech_InitGameRep.Postfix " + __instance.PilotableActorDef.Description.Id, true);
         __instance.registerComponentsForVFX();
       }catch(Exception e) {
         Log.Debug?.Write(e.ToString()+"\n");
@@ -27,8 +28,12 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(Transform) })]
   public static class Vehicle_InitGameRep {
     public static void Postfix(Vehicle __instance) {
-      Log.Debug?.Write("Vehicle.InitGameRep " + (__instance != null?"not null":"null") + "\n");
-      __instance.registerComponentsForVFX();
+      try {
+        Log.Debug?.Write("Vehicle.InitGameRep " + (__instance != null ? "not null" : "null") + "\n");
+        __instance.registerComponentsForVFX();
+      }catch(Exception e) {
+        Log.Debug?.Write(e.ToString() + "\n");
+      }
     }
   }
   [HarmonyPatch(typeof(Turret))]
@@ -37,7 +42,11 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(Transform) })]
   public static class Turret_InitGameRep {
     public static void Postfix(Turret __instance) {
-      __instance.registerComponentsForVFX();
+      try {
+        __instance.registerComponentsForVFX();
+      } catch (Exception e) {
+        Log.Debug?.Write(e.ToString() + "\n");
+      }
     }
   }
   [HarmonyPatch(typeof(AbstractActor))]

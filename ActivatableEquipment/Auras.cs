@@ -290,6 +290,7 @@ namespace CustomActivatableEquipment {
     }
     public static void InitBodyBubble(this AbstractActor unit) {
       try {
+        Log.Debug?.TWL(0, "InitBodyBubble:" + unit.PilotableActorDef.Description.Id+":"+unit.GUID);
         GameObject body = new GameObject();
         body.SetActive(false);
         body.transform.localScale = new Vector3(1f, 1f, 1f);
@@ -408,7 +409,7 @@ namespace CustomActivatableEquipment {
     //public Dictionary<string, int> aurasVFXes { get; set; }
     public Dictionary<AuraBubble, HashSet<string>> affectedAurasEffects { get; set; }
     //public Queue<AuraChangeRequest> changeQueue;
-    public Dictionary<AuraBubble,bool> aurasToChange;
+    public Dictionary<AuraBubble, bool> aurasToChange { get; set; } = null;
     public void ShowAddFloatie(AuraBubble aura) {
       try {
         bool isAlly = false;
@@ -1035,13 +1036,15 @@ namespace CustomActivatableEquipment {
       CAEAuraHelper.FlushMovingAuraFloaties();
     }
   }
-  [HarmonyPatch(typeof(Mech))]
-  [HarmonyPatch("InitGameRep")]
-  [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPatch(new Type[] { typeof(Transform) })]
+  //[HarmonyPatch(typeof(Mech))]
+  //[HarmonyPatch("InitGameRep")]
+  //[HarmonyPatch(MethodType.Normal)]
+  //[HarmonyPatch(new Type[] { typeof(Transform) })]
   public static class Mech_InitGameRep_Aura {
     public static void Postfix(Mech __instance, Transform parentTransform) {
       try {
+        Log.Debug?.TWL(0, "Mech_InitGameRep_Aura.Postfix " + __instance.PilotableActorDef.Description.Id, true);
+        __instance.registerComponentsForVFX();
         __instance.InitBodyBubble();
       }catch(Exception e) {
         Log.WriteCritical(e.ToString() + "\n");

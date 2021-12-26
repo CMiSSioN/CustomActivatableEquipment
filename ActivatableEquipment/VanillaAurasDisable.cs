@@ -1,4 +1,5 @@
 ﻿using BattleTech;
+using CustomActivatableEquipment;
 using Harmony;
 using System;
 using System.Collections.Generic;
@@ -203,18 +204,30 @@ namespace CustomActivatablePatches {
   public static class AuraCache_GetBestECMState_Disable {
     public static bool Prefix(AuraCache __instance, ref AbstractActor __result) { __result = null; return false; }
   }
-  [HarmonyPatch(typeof(Mech))]
-  [HarmonyPatch("InitGameRep")]
-  [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPriority(Priority.Last)]
-  public static class Mech_InitGameRep_ECMREmove {
-    public static void Prefix(Mech __instance) {
-      __instance.AuraComponents.Clear();
+  //[HarmonyPatch(typeof(Mech))]
+  //[HarmonyPatch("InitGameRep")]
+  //[HarmonyPatch(MethodType.Normal)]
+  //[HarmonyPriority(Priority.Last)]
+  public static class Mech_InitGameRep_ECMRemove {
+    public static void Prefix(Mech __instance, Transform parentTransform) {
+      try {
+        Log.Debug?.TWL(0, "Mech_InitGameRep_ECMRemove.Prefix " + __instance.PilotableActorDef.Description.Id, true);
+        __instance.AuraComponents.Clear();
+      }catch(Exception e) {
+        Log.Debug?.TWL(0, e.ToString(), true);
+      }
     }
-    public static void Postfix(Mech __instance) {
-      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_loop");
-      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_opponent_loop");
-      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECMcarrierAura_loop");
+    public static void Postfix(Mech __instance, Transform parentTransform) {
+      try {
+        Log.Debug?.TWL(0, "Mech_InitGameRep_ECMRemove.Postfix " + __instance.PilotableActorDef.Description.Id, true);
+        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_loop");
+        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_opponent_loop");
+        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECMcarrierAura_loop");
+        __instance.registerComponentsForVFX();
+        __instance.InitBodyBubble();
+      } catch (Exception e) {
+        Log.Debug?.TWL(0, e.ToString(), true);
+      }
       //__instance.GameRep.PlayVFXAt(__instance.GameRep.thisTransform, Vector3.zero, "vfxPrfPrtl_ECM_loop", true, Vector3.zero, false, -1f);
     }
   }
@@ -223,9 +236,13 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Normal)]
   public static class Vehicle_InitGameRep_ECMREmove {
     public static void Postfix(Vehicle __instance) {
-      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_loop");
-      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_opponent_loop");
-      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECMcarrierAura_loop");
+      try {
+        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_loop");
+        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_opponent_loop");
+        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECMcarrierAura_loop");
+      } catch (Exception e) {
+        Log.Debug?.TWL(0, e.ToString(), true);
+      }
     }
   }
   [HarmonyPatch(typeof(Turret))]
@@ -233,9 +250,13 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Normal)]
   public static class Turret_InitGameRep_ECMREmove {
     public static void Postfix(Turret __instance) {
-      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_loop");
-      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_opponent_loop");
-      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECMcarrierAura_loop");
+      try {
+        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_loop");
+        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_opponent_loop");
+        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECMcarrierAura_loop");
+      } catch (Exception e) {
+        Log.Debug?.TWL(0, e.ToString(), true);
+      }
     }
   }
 }
