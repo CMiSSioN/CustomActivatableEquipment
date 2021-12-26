@@ -357,6 +357,8 @@ namespace CustomActivatableEquipment {
 }
 
 namespace CustomActivatableEquipment {
+  using CustAmmoCategories;
+  using CustomActivatablePatches;
   using Newtonsoft.Json.Linq;
 
   public class AoEExplosion {
@@ -1664,6 +1666,8 @@ namespace CustomActivatableEquipment {
         typeof(Weapon).Assembly.GetType("AreAnyHostilesInWeaponRangeNode").GetMethod("Tick", BindingFlags.Instance | BindingFlags.NonPublic), 
         new HarmonyMethod(typeof(AreAnyHostilesInWeaponRangeNode_Tick).GetMethod("Prefix")));
         ActivatebleDialogHelper.Init();
+        CustomMechHelper.RegisterInitGameRepPrefix(Mech_InitGameRep_ECMRemove.Prefix);
+        CustomMechHelper.RegisterInitGameRepPostfix(Mech_InitGameRep_ECMRemove.Postfix);
       } catch (Exception e) {
         CustomActivatableEquipment.Log.Debug?.Write(e.ToString() + "\n");
       }
