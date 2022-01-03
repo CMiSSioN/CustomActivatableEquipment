@@ -280,7 +280,8 @@ namespace CustomActivatablePatches {
   [HarmonyPriority(Priority.Last)]
   public static class CombatHUD_Update_HideReticlesHotKey {
     public static bool keypressed = false;
-    public static AuraShowState hideReticles = AuraShowState.Default;
+    private static AuraShowState f_hideReticles = AuraShowState.Default;
+    public static AuraShowState hideReticles { get { return CACCombatState.IsInDeployManualState? AuraShowState.HideAll : f_hideReticles; } set { f_hideReticles = value; } }
     public static void Postfix(CombatHUD __instance) {
       bool key = Input.GetKey(KeyCode.A);
       bool mod = Input.GetKey(KeyCode.LeftControl);
@@ -288,10 +289,10 @@ namespace CustomActivatablePatches {
       if (keypressed != res) {
         keypressed = res;
         if (keypressed) {
-          switch (hideReticles) {
-            case AuraShowState.Default: hideReticles = AuraShowState.HideAll; break;
-            case AuraShowState.HideAll: hideReticles = AuraShowState.ShowAll; break;
-            case AuraShowState.ShowAll: hideReticles = AuraShowState.Default; break;
+          switch (f_hideReticles) {
+            case AuraShowState.Default: f_hideReticles = AuraShowState.HideAll; break;
+            case AuraShowState.HideAll: f_hideReticles = AuraShowState.ShowAll; break;
+            case AuraShowState.ShowAll: f_hideReticles = AuraShowState.Default; break;
           }
         };
       }
