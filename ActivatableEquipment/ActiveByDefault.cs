@@ -1,5 +1,6 @@
 ﻿using BattleTech;
 using BattleTech.UI;
+using CustAmmoCategories;
 using CustomActivatableEquipment;
 using CustomComponents;
 using Harmony;
@@ -31,10 +32,12 @@ namespace CustomActivatablePatches {
       activatedActors.Add(unit);
     }
     public static void Postfix(TurnDirector __instance, int newPhase) {
+      if (CACCombatState.IsInDeployManualState) { return; }
       Log.Debug?.TWL(0,"BeginNewPhase round:"+__instance.CurrentRound+" phase:"+newPhase);
       foreach(AbstractActor unit in __instance.Combat.AllActors) {
         if (unit.isActivated()) { continue; }
         unit.ActiveDefaultComponents();
+        unit.UpdateAurasWithSensors();
       }
     }
   }

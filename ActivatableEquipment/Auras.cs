@@ -275,17 +275,29 @@ namespace CustomActivatableEquipment {
       }
     }
     public static void UpdateAuras(this MechComponent component, bool now = false) {
-      if (componentAuraBubbles.ContainsKey(component) == false) { return; }
-      List<AuraBubble> auras = componentAuraBubbles[component];
-      foreach (AuraBubble aura in auras) {
-        aura.UpdateRadius(now);
+      try {
+        if (CACCombatState.IsInDeployManualState) { return; }
+        if (component == null) { return; }
+        if (componentAuraBubbles.ContainsKey(component) == false) { return; }
+        List<AuraBubble> auras = componentAuraBubbles[component];
+        foreach (AuraBubble aura in auras) {
+          aura.UpdateRadius(now);
+        }
+      }catch(Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
       }
     }
     public static void UpdateAuras(this AbstractActor unit, bool now = false) {
-      if (actorAuraBubbles.ContainsKey(unit) == false) { return; }
-      List<AuraBubble> auras = actorAuraBubbles[unit];
-      foreach (AuraBubble aura in auras) {
-        aura.UpdateRadius(now);
+      try {
+        if (CACCombatState.IsInDeployManualState) { return; }
+        if (unit == null) { return; }
+        if (actorAuraBubbles.ContainsKey(unit) == false) { return; }
+        List<AuraBubble> auras = actorAuraBubbles[unit];
+        foreach (AuraBubble aura in auras) {
+          aura.UpdateRadius(now);
+        }
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
       }
     }
     public static void InitBodyBubble(this AbstractActor unit) {

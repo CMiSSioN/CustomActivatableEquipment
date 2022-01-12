@@ -1,5 +1,6 @@
 ﻿using BattleTech;
 using BattleTech.UI;
+using CustAmmoCategories;
 using Harmony;
 using System;
 using System.Collections.Generic;
@@ -40,6 +41,7 @@ namespace CustomActivatableEquipment {
       foreach(AbstractActor unit in __instance.Combat.AllActors) {
         if (unit.IsShutDown) { continue; };
         if (unit.IsDead) { continue; }
+        if (CACCombatState.IsInDeployManualState) { continue; }
         unit.UpdateAurasWithSensors();
       }
     }
