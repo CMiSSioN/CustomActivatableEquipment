@@ -108,36 +108,36 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(WeaponHitInfo),typeof(ComponentDamageLevel),typeof(bool) })]
   public static class MechComponent_DamageComponent {
-    public static bool Prefix(MechComponent __instance, WeaponHitInfo hitInfo, ComponentDamageLevel damageLevel, bool applyEffects, ref bool __state) {
-      __state = false;
-      Log.Debug?.Write("MechComponent.DamageComponent "+ __instance.DamageLevel+"->"+ damageLevel+"\n");
-      if (__instance.DamageLevel < ComponentDamageLevel.Destroyed) {
-        if(damageLevel >= ComponentDamageLevel.Destroyed) {
-          Log.Debug?.Write(" destroyed\n");
-          __state = true;
+    public static void Postfix(MechComponent __instance, WeaponHitInfo hitInfo, ComponentDamageLevel damageLevel, bool applyEffects) {
+      try {
+        Log.Debug?.TWL(0, "MechComponent.DamageComponent Postfix " + __instance.defId + " DamageLevel:" + __instance.DamageLevel + "/" + damageLevel);
+        if ((__instance.DamageLevel >= ComponentDamageLevel.Destroyed) || (damageLevel >= ComponentDamageLevel.Destroyed)) {
+          Statistic isCAEDestroyed = __instance.StatCollection.GetStatistic("CAEDestroyed");
+          if (isCAEDestroyed == null) { isCAEDestroyed = __instance.StatCollection.AddStatistic("CAEDestroyed", false); }
+          if (isCAEDestroyed.Value<bool>() == false) {
+            isCAEDestroyed.SetValue(true);
+            Log.Debug?.WL(1, "really destroyed at first time");
+            ActivatableComponent activatable = __instance.componentDef.GetComponent<ActivatableComponent>();
+            if (activatable == null) {
+              Log.Debug?.WL(1, "not activatable");
+              return;
+            }
+            ObjectSpawnDataSelf VFX = __instance.PresitantVFX();
+            if (VFX != null) { VFX.CleanupSelf(); };
+            VFX = __instance.ActivateVFX();
+            if (VFX != null) { VFX.CleanupSelf(); };
+            VFX = __instance.DestroyedVFX();
+            if (VFX != null) { VFX.SpawnSelf(__instance.parent.Combat); };
+            if (activatable.ExplodeOnDamage) { __instance.AoEExplodeComponent(); };
+            __instance.playDestroySound();
+          } else {
+            Log.Debug?.WL(1, "not a really destroyed");
+          }
+          __instance.UpdateAuras();
         }
+      } catch (Exception e) {
+        Log.Debug?.TWL(0, e.ToString(), true);
       }
-      return true;
-    }
-    public static void Postfix(MechComponent __instance, WeaponHitInfo hitInfo, ComponentDamageLevel damageLevel, bool applyEffects, ref bool __state) {
-      if (__state) {
-        ActivatableComponent activatable = __instance.componentDef.GetComponent<ActivatableComponent>();
-        if(activatable == null) {
-          Log.Debug?.Write(" not activatable\n");
-          return;
-        }
-        ObjectSpawnDataSelf VFX = __instance.PresitantVFX();
-        if (VFX != null) { VFX.CleanupSelf(); };
-        VFX = __instance.ActivateVFX();
-        if (VFX != null) { VFX.CleanupSelf(); };
-        VFX = __instance.DestroyedVFX();
-        if (VFX != null) { VFX.SpawnSelf(__instance.parent.Combat); };
-        if (activatable.ExplodeOnDamage) { __instance.AoEExplodeComponent(); };
-        __instance.playDestroySound();
-      } else {
-        Log.Debug?.Write(" no additional processing\n");
-      }
-      __instance.UpdateAuras();
     }
   }
 
