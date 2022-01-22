@@ -181,12 +181,14 @@ namespace CustomActivatableEquipment {
         component.InitActorStat(activatable.Explosion.statusEffectsCollection, activatable.Explosion.statusEffectsCollectionActorStat);
         Log.Debug?.Write(" StatusEffectsCollections " + activatable.Explosion.statusEffects.Length + "\n");
         if (activatable.Explosion.statusEffects.Length > 0) {
-          Log.Debug?.Write(" found StatusEffectsCollections\n");
-          if (AoEExplosion.ExposionStatusEffects.ContainsKey(component.parent) == false) { AoEExplosion.ExposionStatusEffects.Add(component.parent, new Dictionary<string, List<EffectData>>()); };
-          Log.Debug?.Write(" parent:" + component.parent.DisplayName + ":" + component.parent.GUID + "\n");
-          Dictionary<string, List<EffectData>> statusEffectsCollection = AoEExplosion.ExposionStatusEffects[component.parent];
-          if (statusEffectsCollection.ContainsKey(activatable.Explosion.statusEffectsCollectionName) == false) { statusEffectsCollection.Add(activatable.Explosion.statusEffectsCollectionName, new List<EffectData>()); }
-          statusEffectsCollection[activatable.Explosion.statusEffectsCollectionName].AddRange(activatable.Explosion.statusEffects);
+          if (string.IsNullOrEmpty(activatable.Explosion.statusEffectsCollectionName) == false) {
+            Log.Debug?.Write(" found StatusEffectsCollections\n");
+            if (AoEExplosion.ExposionStatusEffects.ContainsKey(component.parent) == false) { AoEExplosion.ExposionStatusEffects.Add(component.parent, new Dictionary<string, List<EffectData>>()); };
+            Log.Debug?.Write(" parent:" + component.parent.DisplayName + ":" + component.parent.GUID + "\n");
+            Dictionary<string, List<EffectData>> statusEffectsCollection = AoEExplosion.ExposionStatusEffects[component.parent];
+            if (statusEffectsCollection.ContainsKey(activatable.Explosion.statusEffectsCollectionName) == false) { statusEffectsCollection.Add(activatable.Explosion.statusEffectsCollectionName, new List<EffectData>()); }
+            statusEffectsCollection[activatable.Explosion.statusEffectsCollectionName].AddRange(activatable.Explosion.statusEffects);
+          }
         }
       }catch(Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
@@ -855,6 +857,9 @@ namespace CustomActivatableEquipment {
       List<AoEComponentExplosionRecord> AoEDamage = new List<AoEComponentExplosionRecord>();
       List<EffectData> effects = component.AoEExplosionEffects();
       int SequenceID = component.parent.Combat.StackManager.NextStackUID;
+      if (string.IsNullOrEmpty(activatable.Explosion.ExplosionMessage) == false) {
+        component.parent.Combat.MessageCenter.PublishMessage(new FloatieMessage(component.parent.GUID, component.parent.GUID, activatable.Explosion.ExplosionMessage, FloatieMessage.MessageNature.Debuff));
+      }
       foreach (ICombatant target in component.parent.Combat.GetAllLivingCombatants()) {
         if (target.GUID == component.parent.GUID) { continue; };
         if (target.IsDead) { continue; };
