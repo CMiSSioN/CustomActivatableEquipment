@@ -100,14 +100,18 @@ namespace CustomActivatableEquipment {
     //public static Dictionary<int, float> OtherLocations = null;
     public static readonly float AOEHitIndicator = -10f;
     public static void InitActorStat(this MechComponent component,float value,string name) {
-      if (value >= 0f) {
-        if (string.IsNullOrEmpty(name) == false) {
-          if (Core.checkExistance(component.parent.StatCollection, name)) {
-            component.parent.StatCollection.Set<float>(name, value);
-          } else {
-            component.parent.StatCollection.AddStatistic<float>(name, value);
+      try { 
+        if (value >= 0f) {
+          if (string.IsNullOrEmpty(name) == false) {
+            if (Core.checkExistance(component.parent.StatCollection, name)) {
+              component.parent.StatCollection.Set<float>(name, value);
+            } else {
+              component.parent.StatCollection.AddStatistic<float>(name, value);
+            }
           }
         }
+      }catch(Exception e) {
+        Log.Error?.TWL(0,e.ToString(),true);
       }
     }
     /*public static void InitActorStat(this MechComponent component, int value, string name) {
@@ -122,59 +126,72 @@ namespace CustomActivatableEquipment {
       }
     }*/
     public static void InitActorStat(this MechComponent component, string value, string name) {
-      if (value != null) {
-        if (string.IsNullOrEmpty(name) == false) {
-          if (Core.checkExistance(component.parent.StatCollection, name)) {
-            component.parent.StatCollection.Set<string>(name, value);
-          } else {
-            component.parent.StatCollection.AddStatistic<string>(name, value);
+      try {
+        if (value != null) {
+          if (string.IsNullOrEmpty(name) == false) {
+            if (Core.checkExistance(component.parent.StatCollection, name)) {
+              component.parent.StatCollection.Set<string>(name, value);
+            } else {
+              component.parent.StatCollection.AddStatistic<string>(name, value);
+            }
           }
         }
+      }catch(Exception e) {
+        Log.Error?.TWL(0,e.ToString(),true);
       }
     }
     public static void InitExplosionStats(this MechComponent component) {
-      Log.Debug?.Write("MechComponent.InitExplosionStats(" + component.parent.GUID+":"+component.defId+")\n");
-      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
-      if (activatable == null) {
-        Log.Debug?.Write(" not activatable\n");
-        return;
-      }
-      component.InitActorStat(activatable.Explosion.Range, activatable.Explosion.RangeActorStat);
-      component.InitActorStat(activatable.Explosion.Damage, activatable.Explosion.DamageActorStat);
-      component.InitActorStat(activatable.Explosion.Heat, activatable.Explosion.HeatActorStat);
-      component.InitActorStat(activatable.Explosion.Stability, activatable.Explosion.StabilityActorStat);
-      component.InitActorStat(activatable.Explosion.Chance, activatable.Explosion.ChanceActorStat);
-      component.InitActorStat(activatable.Explosion.VFX, activatable.Explosion.VFXActorStat);
-      component.InitActorStat(activatable.Explosion.VFXOffsetX, activatable.Explosion.VFXOffsetXActorStat);
-      component.InitActorStat(activatable.Explosion.VFXOffsetY, activatable.Explosion.VFXOffsetYActorStat);
-      component.InitActorStat(activatable.Explosion.VFXOffsetZ, activatable.Explosion.VFXOffsetZActorStat);
-      component.InitActorStat(activatable.Explosion.VFXScaleX, activatable.Explosion.VFXScaleXActorStat);
-      component.InitActorStat(activatable.Explosion.VFXScaleY, activatable.Explosion.VFXScaleYActorStat);
-      component.InitActorStat(activatable.Explosion.VFXScaleZ, activatable.Explosion.VFXScaleZActorStat);
-      component.InitActorStat(activatable.Explosion.FireTerrainChance, activatable.Explosion.FireTerrainChanceActorStat);
-      component.InitActorStat(activatable.Explosion.FireTerrainStrength, activatable.Explosion.FireTerrainStrengthActorStat);
-      component.InitActorStat(activatable.Explosion.FireDurationWithoutForest, activatable.Explosion.FireDurationWithoutForestActorStat);
-      component.InitActorStat(activatable.Explosion.FireTerrainCellRadius, activatable.Explosion.FireTerrainCellRadiusActorStat);
-      component.InitActorStat(activatable.Explosion.TempDesignMask, activatable.Explosion.TempDesignMaskActorStat);
-      component.InitActorStat(activatable.Explosion.TempDesignMaskTurns, activatable.Explosion.TempDesignMaskTurnsActorStat);
-      component.InitActorStat(activatable.Explosion.TempDesignMaskCellRadius, activatable.Explosion.TempDesignMaskCellRadiusActorStat);
-      component.InitActorStat(activatable.Explosion.LongVFX, activatable.Explosion.LongVFXActorStat);
-      component.InitActorStat(activatable.Explosion.LongVFXScaleX, activatable.Explosion.LongVFXScaleXActorStat);
-      component.InitActorStat(activatable.Explosion.LongVFXScaleY, activatable.Explosion.LongVFXScaleYActorStat);
-      component.InitActorStat(activatable.Explosion.LongVFXScaleZ, activatable.Explosion.LongVFXScaleZActorStat);
-      component.InitActorStat(activatable.Explosion.LongVFXOffsetX, activatable.Explosion.LongVFXOffsetXActorStat);
-      component.InitActorStat(activatable.Explosion.LongVFXOffsetY, activatable.Explosion.LongVFXOffsetYActorStat);
-      component.InitActorStat(activatable.Explosion.LongVFXOffsetZ, activatable.Explosion.LongVFXOffsetZActorStat);
-      component.InitActorStat(activatable.Explosion.ExplodeSound, activatable.Explosion.ExplodeSoundActorStat);
-      component.InitActorStat(activatable.Explosion.statusEffectsCollection, activatable.Explosion.statusEffectsCollectionActorStat);
-      Log.Debug?.Write(" StatusEffectsCollections "+ activatable.Explosion.statusEffects.Length + "\n");
-      if (activatable.Explosion.statusEffects.Length > 0) {
-        Log.Debug?.Write(" found StatusEffectsCollections\n");
-        if (AoEExplosion.ExposionStatusEffects.ContainsKey(component.parent) == false) { AoEExplosion.ExposionStatusEffects.Add(component.parent, new Dictionary<string, List<EffectData>>()); };
-        Log.Debug?.Write(" parent:"+component.parent.DisplayName+":"+component.parent.GUID+"\n");
-        Dictionary<string, List<EffectData>> statusEffectsCollection = AoEExplosion.ExposionStatusEffects[component.parent];
-        if (statusEffectsCollection.ContainsKey(activatable.Explosion.statusEffectsCollectionName) == false) { statusEffectsCollection.Add(activatable.Explosion.statusEffectsCollectionName, new List<EffectData>()); }
-        statusEffectsCollection[activatable.Explosion.statusEffectsCollectionName].AddRange(activatable.Explosion.statusEffects);
+      try {
+        Log.Debug?.TWL(0,"MechComponent.InitExplosionStats parent:" + component.parent==null?"!!!!!null. exception! whoever responsible - fix this!!!":component.parent.GUID + ":" + component.defId + ")");
+        if (component.parent == null) {
+          return;
+        }
+        ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+        if (activatable == null) {
+          Log.Debug?.WL(1,"not activatable");
+          return;
+        }
+        component.InitActorStat(activatable.Explosion.Range, activatable.Explosion.RangeActorStat);
+        component.InitActorStat(activatable.Explosion.Damage, activatable.Explosion.DamageActorStat);
+        component.InitActorStat(activatable.Explosion.Heat, activatable.Explosion.HeatActorStat);
+        component.InitActorStat(activatable.Explosion.Stability, activatable.Explosion.StabilityActorStat);
+        component.InitActorStat(activatable.Explosion.Chance, activatable.Explosion.ChanceActorStat);
+        component.InitActorStat(activatable.Explosion.VFX, activatable.Explosion.VFXActorStat);
+        component.InitActorStat(activatable.Explosion.VFXOffsetX, activatable.Explosion.VFXOffsetXActorStat);
+        component.InitActorStat(activatable.Explosion.VFXOffsetY, activatable.Explosion.VFXOffsetYActorStat);
+        component.InitActorStat(activatable.Explosion.VFXOffsetZ, activatable.Explosion.VFXOffsetZActorStat);
+        component.InitActorStat(activatable.Explosion.VFXScaleX, activatable.Explosion.VFXScaleXActorStat);
+        component.InitActorStat(activatable.Explosion.VFXScaleY, activatable.Explosion.VFXScaleYActorStat);
+        component.InitActorStat(activatable.Explosion.VFXScaleZ, activatable.Explosion.VFXScaleZActorStat);
+        component.InitActorStat(activatable.Explosion.FireTerrainChance, activatable.Explosion.FireTerrainChanceActorStat);
+        component.InitActorStat(activatable.Explosion.FireTerrainStrength, activatable.Explosion.FireTerrainStrengthActorStat);
+        component.InitActorStat(activatable.Explosion.FireDurationWithoutForest, activatable.Explosion.FireDurationWithoutForestActorStat);
+        component.InitActorStat(activatable.Explosion.FireTerrainCellRadius, activatable.Explosion.FireTerrainCellRadiusActorStat);
+        component.InitActorStat(activatable.Explosion.TempDesignMask, activatable.Explosion.TempDesignMaskActorStat);
+        component.InitActorStat(activatable.Explosion.TempDesignMaskTurns, activatable.Explosion.TempDesignMaskTurnsActorStat);
+        component.InitActorStat(activatable.Explosion.TempDesignMaskCellRadius, activatable.Explosion.TempDesignMaskCellRadiusActorStat);
+        component.InitActorStat(activatable.Explosion.LongVFX, activatable.Explosion.LongVFXActorStat);
+        component.InitActorStat(activatable.Explosion.LongVFXScaleX, activatable.Explosion.LongVFXScaleXActorStat);
+        component.InitActorStat(activatable.Explosion.LongVFXScaleY, activatable.Explosion.LongVFXScaleYActorStat);
+        component.InitActorStat(activatable.Explosion.LongVFXScaleZ, activatable.Explosion.LongVFXScaleZActorStat);
+        component.InitActorStat(activatable.Explosion.LongVFXOffsetX, activatable.Explosion.LongVFXOffsetXActorStat);
+        component.InitActorStat(activatable.Explosion.LongVFXOffsetY, activatable.Explosion.LongVFXOffsetYActorStat);
+        component.InitActorStat(activatable.Explosion.LongVFXOffsetZ, activatable.Explosion.LongVFXOffsetZActorStat);
+        component.InitActorStat(activatable.Explosion.ExplodeSound, activatable.Explosion.ExplodeSoundActorStat);
+        component.InitActorStat(activatable.Explosion.statusEffectsCollection, activatable.Explosion.statusEffectsCollectionActorStat);
+        Log.Debug?.Write(" StatusEffectsCollections " + activatable.Explosion.statusEffects.Length + "\n");
+        if (activatable.Explosion.statusEffects.Length > 0) {
+          if (string.IsNullOrEmpty(activatable.Explosion.statusEffectsCollectionName) == false) {
+            Log.Debug?.Write(" found StatusEffectsCollections\n");
+            if (AoEExplosion.ExposionStatusEffects.ContainsKey(component.parent) == false) { AoEExplosion.ExposionStatusEffects.Add(component.parent, new Dictionary<string, List<EffectData>>()); };
+            Log.Debug?.Write(" parent:" + component.parent.DisplayName + ":" + component.parent.GUID + "\n");
+            Dictionary<string, List<EffectData>> statusEffectsCollection = AoEExplosion.ExposionStatusEffects[component.parent];
+            if (statusEffectsCollection.ContainsKey(activatable.Explosion.statusEffectsCollectionName) == false) { statusEffectsCollection.Add(activatable.Explosion.statusEffectsCollectionName, new List<EffectData>()); }
+            statusEffectsCollection[activatable.Explosion.statusEffectsCollectionName].AddRange(activatable.Explosion.statusEffects);
+          }
+        }
+      }catch(Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
       }
     }
     public static List<EffectData> AoEExplosionEffects(this MechComponent component) {
@@ -840,6 +857,9 @@ namespace CustomActivatableEquipment {
       List<AoEComponentExplosionRecord> AoEDamage = new List<AoEComponentExplosionRecord>();
       List<EffectData> effects = component.AoEExplosionEffects();
       int SequenceID = component.parent.Combat.StackManager.NextStackUID;
+      if (string.IsNullOrEmpty(activatable.Explosion.ExplosionMessage) == false) {
+        component.parent.Combat.MessageCenter.PublishMessage(new FloatieMessage(component.parent.GUID, component.parent.GUID, activatable.Explosion.ExplosionMessage, FloatieMessage.MessageNature.Debuff));
+      }
       foreach (ICombatant target in component.parent.Combat.GetAllLivingCombatants()) {
         if (target.GUID == component.parent.GUID) { continue; };
         if (target.IsDead) { continue; };

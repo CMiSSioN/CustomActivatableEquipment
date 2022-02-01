@@ -363,6 +363,7 @@ namespace CustomActivatableEquipment {
 
   public class AoEExplosion {
     public static Dictionary<ICombatant, Dictionary<string, List<EffectData>>> ExposionStatusEffects = new Dictionary<ICombatant, Dictionary<string, List<EffectData>>>();
+    public string ExplosionMessage { get; set; } = string.Empty;
     public float Range { get; set; }
     public float Damage { get; set; }
     public float Heat { get; set; }
