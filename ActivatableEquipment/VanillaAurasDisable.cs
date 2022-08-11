@@ -225,26 +225,27 @@ namespace CustomActivatablePatches {
         __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECMcarrierAura_loop");
         __instance.registerComponentsForVFX();
         __instance.InitBodyBubble();
+        C3Helper.Clear();
       } catch (Exception e) {
         Log.Debug?.TWL(0, e.ToString(), true);
       }
       //__instance.GameRep.PlayVFXAt(__instance.GameRep.thisTransform, Vector3.zero, "vfxPrfPrtl_ECM_loop", true, Vector3.zero, false, -1f);
     }
   }
-  [HarmonyPatch(typeof(Vehicle))]
-  [HarmonyPatch("InitGameRep")]
-  [HarmonyPatch(MethodType.Normal)]
-  public static class Vehicle_InitGameRep_ECMREmove {
-    public static void Postfix(Vehicle __instance) {
-      try {
-        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_loop");
-        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_opponent_loop");
-        __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECMcarrierAura_loop");
-      } catch (Exception e) {
-        Log.Debug?.TWL(0, e.ToString(), true);
-      }
-    }
-  }
+  //[HarmonyPatch(typeof(Vehicle))]
+  //[HarmonyPatch("InitGameRep")]
+  //[HarmonyPatch(MethodType.Normal)]
+  //public static class Vehicle_InitGameRep_ECMREmove {
+  //  public static void Postfix(Vehicle __instance) {
+  //    try {
+  //      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_loop");
+  //      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECM_opponent_loop");
+  //      __instance.GameRep.StopManualPersistentVFX("vfxPrfPrtl_ECMcarrierAura_loop");
+  //    } catch (Exception e) {
+  //      Log.Debug?.TWL(0, e.ToString(), true);
+  //    }
+  //  }
+  //}
   [HarmonyPatch(typeof(Turret))]
   [HarmonyPatch("InitGameRep")]
   [HarmonyPatch(MethodType.Normal)]

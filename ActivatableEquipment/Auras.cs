@@ -111,7 +111,7 @@ namespace CustomActivatableEquipment {
             if (aura.Def.NotApplyMoving && value > 1.0f) { body.RemoveAuraEffects(aura, false, true); }
             if (aura.Def.ApplyOnlyMoving && value < 1.0f) { body.RemoveAuraEffects(aura, false, true); }
           }
-          body.RetriggerEnter(false, true);
+          body.RetriggerEnter(false, true, false);
         }
       }catch(Exception e) {
         Log.Error?.TWL(0,e.ToString(),true);
@@ -148,7 +148,7 @@ namespace CustomActivatableEquipment {
         Log.Debug?.TWL(0,"!WARNING: "+__instance.DisplayName+":"+__instance.PilotableActorDef.Description.Id+" without body aura",true);
         return;
       }
-      body.RetriggerEnter(true, false);
+      body.RetriggerEnter(true, false, false);
     }
   }
   public static partial class CAEAuraHelper {
@@ -533,6 +533,9 @@ namespace CustomActivatableEquipment {
           int num2 = (int)WwiseManager.PostEvent(SFX, owner.GameRep.audioObject, (AkCallbackManager.EventCallback)null, (object)null);
         }
         if ((owner.GUID == auraOwner.GUID) && (aura.Def.ApplySelf == false)) { return; };
+        if(aura.Def._neededTags.Count != 0) {
+          if (owner.EncounterTags.ContainsAll(aura.Def._neededTags) == false) { return; }
+        }
         for (int i = 0; i < def.statusEffects.Count; ++i) {
           EffectData statusEffect = def.statusEffects[i];
           if (statusEffect.targetingData.effectTriggerType == EffectTriggerType.Passive) {
@@ -668,7 +671,7 @@ namespace CustomActivatableEquipment {
     void Awake() {
       Log.Debug?.Write("Body collider awake " + owner.DisplayName + ":" + owner.GUID + "\n");
     }
-    public void RetriggerEnter(bool sensorLock, bool moveDist) {
+    public void RetriggerEnter(bool sensorLock, bool moveDist, bool tags) {
       Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, this.collider.radius);
       foreach (Collider collider in hitColliders) {
         AuraBubble aura = collider.gameObject.GetComponent<AuraBubble>();
@@ -676,6 +679,21 @@ namespace CustomActivatableEquipment {
         if ((aura.Def.RemoveOnSensorLock) && (sensorLock)) { this.OnTriggerEnter(collider); }
         if ((aura.Def.NotApplyMoving) && (moveDist)) { this.OnTriggerEnter(collider); }
         if ((aura.Def.ApplyOnlyMoving) && (moveDist)) { this.OnTriggerEnter(collider); }
+        if ((aura.Def._neededTags.Count > 0) && (tags)) { this.OnTriggerEnter(collider); }
+      }
+    }
+    public void RetriggerExit() {
+      foreach (var auraIT in affectedAurasEffects) {
+        AuraBubble aura = auraIT.Key;
+        Collider other = aura.gameObject.GetComponent<Collider>();
+        if (other == null) { continue; }
+        if (aura.collider.radius < 1.0f) { this.OnTriggerExit(other); continue; };
+        if (owner.IsDead) { this.OnTriggerExit(other); continue; }
+        if (aura.owner.IsDead) { this.OnTriggerExit(other); continue; }
+        if (owner.IsSensorLocked && aura.Def.RemoveOnSensorLock) { this.OnTriggerExit(other); continue; }
+        if ((owner.DistMovedThisRound > 1.0f) && aura.Def.NotApplyMoving) { this.OnTriggerExit(other); continue; }
+        if ((owner.DistMovedThisRound < 1.0f) && aura.Def.ApplyOnlyMoving) { this.OnTriggerExit(other); continue; }
+        if (aura.Def.check(owner) == false) { this.OnTriggerExit(other); continue; }
       }
     }
     public void OnTriggerEnter(Collider other) {
@@ -688,6 +706,7 @@ namespace CustomActivatableEquipment {
       if (owner.IsSensorLocked && aura.Def.RemoveOnSensorLock) { return; };
       if ((owner.DistMovedThisRound > 1.0f) && aura.Def.NotApplyMoving) { return; }
       if ((owner.DistMovedThisRound < 1.0f) && aura.Def.ApplyOnlyMoving) { return; }
+      if (aura.Def.check(owner) == false) { return; }
       if (aurasToChange.TryGetValue(aura, out bool isAdd)) {
         if (isAdd == true) { return; }
         aurasToChange[aura] = true;
@@ -777,7 +796,7 @@ namespace CustomActivatableEquipment {
       }
       set {
         FRadius = value;
-        Speed = (FRadius - this.collider.radius) / 5f;
+        Speed = (FRadius - this.collider.radius) / 2f;
       }
     }
     private float GetRadius() {
@@ -1035,8 +1054,9 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { })]
   public static class ActorMovementSequence_CompleteMoveAuraFloatie {
-    public static void Postfix(MechJumpSequence __instance) {
+    public static void Postfix(ActorMovementSequence __instance) {
       CAEAuraHelper.FlushMovingAuraFloaties();
+      C3Helper.Clear();
     }
   }
   [HarmonyPatch(typeof(MechJumpSequence))]
@@ -1046,6 +1066,7 @@ namespace CustomActivatableEquipment {
   public static class MechJumpSequence_CompleteJumpAuraFloatie {
     public static void Postfix(MechJumpSequence __instance) {
       CAEAuraHelper.FlushMovingAuraFloaties();
+      C3Helper.Clear();
     }
   }
   //[HarmonyPatch(typeof(Mech))]
@@ -1063,19 +1084,19 @@ namespace CustomActivatableEquipment {
       }
     }
   }
-  [HarmonyPatch(typeof(Vehicle))]
-  [HarmonyPatch("InitGameRep")]
-  [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPatch(new Type[] { typeof(Transform) })]
-  public static class Vehicle_InitGameRep_Aura {
-    public static void Postfix(Vehicle __instance, Transform parentTransform) {
-      try {
-        __instance.InitBodyBubble();
-      } catch (Exception e) {
-        Log.WriteCritical(e.ToString() + "\n");
-      }
-    }
-  }
+  //[HarmonyPatch(typeof(Vehicle))]
+  //[HarmonyPatch("InitGameRep")]
+  //[HarmonyPatch(MethodType.Normal)]
+  //[HarmonyPatch(new Type[] { typeof(Transform) })]
+  //public static class Vehicle_InitGameRep_Aura {
+  //  public static void Postfix(Vehicle __instance, Transform parentTransform) {
+  //    try {
+  //      __instance.InitBodyBubble();
+  //    } catch (Exception e) {
+  //      Log.WriteCritical(e.ToString() + "\n");
+  //    }
+  //  }
+  //}
   [HarmonyPatch(typeof(Turret))]
   [HarmonyPatch("InitGameRep")]
   [HarmonyPatch(MethodType.Normal)]
@@ -1084,6 +1105,7 @@ namespace CustomActivatableEquipment {
     public static void Postfix(Turret __instance, Transform parentTransform) {
       try {
         __instance.InitBodyBubble();
+        C3Helper.Clear();
       } catch (Exception e) {
         Log.WriteCritical(e.ToString() + "\n");
       }

@@ -1122,6 +1122,9 @@ namespace CustomActivatableEquipment {
       }
       component.playActivateSound();
       component.UpdateAuras(false);
+      component.parent?.bodyAura()?.RetriggerEnter(false, false, true);
+      component.parent?.bodyAura()?.RetriggerExit();
+      //component.parent.bodyAura()?.ReapplyAllEffects();
       CAEAuraHelper.ClearAuraPreviewCache();
       if (activatable.ExplodeOnSuccess) { component.AoEExplodeComponent(); }
       component.LinkageActivate(isInital);
@@ -1170,7 +1173,7 @@ namespace CustomActivatableEquipment {
       if (this.offlineStatusEffects == null) {
         Log.Debug?.Write(" no offline effects\n");
       } else {
-        Log.Debug?.Write(" offline effects count: " + this.statusEffects.Length + "\n");
+        Log.Debug?.Write(" offline effects count: " + this.offlineStatusEffects.Length + "\n");
         Log.Debug?.Write(" sprint:" + component.parent.MaxSprintDistance + "\n");
         Log.Debug?.Write(" walk:" + component.parent.MaxWalkDistance + "\n");
         for (int index = 0; index < this.offlineStatusEffects.Length; ++index) {
@@ -1257,6 +1260,8 @@ namespace CustomActivatableEquipment {
       activatable.removeOnlineEffects(component);
       activatable.removeOfflineEffects(component);
       component.UpdateAuras(false);
+      component.parent?.bodyAura()?.RetriggerEnter(false, false, true);
+      component.parent?.bodyAura()?.RetriggerExit();
       ObjectSpawnDataSelf activeVFX = component.ActivateVFX();
       if (activeVFX != null) { activeVFX.CleanupSelf(); }
       Log.Debug?.Write(component.defId+" shutdown\n");
@@ -1301,6 +1306,8 @@ namespace CustomActivatableEquipment {
       if (activeVFX != null) { activeVFX.CleanupSelf(); }
       component.playDeactivateSound();
       component.UpdateAuras(false);
+      component.parent?.bodyAura()?.RetriggerEnter(false, false, true);
+      component.parent?.bodyAura()?.RetriggerExit();
       CAEAuraHelper.ClearAuraPreviewCache();
       component.LinkageDectivate(false);
     }
@@ -1659,6 +1666,7 @@ namespace CustomActivatableEquipment {
       Log.Debug?.TWriteCritical(0, "FinishedLoading");
       try {
         CustomSettings.ModsLocalSettingsHelper.RegisterLocalSettings("ActivatebleEquipment", "Activatable Equipment", LocalSettingsHelper.ResetSettings, LocalSettingsHelper.ReadSettings);
+        C3Helper.Init();
         //ExtendedDescriptionHelper.DetectMechEngineer();
       } catch (Exception e) {
         Log.Debug?.TWriteCritical(0, e.ToString());

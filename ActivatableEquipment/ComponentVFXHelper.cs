@@ -22,20 +22,20 @@ namespace CustomActivatableEquipment {
       }
     }
   }
-  [HarmonyPatch(typeof(Vehicle))]
-  [HarmonyPatch("InitGameRep")]
-  [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPatch(new Type[] { typeof(Transform) })]
-  public static class Vehicle_InitGameRep {
-    public static void Postfix(Vehicle __instance) {
-      try {
-        Log.Debug?.Write("Vehicle.InitGameRep " + (__instance != null ? "not null" : "null") + "\n");
-        __instance.registerComponentsForVFX();
-      }catch(Exception e) {
-        Log.Debug?.Write(e.ToString() + "\n");
-      }
-    }
-  }
+  //[HarmonyPatch(typeof(Vehicle))]
+  //[HarmonyPatch("InitGameRep")]
+  //[HarmonyPatch(MethodType.Normal)]
+  //[HarmonyPatch(new Type[] { typeof(Transform) })]
+  //public static class Vehicle_InitGameRep {
+  //  public static void Postfix(Vehicle __instance) {
+  //    try {
+  //      Log.Debug?.Write("Vehicle.InitGameRep " + (__instance != null ? "not null" : "null") + "\n");
+  //      __instance.registerComponentsForVFX();
+  //    }catch(Exception e) {
+  //      Log.Debug?.Write(e.ToString() + "\n");
+  //    }
+  //  }
+  //}
   [HarmonyPatch(typeof(Turret))]
   [HarmonyPatch("InitGameRep")]
   [HarmonyPatch(MethodType.Normal)]

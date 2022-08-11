@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using HBS.Collections;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -91,6 +92,13 @@ namespace CustomActivatableEquipment {
     public ColorJsonAlpha componentHeatBarActivateColor { get; set; } = new ColorJsonAlpha(new Color(1f, 0f, 0f, 1f));
     [GameplaySafe]
     public ColorJsonAlpha componentHeatBarDeactivateColor { get; set; } = new ColorJsonAlpha(new Color(0f, 0f, 1f, 1f));
+    public TagSet _C3NetworkEncounterTags { get; set; } = new TagSet();
+    public List<string> C3NetworkEncounterTags {
+      set {
+        _C3NetworkEncounterTags.Clear();
+        foreach (string tag in value) { _C3NetworkEncounterTags.Add(tag); }
+      }
+    }
     public Settings() {
       debug = true;
       AdditionalAssets = new List<string>();
