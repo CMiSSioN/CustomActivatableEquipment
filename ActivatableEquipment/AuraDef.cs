@@ -75,14 +75,25 @@ namespace CustomActivatableEquipment {
         foreach (string tag in value) { _neededTags.Add(tag); }
       }
     }
+    public TagSet _neededOwnerTags { get; set; } = new TagSet();
+    public List<string> neededOwnerTags {
+      set {
+        _neededOwnerTags.Clear();
+        foreach (string tag in value) { _neededOwnerTags.Add(tag); }
+      }
+    }
     public List<string> ownerSFX { get; set; }
     public List<string> targetSFX { get; set; }
     public List<string> removeOwnerSFX { get; set; }
     public List<string> removeTargetSFX { get; set; }
     public List<EffectData> statusEffects { get; set; }
-    public bool check(AbstractActor unit) {
+    public bool checkTarget(AbstractActor unit) {
       if (_neededTags.Count == 0) { return true; }
       return unit.EncounterTags.ContainsAll(_neededTags);
+    }
+    public bool checkOwner(AbstractActor unit) {
+      if (_neededOwnerTags.Count == 0) { return true; }
+      return unit.EncounterTags.ContainsAll(_neededOwnerTags);
     }
     public AuraDef() {
       AllyStealthAffection = StealthAffection.None;

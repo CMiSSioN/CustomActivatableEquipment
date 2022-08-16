@@ -693,7 +693,7 @@ namespace CustomActivatableEquipment {
         if (owner.IsSensorLocked && aura.Def.RemoveOnSensorLock) { this.OnTriggerExit(other); continue; }
         if ((owner.DistMovedThisRound > 1.0f) && aura.Def.NotApplyMoving) { this.OnTriggerExit(other); continue; }
         if ((owner.DistMovedThisRound < 1.0f) && aura.Def.ApplyOnlyMoving) { this.OnTriggerExit(other); continue; }
-        if (aura.Def.check(owner) == false) { this.OnTriggerExit(other); continue; }
+        if (aura.Def.checkTarget(owner) == false) { this.OnTriggerExit(other); continue; }
       }
     }
     public void OnTriggerEnter(Collider other) {
@@ -706,7 +706,7 @@ namespace CustomActivatableEquipment {
       if (owner.IsSensorLocked && aura.Def.RemoveOnSensorLock) { return; };
       if ((owner.DistMovedThisRound > 1.0f) && aura.Def.NotApplyMoving) { return; }
       if ((owner.DistMovedThisRound < 1.0f) && aura.Def.ApplyOnlyMoving) { return; }
-      if (aura.Def.check(owner) == false) { return; }
+      if (aura.Def.checkTarget(owner) == false) { return; }
       if (aurasToChange.TryGetValue(aura, out bool isAdd)) {
         if (isAdd == true) { return; }
         aurasToChange[aura] = true;
@@ -813,15 +813,16 @@ namespace CustomActivatableEquipment {
     }
     public void UpdateRadius(bool now = false) {
       float radius = this.GetRadius();
-      if (this.owner.IsDead || this.owner.IsShutDown) { radius = 0.1f; } else
+      if (this.owner.IsDead || this.owner.IsShutDown) { radius = 0.1f; goto apply_radius; }
+      if (Def._neededOwnerTags.IsEmpty == false) { if (Def.checkOwner(owner) == false) { radius = 0.1f; goto apply_radius; }; }
       if (source != null) {
-        if (source.IsFunctional == false) { radius = 0.1f; } else {
-          if (Def.State != AuraState.Persistent) {
-            if ((source.isActive() == false) && (Def.State == AuraState.Online)) { radius = 0.1f; } else
-            if ((source.isActive() == true) && (Def.State == AuraState.Offline)) { radius = 0.1f; } // исключающее или?
-          }
-        }
+        if (source.IsFunctional == false) { radius = 0.1f; goto apply_radius; }
+        if (Def.State != AuraState.Persistent) {
+          if ((source.isActive() == false) && (Def.State == AuraState.Online)) { radius = 0.1f; goto apply_radius; } else
+          if ((source.isActive() == true) && (Def.State == AuraState.Offline)) { radius = 0.1f; goto apply_radius; } // исключающее или?
+        }        
       }
+apply_radius:
       if (now) { this.collider.radius = radius; };
       Radius = radius;
       Log.Debug?.Write("Aura:" + owner.DisplayName + ":" + this.Def.Id + " src:" + (source != null?source.isActive().ToString():"null") + " state:" + Def.State + " " + this.collider.radius + "->" + Radius + " speed:" + Speed + "\n");

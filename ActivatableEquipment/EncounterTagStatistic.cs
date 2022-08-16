@@ -114,6 +114,7 @@ namespace CustomActivatableEquipment {
         Log.Debug?.TWL(0, "Remove encounter flag by statistic " + __instance.Target.PilotableActorDef.ChassisID + " " + encounter_flag_name);
         __instance.Target.EncounterTags.Remove(encounter_flag_name);
       }
+      __instance.Target.UpdateAuras(false);
       if (Core.Settings._C3NetworkEncounterTags.Contains(encounter_flag_name)) {
         C3Helper.Clear();
       }
