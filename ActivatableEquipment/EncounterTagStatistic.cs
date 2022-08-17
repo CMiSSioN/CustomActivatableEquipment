@@ -12,6 +12,7 @@ namespace CustomActivatableEquipment {
   public static class EffectManager_CreateEffect {
     public static void TestStatistic(this StatCollection stats, EffectData effectData) {
       if (stats.ContainsStatistic(effectData.statisticData.statName)) { return; }
+      if (effectData.statisticData.statName.StartsWith(StatisticEffect_OnEffectBegin.ADD_ENCOUNTER_FLAG_STAT_ID) == false) { return; }
       Variant variant = new Variant(System.Type.GetType(effectData.statisticData.modType));
       switch (effectData.statisticData.operation) {
         case StatCollection.StatOperation.Set: {
