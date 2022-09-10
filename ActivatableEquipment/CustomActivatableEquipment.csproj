@@ -51,13 +51,13 @@
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="CustomAmmoCategories">
-      <HintPath>$(BattleTechGameDir)\Mods\CustomAmmoCategories\CustomAmmoCategories.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\Core\CustomAmmoCategories\CustomAmmoCategories.dll</HintPath>
     </Reference>
     <Reference Include="CustomComponents">
-      <HintPath>$(BattleTechGameDir)\Mods\CustomComponents\CustomComponents.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\Core\CustomComponents\CustomComponents.dll</HintPath>
     </Reference>
     <Reference Include="CustomLocalSettings">
-      <HintPath>$(BattleTechGameDir)\Mods\CustomLocalSettings\CustomLocalSettings.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\Core\CustomLocalSettings\CustomLocalSettings.dll</HintPath>
     </Reference>
     <Reference Include="DOTweenPro, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -111,6 +111,7 @@
     <Compile Include="AuraPreviewCache.cs" />
     <Compile Include="Auras.cs" />
     <Compile Include="AuraUpdateHelper.cs" />
+    <Compile Include="C3Helper.cs" />
     <Compile Include="CombatGameDestroyed.cs" />
     <Compile Include="DamageHelper.cs" />
     <Compile Include="CombatAuraReticle.cs" />
@@ -119,6 +120,7 @@
     <Compile Include="ComponentVFXHelper.cs" />
     <Compile Include="ComponetnsLinkage.cs" />
     <Compile Include="EffectData.cs" />
+    <Compile Include="EncounterTagStatistic.cs" />
     <Compile Include="ExplodeComponent.cs" />
     <Compile Include="FailDamageHelper.cs" />
     <Compile Include="HeadHitsHelper.cs" />
@@ -132,29 +134,29 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>if exist "$(BattleTechGameDir)\Mods\ActivatableEquipment" (
+    <PostBuildEvent>if exist "$(BattleTechGameDir)\Mods\Core\ActivatableEquipment" (
    echo %25BattleTechGameDir%25
-   xcopy "$(TargetPath)" "$(BattleTechGameDir)\Mods\ActivatableEquipment" /y
-   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods\ActivatableEquipment\Localization"
-   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods\ActivatableEquipment"
+   xcopy "$(TargetPath)" "$(BattleTechGameDir)\Mods\Core\ActivatableEquipment" /y
+   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods\Core\ActivatableEquipment\Localization"
+   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods\Core\ActivatableEquipment"
 )
-if exist "$(BattleTechGameDir)\Mods\CustomActivatableEquipment" (
+if exist "$(BattleTechGameDir)\Mods\Core\CustomActivatableEquipment" (
    echo %25BattleTechGameDir%25
-   copy /Y "$(TargetPath)" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment"
-   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment\Localization"
-   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment"
+   copy /Y "$(TargetPath)" "$(BattleTechGameDir)\Mods\Core\CustomActivatableEquipment"
+   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods\Core\CustomActivatableEquipment\Localization"
+   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods\Core\CustomActivatableEquipment"
 )
-if exist "$(BattleTechGameDir)\Mods_CBDE\ActivatableEquipment" (
+if exist "$(BattleTechGameDir)\Mods_CBDE\Core\ActivatableEquipment" (
    echo %25BattleTechGameDir%25
-   copy /Y "$(TargetPath)" "$(BattleTechGameDir)\Mods_CBDE\ActivatableEquipment"
-   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods_CBDE\ActivatableEquipment\Localization"
-   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods_CBDE\ActivatableEquipment"
+   copy /Y "$(TargetPath)" "$(BattleTechGameDir)\Mods_CBDE\Core\ActivatableEquipment"
+   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods_CBDE\Core\ActivatableEquipment\Localization"
+   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods_CBDE\Core\ActivatableEquipment"
 )
-if exist "$(RogueTechRepo)\CustomActivatableEquipment" (
+if exist "$(RogueTechRepo)\Core\CustomActivatableEquipment" (
    echo %25RogueTechRepo%25
-   copy /Y "$(TargetPath)" "$(RogueTechRepo)\CustomActivatableEquipment"
-   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(RogueTechRepo)\CustomActivatableEquipment\Localization"
-   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(RogueTechRepo)\CustomActivatableEquipment"
+   copy /Y "$(TargetPath)" "$(RogueTechRepo)\Core\CustomActivatableEquipment"
+   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(RogueTechRepo)\Core\CustomActivatableEquipment\Localization"
+   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(RogueTechRepo)\Core\CustomActivatableEquipment"
 )
 if exist "$(BTARepo)\CustomActivatableEquipment" (
    echo %25BTARepo%25
