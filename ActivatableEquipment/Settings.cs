@@ -99,6 +99,7 @@ namespace CustomActivatableEquipment {
         foreach (string tag in value) { _C3NetworkEncounterTags.Add(tag); }
       }
     }
+    public Dictionary<int, string> AdditionalInjuryReasonsTable = new Dictionary<int, string>();
     public Settings() {
       debug = true;
       AdditionalAssets = new List<string>();
