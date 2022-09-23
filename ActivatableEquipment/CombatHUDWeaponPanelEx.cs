@@ -672,6 +672,9 @@ namespace CustomActivatableEquipment {
       if (ActivatableComponent.isOutOfCharges(component)) { return; }
       if (component.parent.IsAvailableThisPhase == false) { return; }
       if (component.parent.BlockComponentsActivation()) { return; }
+      int activatedRound = ActivatableComponent.getComponentActivedRound(component);
+      int currentRound = component.parent.Combat.TurnDirector.CurrentRound;
+      if (activeDef.ActivateOncePerRound && (activatedRound != currentRound) && (activatedRound >= 0)) { return; }
       Log.Debug?.Write("Toggle activatable " + component.defId + "\n");
       ActivatableComponent.toggleComponentActivation(this.component);
       equipPanel.RefreshDisplayedEquipment(component.parent);

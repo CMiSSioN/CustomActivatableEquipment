@@ -20,6 +20,55 @@ using CustAmmoCategoriesPatches;
 using CustomActivatableEquipment.DamageHelpers;
 
 namespace CustomActivatablePatches {
+  public static class InjurePilot_Check {
+    public static MethodBase PatchMethod() { return AccessTools.Method(typeof(Pilot), "InjurePilot"); }
+    public static MethodInfo PrefixMethod() { return AccessTools.Method(typeof(InjurePilot_Check), nameof(Prefix)); }
+    public static MethodInfo PostfixMethod() { return AccessTools.Method(typeof(InjurePilot_Check), nameof(Postfix)); }
+    public static bool propagationCheck { get; set; } = false;
+    public static void Prefix(Pilot __instance, ref Pilot __state) {
+      try {
+        if (propagationCheck == false) { return; }
+        if (__instance == null) { return; }
+        __state = __instance;
+        Log.Debug?.TWL(0, $"Pilot.InjurePilot prefix {__instance.Callsign} propagate normally");
+      }catch(Exception e) {
+        Log.Error?.TWL(0,e.ToString(),true);
+      }
+    }
+    public static void Postfix(Pilot __instance, ref Pilot __state) {
+      try {
+        if (propagationCheck == false) { return; }
+        if (__instance == null) { return; }
+        if(__state == null) {
+          Log.Debug?.TWL(0, $"Pilot.InjurePilot postfix {__instance.Callsign}");
+          Log.Debug?.WL(1, $"Someone prevented InjurePilot from executing. CAE is not responsible to this check who else is prefixing it");
+        } else {
+          Log.Debug?.TWL(0, $"Pilot.InjurePilot postfix {__instance.Callsign} check success. Pilot.InjurePilot is called successfully");
+
+        }
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
+  [HarmonyPatch(typeof(Pilot))]
+  [HarmonyPatch("InjuryReasonDescription")]
+  [HarmonyPatch(MethodType.Getter)]
+  [HarmonyPatch(new Type[] { })]
+  public static class Pilot_InjuryReasonDescription {
+    public static void Postfix(Pilot __instance, ref string __result) {
+      try {
+        Log.Debug?.TWL(0, $"Pilot.InjuryReasonDescription {(int)__instance.InjuryReason} {__result}");
+        if (Core.Settings.AdditionalInjuryReasonsTable.TryGetValue((int)__instance.InjuryReason, out var reason)) {
+          Log.Debug?.WL(1, $"replace to {reason}");
+          __result = reason;
+        }
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
+
   [HarmonyPatch(typeof(CombatHUDButtonBase))]
   [HarmonyPatch("OnClick")]
   [HarmonyPatch(MethodType.Normal)]
@@ -359,6 +408,7 @@ namespace CustomActivatableEquipment {
 namespace CustomActivatableEquipment {
   using CustAmmoCategories;
   using CustomActivatablePatches;
+  using IRBTModUtils;
   using Newtonsoft.Json.Linq;
 
   public class AoEExplosion {
@@ -524,6 +574,16 @@ namespace CustomActivatableEquipment {
     public bool EjectOnFail { get; set; }
     public bool EjectOnSuccess { get; set; }
     public bool EjectOnActivationTry { get; set; }
+    public bool InjuryOnFail { get; set; } = false;
+    public bool InjuryOnSuccess { get; set; } = false;
+    public bool InjuryOnActivationTry { get; set; } = false;
+    public InjuryReason InjuryReason { get; set; } = InjuryReason.ComponentExplosion;
+    public int InjuryReasonInt { get; set; } = -1;
+    public bool KillPilotOnFail { get; set; } = false;
+    public bool KillPilotOnSuccess { get; set; } = false;
+    public bool KillPilotOnActivationTry { get; set; } = false;
+    public DamageType KillPilotDamageType { get; set; } = DamageType.ComponentExplosion;
+    public string CheckPilotStatusFromAttack_reason { get; set; } = "Component fail";
     public bool DonNotCancelEffectOnDestruction { get; set; }
     public string activateSound { set { FActivateSound = new CustAmmoCategories.CustomAudioSource(value); } }
     public string deactivateSound { set { FDeactivateSound = new CustAmmoCategories.CustomAudioSource(value); } }
@@ -797,6 +857,20 @@ namespace CustomActivatableEquipment {
       Log.Debug?.Write(" roll:" + roll + "\n");
       if (roll < chance) {
         if (activatable.EjectOnFail) { component.parent.EjectPilot(component.parent.GUID, -1, DeathMethod.PilotEjection, false); };
+        ICustomMech custMech = component.parent as ICustomMech;
+        if ((custMech != null)) { if (custMech.isSquad) { goto skip_pilot_processing; } }
+        Log.Debug?.WL(1, $"InjuryOnFail:{activatable.InjuryOnFail}");
+        if (activatable.InjuryOnFail) {
+          Log.Debug?.WL(2, $"SetNeedsInjury {(activatable.InjuryReasonInt >= 0 ? activatable.InjuryReasonInt : (int)activatable.InjuryReason)}");
+          component.parent.GetPilot()?.SetNeedsInjury((InjuryReason)(activatable.InjuryReasonInt >= 0? activatable.InjuryReasonInt : (int)activatable.InjuryReason));
+        }
+        Log.Debug?.WL(1, $"KillPilotOnFail:{activatable.KillPilotOnFail}");
+        if (activatable.KillPilotOnFail) {
+          Log.Debug?.WL(2, $"KillPilot {activatable.KillPilotDamageType}");
+          component.parent.GetPilot()?.KillPilot(component.parent.Combat.Constants, component.parent.GUID, 0, activatable.KillPilotDamageType, (Weapon)null, component.parent);
+          component.parent.FlagForDeath(component.UIName+" fail", DeathMethod.PilotKilled, DamageType.ComponentExplosion, -1, -1, component.parent.GUID, false);
+        }
+      skip_pilot_processing:
         //var fakeHit = new WeaponHitInfo(-1, -1, -1, -1, component.parent.GUID, component.parent.GUID, -1, null, null, null, null, null, null, null, null, null, null, null);
         //if (activatable.FailISDamage >= 1f) {
         owner.StructureDamage(activatable, component);
@@ -827,7 +901,11 @@ namespace CustomActivatableEquipment {
         }
         Log.Debug?.Write(" owner status. Death:" + owner.IsFlaggedForDeath + " Knockdown:" + owner.IsFlaggedForKnockdown + "\n");
         bool needToDone = false;
-        owner.CheckPilotStatusFromAttack("Component Fail",-1,-1);
+        Log.Debug?.WL(1, $"checking pilot status from attack need injury:{component.parent.GetPilot()?.NeedsInjury}");
+        InjurePilot_Check.propagationCheck = true;
+        owner.CheckPilotStatusFromAttack(activatable.CheckPilotStatusFromAttack_reason,-1,-1);
+        InjurePilot_Check.propagationCheck = false;
+        Log.Debug?.WL(1, $"checked pilot status from attack need injury:{component.parent.GetPilot()?.NeedsInjury}");
         if (owner.IsFlaggedForDeath || owner.IsFlaggedForKnockdown) {
           Log.Debug?.Write(" need done with actor\n");
           needToDone = true;
@@ -1060,6 +1138,19 @@ namespace CustomActivatableEquipment {
         Log.Debug?.Write(" eject on activation try\n");
         component.parent.EjectPilot(component.parent.GUID, -1, DeathMethod.PilotEjection, false);
       };
+      ICustomMech custMech = component.parent as ICustomMech;
+      if ((custMech != null)) { if (custMech.isSquad) { goto skip_pilot_processing_try; } }
+      if (activatable.InjuryOnActivationTry) {
+        component.parent.GetPilot()?.SetNeedsInjury((InjuryReason)(activatable.InjuryReasonInt >= 0 ? activatable.InjuryReasonInt : (int)activatable.InjuryReason));
+        component.parent.CheckPilotStatusFromAttack(activatable.CheckPilotStatusFromAttack_reason, -1, -1);
+        component.parent.HandleDeath(component.parent.GUID);
+      }
+      if (activatable.KillPilotOnActivationTry) {
+        component.parent.GetPilot()?.KillPilot(component.parent.Combat.Constants, component.parent.GUID, 0, activatable.KillPilotDamageType, (Weapon)null, component.parent);
+        component.parent.FlagForDeath(component.UIName + " success", DeathMethod.PilotKilled, DamageType.ComponentExplosion, -1, -1, component.parent.GUID, false);
+        component.parent.HandleDeath(component.parent.GUID);
+      }
+      skip_pilot_processing_try:
       if (autoActivate == false) {
         if (ActivatableComponent.rollFail(component, true) == false) {
           Log.Debug?.Write(" fail to activate\n");
@@ -1105,6 +1196,19 @@ namespace CustomActivatableEquipment {
         Log.Debug?.Write(" eject on activation success\n");
         component.parent.EjectPilot(component.parent.GUID, -1, DeathMethod.PilotEjection, false);
       };
+      if ((custMech != null)) { if (custMech.isSquad) { goto skip_pilot_processing_success; } }
+      if (activatable.InjuryOnSuccess) {
+        component.parent.GetPilot()?.SetNeedsInjury((InjuryReason)(activatable.InjuryReasonInt >= 0 ? activatable.InjuryReasonInt : (int)activatable.InjuryReason));
+        component.parent.CheckPilotStatusFromAttack(activatable.CheckPilotStatusFromAttack_reason, -1, -1);
+        component.parent.HandleDeath(component.parent.GUID);
+      }
+      if (activatable.KillPilotOnSuccess) {
+        component.parent.GetPilot()?.KillPilot(component.parent.Combat.Constants, component.parent.GUID, 0, activatable.KillPilotDamageType, (Weapon)null, component.parent);
+        component.parent.FlagForDeath(component.UIName + " success", DeathMethod.PilotKilled, DamageType.ComponentExplosion, -1, -1, component.parent.GUID, false);
+        component.parent.HandleDeath(component.parent.GUID);
+      }
+    skip_pilot_processing_success:
+
       if (activatable.Repair.repairTrigger.OnActivation) { activatable.Repair.Repair(component); }
       activatable.removeOfflineEffects(component);
       activatable.applyOnlineEffects(component, isInital);
@@ -1541,7 +1645,7 @@ namespace CustomActivatableEquipment {
   public static partial class Core {
     public static float Epsilon = 0.01f;
     //public static Dictionary<string, GameObject> AdditinalFXObjects = new Dictionary<string, GameObject>();
-
+    public static HarmonyInstance harmony { get; set; } = null;
     //public static List<ActivatableComponent> currentActiveComponentsDlg = new List<ActivatableComponent>();
     public static readonly string HeatSinkOfflineTagName = "offline";
     //public static Dictionary<string,List<ComponentToggle>>
@@ -1667,6 +1771,7 @@ namespace CustomActivatableEquipment {
       try {
         CustomSettings.ModsLocalSettingsHelper.RegisterLocalSettings("ActivatebleEquipment", "Activatable Equipment", LocalSettingsHelper.ResetSettings, LocalSettingsHelper.ReadSettings);
         C3Helper.Init();
+        Core.harmony.Patch(InjurePilot_Check.PatchMethod(),new HarmonyMethod(InjurePilot_Check.PrefixMethod()), new HarmonyMethod(InjurePilot_Check.PostfixMethod()));
         //ExtendedDescriptionHelper.DetectMechEngineer();
       } catch (Exception e) {
         Log.Debug?.TWriteCritical(0, e.ToString());
@@ -1739,7 +1844,7 @@ namespace CustomActivatableEquipment {
       }*/
       try {
         CustomComponents.Registry.RegisterSimpleCustomComponents(Assembly.GetExecutingAssembly());
-        var harmony = HarmonyInstance.Create("io.mission.activatablecomponents");
+        harmony = HarmonyInstance.Create("io.mission.activatablecomponents");
         harmony.PatchAll(Assembly.GetExecutingAssembly());
         harmony.Patch(
         typeof(Weapon).Assembly.GetType("AreAnyHostilesInWeaponRangeNode").GetMethod("Tick", BindingFlags.Instance | BindingFlags.NonPublic), 

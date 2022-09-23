@@ -89,59 +89,60 @@ namespace CustomActivatableEquipment {
       return result;
     }
     public static void CritComponent(this MechComponent component, ref WeaponHitInfo hitInfo) {
-      Weapon weapon1 = component as Weapon;
-      AmmunitionBox ammoBox = component as AmmunitionBox;
-      Jumpjet jumpjet = component as Jumpjet;
-      HeatSinkDef componentDef = component.componentDef as HeatSinkDef;
-      bool flag = weapon1 != null;
-      if (component.parent != null) {
-        if (component.parent.GameRep != null) {
-          WwiseManager.SetSwitch<AudioSwitch_weapon_type>(AudioSwitch_weapon_type.laser_medium, component.parent.GameRep.audioObject);
-          WwiseManager.SetSwitch<AudioSwitch_surface_type>(AudioSwitch_surface_type.mech_critical_hit, component.parent.GameRep.audioObject);
-          int num1 = (int)WwiseManager.PostEvent<AudioEventList_impact>(AudioEventList_impact.impact_weapon, component.parent.GameRep.audioObject, (AkCallbackManager.EventCallback)null, (object)null);
-          int num2 = (int)WwiseManager.PostEvent<AudioEventList_explosion>(AudioEventList_explosion.explosion_small, component.parent.GameRep.audioObject, (AkCallbackManager.EventCallback)null, (object)null);
-          if (component.parent.team.LocalPlayerControlsTeam)
-            AudioEventManager.PlayAudioEvent("audioeventdef_musictriggers_combat", "critical_hit_friendly ", (AkGameObj)null, (AkCallbackManager.EventCallback)null);
-          else if (!component.parent.team.IsFriendly(component.parent.Combat.LocalPlayerTeam))
-            AudioEventManager.PlayAudioEvent("audioeventdef_musictriggers_combat", "critical_hit_enemy", (AkGameObj)null, (AkCallbackManager.EventCallback)null);
-          if (jumpjet == null && componentDef == null && (ammoBox == null && component.DamageLevel > ComponentDamageLevel.Functional)) {
-            if (component.parent is Mech mech) {
-              mech.GameRep.PlayComponentCritVFX(component.Location);
-            }
-          }
-          if (ammoBox != null && component.DamageLevel > ComponentDamageLevel.Functional)
-            component.parent.GameRep.PlayVFX(component.Location, (string)component.parent.Combat.Constants.VFXNames.componentDestruction_AmmoExplosion, true, Vector3.zero, true, -1f);
-        }
-      }
-      ComponentDamageLevel damageLevel = component.DamageLevel;
-      switch (damageLevel) {
-        case ComponentDamageLevel.Functional:
-        if (flag) {
-          damageLevel = ComponentDamageLevel.Penalized;
-          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage((IStackSequence)new ShowActorInfoSequence((ICombatant)component.parent, new Text("{0} CRIT", new object[1]
-          {
-                    (object) component.UIName
-          }), FloatieMessage.MessageNature.CriticalHit, true)));
-          goto case ComponentDamageLevel.Destroyed;
-        } else {
-          damageLevel = ComponentDamageLevel.Destroyed;
-          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage((IStackSequence)new ShowActorInfoSequence((ICombatant)component.parent, new Text("{0} DESTROYED", new object[1]
-          {
-                    (object) component.UIName
-          }), FloatieMessage.MessageNature.ComponentDestroyed, true)));
-          goto case ComponentDamageLevel.Destroyed;
-        }
-        case ComponentDamageLevel.Destroyed:
-        component.DamageComponent(hitInfo, damageLevel, true);
-        break;
-        default:
-        damageLevel = ComponentDamageLevel.Destroyed;
-        component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage((IStackSequence)new ShowActorInfoSequence((ICombatant)component.parent, new Text("{0} DESTROYED", new object[1]
-        {
-                  (object) component.UIName
-        }), FloatieMessage.MessageNature.ComponentDestroyed, true)));
-        goto case ComponentDamageLevel.Destroyed;
-      }
+      AdvancedCriticalProcessor.CritComponent(component, ref hitInfo, null, false);
+      //Weapon weapon1 = component as Weapon;
+      //AmmunitionBox ammoBox = component as AmmunitionBox;
+      //Jumpjet jumpjet = component as Jumpjet;
+      //HeatSinkDef componentDef = component.componentDef as HeatSinkDef;
+      //bool flag = weapon1 != null;
+      //if (component.parent != null) {
+      //  if (component.parent.GameRep != null) {
+      //    WwiseManager.SetSwitch<AudioSwitch_weapon_type>(AudioSwitch_weapon_type.laser_medium, component.parent.GameRep.audioObject);
+      //    WwiseManager.SetSwitch<AudioSwitch_surface_type>(AudioSwitch_surface_type.mech_critical_hit, component.parent.GameRep.audioObject);
+      //    int num1 = (int)WwiseManager.PostEvent<AudioEventList_impact>(AudioEventList_impact.impact_weapon, component.parent.GameRep.audioObject, (AkCallbackManager.EventCallback)null, (object)null);
+      //    int num2 = (int)WwiseManager.PostEvent<AudioEventList_explosion>(AudioEventList_explosion.explosion_small, component.parent.GameRep.audioObject, (AkCallbackManager.EventCallback)null, (object)null);
+      //    if (component.parent.team.LocalPlayerControlsTeam)
+      //      AudioEventManager.PlayAudioEvent("audioeventdef_musictriggers_combat", "critical_hit_friendly ", (AkGameObj)null, (AkCallbackManager.EventCallback)null);
+      //    else if (!component.parent.team.IsFriendly(component.parent.Combat.LocalPlayerTeam))
+      //      AudioEventManager.PlayAudioEvent("audioeventdef_musictriggers_combat", "critical_hit_enemy", (AkGameObj)null, (AkCallbackManager.EventCallback)null);
+      //    if (jumpjet == null && componentDef == null && (ammoBox == null && component.DamageLevel > ComponentDamageLevel.Functional)) {
+      //      if (component.parent is Mech mech) {
+      //        mech.GameRep.PlayComponentCritVFX(component.Location);
+      //      }
+      //    }
+      //    if (ammoBox != null && component.DamageLevel > ComponentDamageLevel.Functional)
+      //      component.parent.GameRep.PlayVFX(component.Location, (string)component.parent.Combat.Constants.VFXNames.componentDestruction_AmmoExplosion, true, Vector3.zero, true, -1f);
+      //  }
+      //}
+      //ComponentDamageLevel damageLevel = component.DamageLevel;
+      //switch (damageLevel) {
+      //  case ComponentDamageLevel.Functional:
+      //  if (flag) {
+      //    damageLevel = ComponentDamageLevel.Penalized;
+      //    component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage((IStackSequence)new ShowActorInfoSequence((ICombatant)component.parent, new Text("{0} CRIT", new object[1]
+      //    {
+      //              (object) component.UIName
+      //    }), FloatieMessage.MessageNature.CriticalHit, true)));
+      //    goto case ComponentDamageLevel.Destroyed;
+      //  } else {
+      //    damageLevel = ComponentDamageLevel.Destroyed;
+      //    component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage((IStackSequence)new ShowActorInfoSequence((ICombatant)component.parent, new Text("{0} DESTROYED", new object[1]
+      //    {
+      //              (object) component.UIName
+      //    }), FloatieMessage.MessageNature.ComponentDestroyed, true)));
+      //    goto case ComponentDamageLevel.Destroyed;
+      //  }
+      //  case ComponentDamageLevel.Destroyed:
+      //  component.DamageComponent(hitInfo, damageLevel, true);
+      //  break;
+      //  default:
+      //  damageLevel = ComponentDamageLevel.Destroyed;
+      //  component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage((IStackSequence)new ShowActorInfoSequence((ICombatant)component.parent, new Text("{0} DESTROYED", new object[1]
+      //  {
+      //            (object) component.UIName
+      //  }), FloatieMessage.MessageNature.ComponentDestroyed, true)));
+      //  goto case ComponentDamageLevel.Destroyed;
+      //}
     }
     public static void CritComponentsInLocation(this AbstractActor target, int location, ref WeaponHitInfo hitInfo, HashSet<string> excludeTags, HashSet<string> onlyTags) {
       List<MechComponent> components = target.GetComponentsInLocation(location, excludeTags, onlyTags);

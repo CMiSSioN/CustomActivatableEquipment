@@ -122,7 +122,6 @@ namespace CustomActivatableEquipment {
     }
     public static void Postfix(StatisticEffect __instance) {
       try {
-        //Log.Debug?.TWL(0, "StatisticEffect.OnEffectBegin " + (__instance.Target == null ? "null" : __instance.Target.PilotableActorDef.ChassisID) + " " + __instance.EffectData.statisticData.statName);
         __instance.RecalcEncounterFlag();
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
@@ -136,7 +135,6 @@ namespace CustomActivatableEquipment {
   public static class StatisticEffect_OnEffectPhaseBegin {
     public static void Postfix(StatisticEffect __instance) {
       try {
-        //Log.Debug?.TWL(0, "StatisticEffect.OnEffectPhaseBegin " + (__instance.Target == null ? "null" : __instance.Target.PilotableActorDef.ChassisID)+" "+__instance.EffectData.statisticData.statName);
         __instance.RecalcEncounterFlag();
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
@@ -150,7 +148,6 @@ namespace CustomActivatableEquipment {
   public static class StatisticEffect_OnEffectTakeDamage {
     public static void Postfix(StatisticEffect __instance) {
       try {
-        //Log.Debug?.TWL(0, "StatisticEffect.OnEffectTakeDamage " + (__instance.Target == null ? "null" : __instance.Target.PilotableActorDef.ChassisID) + " " + __instance.EffectData.statisticData.statName);
         __instance.RecalcEncounterFlag();
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
@@ -164,7 +161,6 @@ namespace CustomActivatableEquipment {
   public static class StatisticEffect_OnEffectEnd {
     public static void Postfix(StatisticEffect __instance) {
       try {
-        //Log.Debug?.TWL(0, "StatisticEffect.OnEffectEnd " + (__instance.Target == null ? "null" : __instance.Target.PilotableActorDef.ChassisID) + " " + __instance.EffectData.statisticData.statName);
         __instance.RecalcEncounterFlag();
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
@@ -178,7 +174,6 @@ namespace CustomActivatableEquipment {
   public static class StatisticEffect_OnEffectActivationEnd {
     public static void Postfix(StatisticEffect __instance) {
       try {
-        //Log.Debug?.TWL(0, "StatisticEffect.OnEffectActivationEnd " +(__instance.Target==null?"null":__instance.Target.PilotableActorDef.ChassisID) + " " + __instance.EffectData.statisticData.statName);
         __instance.RecalcEncounterFlag();
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
