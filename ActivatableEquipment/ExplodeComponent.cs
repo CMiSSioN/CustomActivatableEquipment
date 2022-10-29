@@ -20,7 +20,12 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { })]
   public static class MechComponent_InitStats {
     public static void Postfix(MechComponent __instance) {
-      __instance.InitExplosionStats();
+      try {
+        __instance.InitExplosionStats();
+        __instance.RegisterStatCollection();
+      }catch(Exception e) {
+        Log.Error?.TWL(0,e.ToString(),true);
+      }
     }
   }
   [HarmonyPatch(typeof(MechComponent))]

@@ -29,6 +29,7 @@ namespace CustomActivatableEquipment {
       CombatHUDEquipmentPanel.Clear();
       AbstractActor_InitAbstractActor.Clear();
       C3Helper.Clear();
+      CustomStatisticEffectHelper.Clear();
       //DamageHelpers.DamageHelper.Clear();
       return true;
     }

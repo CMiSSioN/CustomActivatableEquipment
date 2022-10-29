@@ -1,10 +1,174 @@
 ﻿using BattleTech;
 using Harmony;
+using IRBTModUtils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
 
 namespace CustomActivatableEquipment {
+  public static class CustomStatisticEffectHelper {
+    private static Dictionary<StatCollection, MechComponent> statCollectionsRegistry = new Dictionary<StatCollection, MechComponent>();
+    public static void RegisterStatCollection(this MechComponent component) {
+      statCollectionsRegistry[component.StatCollection] = component;
+    }
+    public static MechComponent getComponent(this StatCollection statCollection) {
+      if (statCollectionsRegistry.TryGetValue(statCollection, out var result)) { return result; }
+      return null;
+    }
+    public static void Clear() { statCollectionsRegistry.Clear(); }
+  }
+  //[HarmonyPatch(typeof(MechComponent))]
+  //[HarmonyPatch("InitStats")]
+  //[HarmonyPatch(MethodType.Normal)]
+  //[HarmonyPatch(new Type[] { })]
+  //public static class MechComponent_InitStats {
+  //  public static void Postfix(MechComponent __instance) {
+  //    try { 
+  //      __instance.RegisterStatCollection();
+  //    } catch (Exception e) {
+  //      Log.Error?.TWL(0, e.ToString(), true);
+  //    }
+  //  }
+  //}
+  [HarmonyPatch(typeof(MechComponent))]
+  [HarmonyPatch("InitPassiveSelfEffects")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { })]
+  public static class MechComponent_InitPassiveSelfEffects {
+    public static void Prefix(MechComponent __instance) {
+      try {
+        Thread.CurrentThread.pushToStack<MechComponent>("EFFECT_SOURCE", __instance);
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+    public static void Postfix(MechComponent __instance) {
+      try {
+        Thread.CurrentThread.popFromStack<MechComponent>("EFFECT_SOURCE");
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
+  [HarmonyPatch(typeof(EffectManager))]
+  [HarmonyPatch("EffectComplete")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(Effect) })]
+  public static class EffectManager_EffectComplete {
+    public static void Postfix(EffectManager __instance, Effect e) {
+      try {
+        if (EffectManager_GetTargetStatCollections.StatisticEffectData_Location == null) { return; }
+        string SourceLocation = EffectManager_GetTargetStatCollections.StatisticEffectData_Location.GetValue(e.EffectData.statisticData) as string;
+        if (SourceLocation != "{onlyone}") { return; }
+        if (e is StatisticEffect statEffect) {
+          StatCollection statCollection = Traverse.Create(statEffect).Property<StatCollection>("statCollection").Value;
+          if (statCollection == null) { return; }
+          statCollection.RemoveStatistic(e.EffectData.Description.Id+"_only_one_tracker");
+        }
+      } catch (Exception ex) {
+        Log.Error?.TWL(0, ex.ToString(), true);
+      }
+    }
+  }
+  [HarmonyPatch(typeof(StatisticEffect))]
+  [HarmonyPatch("initStatisiticEffect")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(ICombatant),typeof(EffectData),typeof(StatCollection) })]
+  public static class StatisticEffect_initStatisiticEffect {
+    public static void Postfix(StatisticEffect __instance, ICombatant target, EffectData effectData, StatCollection targetStatCollection) {
+      try {
+        if (EffectManager_GetTargetStatCollections.StatisticEffectData_Location == null) { return; }
+        string SourceLocation = EffectManager_GetTargetStatCollections.StatisticEffectData_Location.GetValue(effectData.statisticData) as string;
+        if (SourceLocation != "{onlyone}") { return; }
+        if (targetStatCollection == null) { return; }
+        targetStatCollection.GetOrCreateStatisic<bool>(effectData.Description.Id + "_only_one_tracker", false).SetValue<bool>(true);
+      } catch (Exception ex) {
+        Log.Error?.TWL(0, ex.ToString(), true);
+      }
+    }
+  }
+  [HarmonyPatch(typeof(EffectManager))]
+  [HarmonyPatch("GetTargetStatCollections")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(EffectData), typeof(ICombatant) })]
+  public static class EffectManager_GetTargetStatCollections {
+    public static FieldInfo StatisticEffectData_Location;
+    public static bool Prepare() {
+      StatisticEffectData_Location = AccessTools.Field(typeof(StatisticEffectData), "Location");
+      Log.Debug?.TWL(0, $"EffectManager.GetTargetStatCollections Prepare StatisticEffectData.Location {(StatisticEffectData_Location==null?"not found":"found")}");
+      return StatisticEffectData_Location != null;
+    }
+    public static void Postfix(EffectManager __instance, EffectData effectData, ICombatant target, ref List<StatCollection> __result) {
+      try {
+        if (StatisticEffectData_Location == null) {
+          return;
+        }
+        string SourceLocation = StatisticEffectData_Location.GetValue(effectData.statisticData) as string;
+        Log.Debug?.TWL(0, $"EffectManager.GetTargetStatCollections {effectData.Description.Id} sourceLocation:{SourceLocation} collections:{__result.Count}");
+        if (string.IsNullOrEmpty(SourceLocation)) { return; }
+        int sourceLocation = -1;
+        bool isAbove = false;
+        bool isOnlyOne = false;
+        if(SourceLocation == "{above}") {
+          isAbove = true;
+          SourceLocation = "{current}";
+        }
+        if(SourceLocation == "{onlyone}") {
+          isOnlyOne = true;
+          SourceLocation = "{current}";
+        }
+        MechComponent sourceComponent = Thread.CurrentThread.peekFromStack<MechComponent>("EFFECT_SOURCE");
+        if (SourceLocation == "{current}") {
+          if (sourceComponent == null) { return; }
+          sourceLocation = sourceComponent.Location;
+        } else {
+          if(Enum.TryParse<ChassisLocations>(SourceLocation, out var cloc)) {
+            sourceLocation = (int)cloc;
+          } else if(Enum.TryParse<VehicleChassisLocations>(SourceLocation, out var vloc)) {
+            sourceLocation = (int)vloc.FakeVehicleLocation();
+          } else if(Enum.TryParse<BuildingLocation>(SourceLocation, out var bloc)) {
+            sourceLocation = 1;
+          }
+        }
+        if (sourceLocation < 0) { return; }
+        HashSet<StatCollection> result = new HashSet<StatCollection>();
+        MechComponent aboveComponent = null;
+        foreach (StatCollection statCollection in __result) {
+          MechComponent targetComponent = statCollection.getComponent();
+          if (targetComponent == null) { result.Add(statCollection); continue; }
+          int targetLocation = targetComponent.Location;
+          if (targetComponent.vehicleComponentRef != null) {
+            targetLocation = (int)targetComponent.vehicleComponentRef.MountedLocation.FakeVehicleLocation();
+          }
+          Log.Debug?.WL(1, $"component {targetComponent.defId} UID:{targetComponent.uid} location:{targetLocation} effect location:{sourceLocation}");
+          if (sourceLocation != targetLocation) { continue; }
+          if((targetComponent.uid.CompareTo(sourceComponent.uid) < 0)) {
+            if ((aboveComponent == null)||(targetComponent.uid.CompareTo(aboveComponent.uid) > 0)) { aboveComponent = targetComponent; }
+          }
+          if (isAbove) { continue; }
+          if (isOnlyOne) { if (statCollection.GetStatistic(effectData.Description.Id+"_only_one_tracker") != null) {
+              Log.Debug?.WL(2, $"already applied");
+              continue;
+            }
+          }
+          result.Add(statCollection);
+          if (isOnlyOne) { break; }
+        }
+        if (aboveComponent != null) {
+          Log.Debug?.WL(1, $"above component {aboveComponent.defId} UID:{aboveComponent.uid} sourceComponent.UID:{sourceComponent.uid}");
+          result.Add(aboveComponent.StatCollection);
+        }
+        __result = result.ToList();
+        Log.Debug?.WL(1, $"filtered:{__result.Count}");
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
+
   //public static class CustomStatisticEffectHelper{
   //  private static ConcurrentDictionary<StatisticEffectData, CustomStatisticEffectData> customData = new ConcurrentDictionary<StatisticEffectData, CustomStatisticEffectData>();
   //  public static void Register(this StatisticEffectData __instance) {

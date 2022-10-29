@@ -117,16 +117,19 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(new Type[] { })]
   public static class ActorMovementSequence_CompleteOrders {
     public static void Postfix(ActorMovementSequence __instance) {
-      CustomActivatableEquipment.Log.Debug?.Write("ActorMovementSequence.ActorMovementSequence " + __instance.owningActor.GUID + ":" + __instance.owningActor.DisplayName + "\n");
+      CustomActivatableEquipment.Log.Debug?.Write("ActorMovementSequence.CompleteOrders " + __instance.owningActor.GUID + ":" + __instance.owningActor.DisplayName + "\n");
       if (__instance.meleeType == MeleeAttackType.NotSet) {
         foreach (MechComponent component in __instance.owningActor.allComponents) {
           if (component.IsFunctional == false) { continue; };
+          ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+          if (activatable == null) { continue; }
+          if (activatable.FailCheckOnActivationEnd) { continue; }
           if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
             int aRounds = CustomActivatableEquipment.ActivatableComponent.getComponentActiveRounds(component);
             CustomActivatableEquipment.Log.Debug?.Write("Component:" + component.defId + " is active for " + aRounds + "\n");
             if (CustomActivatableEquipment.ActivatableComponent.rollFail(component, false) == false) {
-              CustomActivatableEquipment.Log.Debug?.Write("Component fail\n");
-              CustomActivatableEquipment.ActivatableComponent.deactivateComponent(component);
+              CustomActivatableEquipment.Log.Debug?.WL(1,$"Component fail. Deactivate {activatable.ShutdownOnFail}");
+              if(activatable.ShutdownOnFail) CustomActivatableEquipment.ActivatableComponent.deactivateComponent(component);
             }
           }
         }
@@ -153,29 +156,62 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { })]
   public static class MechMeleeSequence_CompleteOrders {
-
     public static void Postfix(MechMeleeSequence __instance) {
-      CustomActivatableEquipment.Log.Debug?.Write("MechMeleeSequence.CompleteOrders " + __instance.OwningMech.GUID + ":" + __instance.OwningMech.DisplayName + "\n");
+      Log.Debug?.Write("MechMeleeSequence.CompleteOrders " + __instance.OwningMech.GUID + ":" + __instance.OwningMech.DisplayName + "\n");
       foreach (MechComponent component in __instance.OwningMech.allComponents) {
-        if (component.IsFunctional == false) { continue; };
-        if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
-          int aRounds = CustomActivatableEquipment.ActivatableComponent.getComponentActiveRounds(component);
-          CustomActivatableEquipment.Log.Debug?.Write("Component:" + component.defId + " is active for " + aRounds + "\n");
-          if (CustomActivatableEquipment.ActivatableComponent.rollFail(component, false) == false) {
-            CustomActivatableEquipment.Log.Debug?.Write("Component fail\n");
-            CustomActivatableEquipment.ActivatableComponent.deactivateComponent(component);
+        try {
+          if (component.IsFunctional == false) { continue; };
+          ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+          if (activatable == null) { continue; }
+          if (activatable.FailCheckOnActivationEnd) { continue; }
+          if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
+            int aRounds = CustomActivatableEquipment.ActivatableComponent.getComponentActiveRounds(component);
+            CustomActivatableEquipment.Log.Debug?.Write("Component:" + component.defId + " is active for " + aRounds + "\n");
+            if (CustomActivatableEquipment.ActivatableComponent.rollFail(component, false) == false) {
+              CustomActivatableEquipment.Log.Debug?.WL(1,$"Component fail. Deactivate {activatable.ShutdownOnFail}");
+              if(activatable.ShutdownOnFail) CustomActivatableEquipment.ActivatableComponent.deactivateComponent(component);
+            }
           }
+        }catch(Exception e) {
+          Log.Error?.TWL(0,e.ToString(),true);
         }
       }
       //__instance.owningActor.Combat.commitDamage();
     }
   }
+  [HarmonyPatch(typeof(AbstractActor))]
+  [HarmonyPatch("OnActivationEnd")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(string), typeof(int) })]
+  public static class AbstractActor_OnActivationEnd_FailRoll {
+    public static void Postfix(AbstractActor __instance) {
+      Log.Debug?.TWL(0,"AbstractActor.OnActivationEnd fail roll " + __instance.PilotableActorDef.ChassisID);
+      try {
+        foreach (MechComponent component in __instance.allComponents) {
+          if (component.IsFunctional == false) { continue; };
+          ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+          if (activatable == null) { continue; }
+          if (activatable.FailCheckOnActivationEnd == false) { continue; }
+          if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
+            int aRounds = CustomActivatableEquipment.ActivatableComponent.getComponentActiveRounds(component);
+            CustomActivatableEquipment.Log.Debug?.WL(1,"Component:" + component.defId + " is active for " + aRounds);
+            if (CustomActivatableEquipment.ActivatableComponent.rollFail(component, false) == false) {
+              CustomActivatableEquipment.Log.Debug?.WL(1, $"Component fail. Deactivate {activatable.ShutdownOnFail}");
+              if (activatable.ShutdownOnFail) CustomActivatableEquipment.ActivatableComponent.deactivateComponent(component);
+            }
+          }
+        }
+      }catch(Exception e) {
+        Log.Error?.TWL(0,e.ToString(),true);
+      }
+    }
+  }
+
   [HarmonyPatch(typeof(Mech))]
   [HarmonyPatch("GetHeatSinkDissipation")]
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { })]
   public static class Mech_GetHeatSinkDissipation {
-
     public static void Postfix(Mech __instance, ref float __result) {
       //Log.LogWrite("Mech.GetHeatSinkDissipation:" + __instance.DisplayName + ":"+__instance.GUID+"\n");
       for (int index = 0; index < __instance.miscComponents.Count; ++index) {
@@ -552,7 +588,9 @@ namespace CustomActivatableEquipment {
     public int ChargesCount { get; set; }
     public ChassisLocations[] FailDamageLocations { get; set; }
     public VehicleChassisLocations[] FailDamageVehicleLocations { get; set; }
+    public bool FailCheckOnActivationEnd { get; set; } = false;
     public bool FailDamageToInstalledLocation { get; set; }
+    public bool FailCritToInstalledLocation { get; set; }
     public bool FailCritComponents { get; set; }
     public ChassisLocations[] FailCritLocations { get; set; }
     public VehicleChassisLocations[] FailCritVehicleLocations { get; set; }
@@ -606,6 +644,7 @@ namespace CustomActivatableEquipment {
     public List<string> OfflineEncounterTags { get; set; }
     public bool SwitchOffOnFall { get; set; }
     public bool HideInUI { get; set; }
+    public bool ShutdownOnFail { get; set; } = true;
     public ActivatableComponent() {
       ButtonName = "NotSet";
       FailFlatChance = 0f;
@@ -916,7 +955,7 @@ namespace CustomActivatableEquipment {
         if (owner.IsDead == false) {
           owner.HandleKnockdown(-1, owner.GUID, Vector2.one, (SequenceFinished)null);
         }
-        if (needToDone) {
+        if (needToDone && owner.IsAvailableThisPhase) {
           Log.Debug?.Write(" done with actor\n");
           owner.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage(owner.DoneWithActor()));
         }
@@ -1241,6 +1280,7 @@ namespace CustomActivatableEquipment {
         Log.Debug?.Write(" activatable effects count: " + this.statusEffects.Length + "\n");
         Log.Debug?.Write(" sprint:" + component.parent.MaxSprintDistance + "\n");
         Log.Debug?.Write(" walk:" + component.parent.MaxWalkDistance + "\n");
+        Thread.CurrentThread.pushToStack<MechComponent>("EFFECT_SOURCE", component);
         for (int index = 0; index < this.statusEffects.Length; ++index) {
           EffectData statusEffect = this.statusEffects[index];
           if (statusEffect.targetingData.effectTriggerType == EffectTriggerType.Passive) {
@@ -1256,6 +1296,7 @@ namespace CustomActivatableEquipment {
             }
           }
         }
+        Thread.CurrentThread.popFromStack<MechComponent>("EFFECT_SOURCE");
         PrintActorStatistic(component.parent);
         component.parent.ResetPathing(false);
         //if (isInital == false) {
@@ -1280,6 +1321,7 @@ namespace CustomActivatableEquipment {
         Log.Debug?.Write(" offline effects count: " + this.offlineStatusEffects.Length + "\n");
         Log.Debug?.Write(" sprint:" + component.parent.MaxSprintDistance + "\n");
         Log.Debug?.Write(" walk:" + component.parent.MaxWalkDistance + "\n");
+        Thread.CurrentThread.pushToStack<MechComponent>("EFFECT_SOURCE", component);
         for (int index = 0; index < this.offlineStatusEffects.Length; ++index) {
           EffectData statusEffect = this.offlineStatusEffects[index];
           if (statusEffect.targetingData.effectTriggerType == EffectTriggerType.Passive) {
@@ -1296,6 +1338,7 @@ namespace CustomActivatableEquipment {
           }
         }
         PrintActorStatistic(component.parent);
+        Thread.CurrentThread.popFromStack<MechComponent>("EFFECT_SOURCE");
         component.parent.ResetPathing(false);
         //if (isInital == false) {
         //  Log.LogWrite(" Updating auras\n");

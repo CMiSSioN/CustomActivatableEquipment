@@ -68,7 +68,16 @@ AI related mod settings
   "auraUpdateMinPosDelta": 20 - position delta for Position aura update fix strategy
   "auraUpdateMinTimeDelta": 2 - time delta for Time aura update fix strategy
 ------------------------------------------------------------------------------------------------------------------------
-    "Custom":{
+    if StatisticEffectDataInjector is installed (ModTek 3.0+ Mods/ModTek/Injectors/StatisticEffectDataInjector.dll)
+	you can define Location field in statisticData
+	if this field is set components from other locations can't be target for this statistic effect
+	works for passive and activatable effects (not working for auras, abilities and weapon impact/on-fire effects)
+	Location:"{current}" means location where component is installed
+	Location:"{above}" means location where component is installed and only one nearest component placed in location 
+	                   above current is affected. 
+	Location:"{onlyone}" means location where component is installed and only one component placed in location current is affected.
+	                     Affection is tracked by effect id. 
+	"Custom":{
 		"Category" : [ {"CategoryID" : "Activatable"}, {"CategoryID" : "MASC"}], 
 		"ActivatableComponent":{
 			"SwitchOffOnFall": false, - if true component will be switched off on mech knockdown. You should set it to true if you want your LAM animations working properly. 
@@ -90,6 +99,9 @@ AI related mod settings
 			"FailISDamage":10,  - Damage to inner structure on fail
 			"FailCrit":true, - if true fail inflicts critical rolls.
 			"SelfCrit": false - if true make crit hit to self.
+			"ShutdownOnFail": true, - if true on component fail it will be deactivated, if false component will continue to work after fail.
+			                          Note: it does not affects manual activation. If component failed on manual activation it remains offline regardless this setting
+			"FailCheckOnActivationEnd": false - if true fail check will be performed on activation end instead of move end
 			"FailDamageLocations":["LeftLeg","RightLeg"], - list of locations to damage. 
 			                              Available values Head,LeftArm, LeftTorso, CenterTorso, RightTorso,RightArm,LeftLeg,RightLeg. ONLY this values.
 			"FailDamageVehicleLocations":["Front","Left"], - list of locations to damage. Used if component installed on vehicle
@@ -103,6 +115,8 @@ AI related mod settings
 										  will be targeted. Eg. if FailDamageLocations array contains three locations three crit roll will be preformed
 										  But if FailCritComponents is true, fail results only one crit roll. It will list all components from FailCritLocations
 										  and than choose one to crit.
+			"FailDamageToInstalledLocation": false - if true location component is installed will be added to FailDamageLocations/FailDamageVehicleLocations
+			"FailCritToInstalledLocation": false - if true location component is installed will be added to FailCritLocations/FailCritVehicleLocations
 			"FailCritExcludeComponentsTags" : [], - if component have one of tag from this list it will be excluded from fail damage crit roll both (FailCrit and FailCritComponents) methods
 			"FailCritOnlyComponentsTags" : [], - if not empty only component having at least one tag from this list will be used to drit roll crit roll both (FailCrit and FailCritComponents) methods
 			"MechTonnageWeightMult" : 20 - installed chassis tonnage restriction multiplier. Tonnage restriction from (Component.Tonnage-1)*(MechTonnageWeightMult)+1 to (Component.Tonnage)*(MechTonnageWeightMult)
