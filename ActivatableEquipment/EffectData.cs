@@ -1,5 +1,6 @@
 ﻿using BattleTech;
 using Harmony;
+using HBS.Collections;
 using IRBTModUtils;
 using System;
 using System.Collections.Concurrent;
@@ -96,10 +97,32 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(EffectData), typeof(ICombatant) })]
   public static class EffectManager_GetTargetStatCollections {
     public static FieldInfo StatisticEffectData_Location;
+    public static FieldInfo StatisticEffectData_ShouldHaveTags;
+    public static FieldInfo StatisticEffectData_ShouldNotHaveTags;
+    private static bool Prepare_already_run = false;
     public static bool Prepare() {
+      if (Prepare_already_run) { return true; }
+      Prepare_already_run = true;
       StatisticEffectData_Location = AccessTools.Field(typeof(StatisticEffectData), "Location");
       Log.Debug?.TWL(0, $"EffectManager.GetTargetStatCollections Prepare StatisticEffectData.Location {(StatisticEffectData_Location==null?"not found":"found")}");
+      StatisticEffectData_ShouldHaveTags = AccessTools.Field(typeof(StatisticEffectData), "ShouldHaveTags");
+      Log.Debug?.TWL(0, $"EffectManager.GetTargetStatCollections Prepare StatisticEffectData.ShouldHaveTags {(StatisticEffectData_ShouldHaveTags == null ? "not found" : "found")}");
+      StatisticEffectData_ShouldNotHaveTags = AccessTools.Field(typeof(StatisticEffectData), "ShouldNotHaveTags");
+      Log.Debug?.TWL(0, $"EffectManager.GetTargetStatCollections Prepare StatisticEffectData.ShouldNotHaveTags {(StatisticEffectData_ShouldNotHaveTags == null ? "not found" : "found")}");
+      //Log.Debug?.WL(0, Environment.StackTrace);
       return StatisticEffectData_Location != null;
+    }
+    public static HashSet<string> ShouldHaveTags(this StatisticEffectData statisticEffectData) {
+      if (StatisticEffectData_ShouldHaveTags == null) { return new HashSet<string>(); }
+      string shouldHaveTags = StatisticEffectData_ShouldHaveTags.GetValue(statisticEffectData) as string;
+      if (string.IsNullOrEmpty(shouldHaveTags)) { return new HashSet<string>(); }
+      return shouldHaveTags.Split(',').ToHashSet();
+    }
+    public static HashSet<string> ShouldNotHaveTags(this StatisticEffectData statisticEffectData) {
+      if (StatisticEffectData_ShouldNotHaveTags == null) { return new HashSet<string>(); }
+      string shouldNotHaveTags = StatisticEffectData_ShouldNotHaveTags.GetValue(statisticEffectData) as string;
+      if (string.IsNullOrEmpty(shouldNotHaveTags)) { return new HashSet<string>(); }
+      return shouldNotHaveTags.Split(',').ToHashSet();
     }
     public static void Postfix(EffectManager __instance, EffectData effectData, ICombatant target, ref List<StatCollection> __result) {
       try {
@@ -135,6 +158,8 @@ namespace CustomActivatableEquipment {
         }
         if (sourceLocation < 0) { return; }
         HashSet<StatCollection> result = new HashSet<StatCollection>();
+        TagSet ShouldNotHaveTags = new TagSet(effectData.statisticData.ShouldNotHaveTags());
+        TagSet ShouldHaveTags = new TagSet(effectData.statisticData.ShouldHaveTags());
         MechComponent aboveComponent = null;
         foreach (StatCollection statCollection in __result) {
           MechComponent targetComponent = statCollection.getComponent();
@@ -145,7 +170,13 @@ namespace CustomActivatableEquipment {
           }
           Log.Debug?.WL(1, $"component {targetComponent.defId} UID:{targetComponent.uid} location:{targetLocation} effect location:{sourceLocation}");
           if (sourceLocation != targetLocation) { continue; }
-          if((targetComponent.uid.CompareTo(sourceComponent.uid) < 0)) {
+          if (ShouldNotHaveTags.Count > 0) {
+            if (targetComponent.componentDef.ComponentTags.ContainsAny(ShouldNotHaveTags)) { continue; }
+          }
+          if (ShouldHaveTags.Count > 0) {
+            if (targetComponent.componentDef.ComponentTags.ContainsAll(ShouldHaveTags) == false) { continue; }
+          }
+          if ((targetComponent.uid.CompareTo(sourceComponent.uid) < 0)) {
             if ((aboveComponent == null)||(targetComponent.uid.CompareTo(aboveComponent.uid) > 0)) { aboveComponent = targetComponent; }
           }
           if (isAbove) { continue; }
