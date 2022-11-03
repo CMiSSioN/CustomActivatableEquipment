@@ -444,6 +444,7 @@ namespace CustomActivatableEquipment {
 namespace CustomActivatableEquipment {
   using CustAmmoCategories;
   using CustomActivatablePatches;
+  using HBS.Util;
   using IRBTModUtils;
   using Newtonsoft.Json.Linq;
 
@@ -1809,10 +1810,20 @@ namespace CustomActivatableEquipment {
 
     public static Settings Settings = new Settings();
     public static Settings GlobalSettings = new Settings();
-    public static void FinishedLoading(List<string> loadOrder) {
+    public static void FinishedLoading(List<string> loadOrder, Dictionary<string, Dictionary<string, VersionManifestEntry>> customResources) {
       Log.Debug?.TWriteCritical(0, "FinishedLoading");
       try {
+        foreach (var customResource in customResources) {
+          Log.Debug?.WL(1, "customResource:" + customResource.Key);
+          if (customResource.Key == nameof(WeaponAddonDef)) {
+            foreach (var resource in customResource.Value) {
+              Log.Debug?.WL(2, "resource:" + resource.Key + "=" + resource.Value.FilePath);
+              resource.Value.RegisterWeaponAddon(resource.Key);
+            }
+          }
+        }
         CustomSettings.ModsLocalSettingsHelper.RegisterLocalSettings("ActivatebleEquipment", "Activatable Equipment", LocalSettingsHelper.ResetSettings, LocalSettingsHelper.ReadSettings);
+        WeaponDefModesCollectHelper.RegisterCallback("ActivatebleEquipment", WeaponAddonDefHelper.GatherModes);
         C3Helper.Init();
         Core.harmony.Patch(InjurePilot_Check.PatchMethod(),new HarmonyMethod(InjurePilot_Check.PrefixMethod()), new HarmonyMethod(InjurePilot_Check.PostfixMethod()));
         //ExtendedDescriptionHelper.DetectMechEngineer();
@@ -1820,6 +1831,11 @@ namespace CustomActivatableEquipment {
         Log.Debug?.TWriteCritical(0, e.ToString());
       }
     }
+    public class testJsonClass {
+      public string field1 { get; set; }
+      public JObject jobject { get; set; } = new JObject();
+    };
+
     public static void Init(string directory, string settingsJson) {
       CustomActivatableEquipment.Log.BaseDirectory = directory;
       CustomActivatableEquipment.Log.InitLog();
@@ -1895,6 +1911,17 @@ namespace CustomActivatableEquipment {
         ActivatebleDialogHelper.Init();
         CustomMechHelper.RegisterInitGameRepPrefix(Mech_InitGameRep_ECMRemove.Prefix);
         CustomMechHelper.RegisterInitGameRepPostfix(Mech_InitGameRep_ECMRemove.Postfix);
+
+        //string testJson = "{ \"field1\":\"value\", \"jobject\":{ \"jobjectfield\": { \"jobjectvalue\":\"jobjectsubvalue\" } }}";
+        //testJsonClass testClassObj = new testJsonClass();
+        //Thread.CurrentThread.SetFlag(JSONSerializationUtility_RehydrateObjectFromDictionary.DEBUG_OUTOPUT_FLAG);
+        //JSONSerializationUtility.FromJSON<testJsonClass>(testClassObj, testJson);
+        //Thread.CurrentThread.ClearFlag(JSONSerializationUtility_RehydrateObjectFromDictionary.DEBUG_OUTOPUT_FLAG);
+        //Log.Debug?.TWL(0, "JSON test result:");
+        //Log.Debug?.WL(0, JsonConvert.SerializeObject(testClassObj, Formatting.Indented));
+        //testClassObj = JsonConvert.DeserializeObject<testJsonClass>(testJson);
+        //Log.Debug?.TWL(0, "JSON test result:");
+        //Log.Debug?.WL(0, JsonConvert.SerializeObject(testClassObj, Formatting.Indented));
       } catch (Exception e) {
         CustomActivatableEquipment.Log.Debug?.Write(e.ToString() + "\n");
       }

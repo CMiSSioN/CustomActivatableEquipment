@@ -135,12 +135,17 @@ namespace CustomActivatableEquipment {
         int sourceLocation = -1;
         bool isAbove = false;
         bool isOnlyOne = false;
-        if(SourceLocation == "{above}") {
+        bool isTarget = false;
+        if (SourceLocation == "{above}") {
           isAbove = true;
           SourceLocation = "{current}";
         }
         if(SourceLocation == "{onlyone}") {
           isOnlyOne = true;
+          SourceLocation = "{current}";
+        }
+        if (SourceLocation == "{target}") {
+          isTarget = true;
           SourceLocation = "{current}";
         }
         MechComponent sourceComponent = Thread.CurrentThread.peekFromStack<MechComponent>("EFFECT_SOURCE");
@@ -169,13 +174,21 @@ namespace CustomActivatableEquipment {
             targetLocation = (int)targetComponent.vehicleComponentRef.MountedLocation.FakeVehicleLocation();
           }
           Log.Debug?.WL(1, $"component {targetComponent.defId} UID:{targetComponent.uid} location:{targetLocation} effect location:{sourceLocation}");
-          if (sourceLocation != targetLocation) { continue; }
           if (ShouldNotHaveTags.Count > 0) {
             if (targetComponent.componentDef.ComponentTags.ContainsAny(ShouldNotHaveTags)) { continue; }
           }
           if (ShouldHaveTags.Count > 0) {
             if (targetComponent.componentDef.ComponentTags.ContainsAll(ShouldHaveTags) == false) { continue; }
           }
+          if (isTarget) {
+            if (string.IsNullOrEmpty(targetComponent.baseComponentRef.LocalGUID()) == false) {
+              if(targetComponent.baseComponentRef.LocalGUID() == sourceComponent.baseComponentRef.TargetComponentGUID()) {
+                result.Add(statCollection);
+              }
+            }
+            continue;
+          }
+          if (targetLocation != sourceLocation) { continue; }
           if ((targetComponent.uid.CompareTo(sourceComponent.uid) < 0)) {
             if ((aboveComponent == null)||(targetComponent.uid.CompareTo(aboveComponent.uid) > 0)) { aboveComponent = targetComponent; }
           }

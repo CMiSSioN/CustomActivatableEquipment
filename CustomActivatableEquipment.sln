@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		AdditionalFiles\Readme.txt = AdditionalFiles\Readme.txt
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComponentRefInjector", "ComponentRefInjector\ComponentRefInjector.csproj", "{994426BB-627E-472D-A92A-4C1357A3926A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,6 +24,10 @@ Global
 		{014D4AE8-B2F3-4378-B063-F6FB2AC00257}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{014D4AE8-B2F3-4378-B063-F6FB2AC00257}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{014D4AE8-B2F3-4378-B063-F6FB2AC00257}.Release|Any CPU.Build.0 = Release|Any CPU
+		{994426BB-627E-472D-A92A-4C1357A3926A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{994426BB-627E-472D-A92A-4C1357A3926A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{994426BB-627E-472D-A92A-4C1357A3926A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{994426BB-627E-472D-A92A-4C1357A3926A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

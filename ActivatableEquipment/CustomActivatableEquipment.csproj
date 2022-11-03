@@ -60,6 +60,9 @@
     <Reference Include="CustomLocalSettings">
       <HintPath>$(BattleTechGameDir)\Mods\Core\CustomLocalSettings\CustomLocalSettings.dll</HintPath>
     </Reference>
+    <Reference Include="CustomPrewarm">
+      <HintPath>..\..\..\Mods\Core\CustomPrewarm\CustomPrewarm.dll</HintPath>
+    </Reference>
     <Reference Include="DOTweenPro, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
     <Reference Include="InControl">
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\InControl.dll</HintPath>
@@ -97,7 +100,11 @@
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>..\..\..\BattleTech_Data\Managed\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\BattleTech_Data\Managed\UnityEngine.UIModule.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -114,6 +121,7 @@
     <Compile Include="AuraUpdateHelper.cs" />
     <Compile Include="C3Helper.cs" />
     <Compile Include="CombatGameDestroyed.cs" />
+    <Compile Include="CustomComponentRef.cs" />
     <Compile Include="DamageHelper.cs" />
     <Compile Include="CombatAuraReticle.cs" />
     <Compile Include="CombatHUDWeaponPanelEx.cs" />
@@ -125,12 +133,14 @@
     <Compile Include="ExplodeComponent.cs" />
     <Compile Include="FailDamageHelper.cs" />
     <Compile Include="HeadHitsHelper.cs" />
+    <Compile Include="JSONSerializationUtility.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="MechStartup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RepairHelper.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="StealthPipsPreviewFromActorMovement.cs" />
+    <Compile Include="TargetableComponentsUI.cs" />
     <Compile Include="VanillaAurasDisable.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

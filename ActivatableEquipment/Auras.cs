@@ -47,11 +47,11 @@ namespace CustomActivatableEquipment {
       return true;
     }
   }
-  [HarmonyPatch(typeof(AbstractActor))]
-  [HarmonyPatch("InitEffectStats")]
-  [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPriority(Priority.First)]
-  [HarmonyPatch(new Type[] { })]
+  //[HarmonyPatch(typeof(AbstractActor))]
+  //[HarmonyPatch("InitEffectStats")]
+  //[HarmonyPatch(MethodType.Normal)]
+  //[HarmonyPriority(Priority.First)]
+  //[HarmonyPatch(new Type[] { })]
   public static class AbstractActor_InitEffectStatsAuras {
     public static void Postfix(AbstractActor __instance) {
       __instance.StatCollection.AddStatistic<bool>(Core.Settings.unaffectedByHeadHitStatName, false);
