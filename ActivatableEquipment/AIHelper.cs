@@ -32,10 +32,14 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(string), typeof(int) })]
   public static class AbstractActor_OnActivationEnd {
-    public static bool Prefix(AbstractActor __instance) {
-      Log.Debug?.Write("AbstractActor.OnActivationEnd(" + __instance.DisplayName + ":" + __instance.GUID + ")\n");
-      CAEAIHelper.AIActivatableProc(__instance);
-      return true;
+    public static void Prefix(AbstractActor __instance) {
+      try {
+        Log.Debug?.Write("AbstractActor.OnActivationEnd(" + __instance.DisplayName + ":" + __instance.GUID + ")\n");
+        CAEAIHelper.AIActivatableProc(__instance);
+        AbstractActor_OnActivationEnd_Patch.Prefix(__instance);
+      } catch(Exception e) {
+        Log.Error.TWL(0,e.ToString(),true);
+      }
     }
   }
 

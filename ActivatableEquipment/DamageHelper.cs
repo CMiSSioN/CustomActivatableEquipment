@@ -70,10 +70,12 @@ namespace CustomActivatableEquipment.DamageHelpers {
     public void Heat(int heat) {
       thresholdHeat += heat;
       if (highestHeat > heat) { highestHeat = heat; }
+      Log.Debug?.WL(1, $"IncomingDamageRecord.Heat {owner.PilotableActorDef.ChassisID} round:{owner.Combat.TurnDirector.CurrentRound}:{owner.Combat.TurnDirector.CurrentPhase} incoming:{heat} thresholdHeat:{thresholdHeat} highestHeat:{highestHeat}");
     }
     public void Stability(float stability) {
       thresholdStability += stability;
       if (highestStability > stability) { highestStability = stability; }
+      Log.Debug?.WL(1, $"IncomingDamageRecord.Stability {owner.PilotableActorDef.ChassisID} round:{owner.Combat.TurnDirector.CurrentRound}:{owner.Combat.TurnDirector.CurrentPhase} incoming:{stability} thresholdStability:{thresholdStability} highestStability:{highestStability}");
     }
     public void Clear() {
       thresholdHeat = 0f;
@@ -116,7 +118,9 @@ namespace CustomActivatableEquipment.DamageHelpers {
       return result;
     }
     public void commitDamage() {
+      Log.Debug?.TWL(0, $"IncomingDamageRecord.commitDamage {owner.PilotableActorDef.ChassisID} round:{owner.Combat.TurnDirector.CurrentRound} phase:{owner.Combat.TurnDirector.CurrentPhase} IsDead:{owner.IsDead} IsFlaggedForDeath:{owner.IsFlaggedForDeath} IsShutDown:{owner.IsShutDown}");
       if (owner.IsDead || owner.IsFlaggedForDeath || owner.IsShutDown) { Clear(); return; }
+      Log.Debug?.WL(1, $"thresholdHeat:{thresholdHeat} thresholdHeat:{thresholdStability} armorDamageCount:{armorDamgeLocationThreshold} structureDamageCount:{structureDamgeLocationThreshold.Count}");
       if ((thresholdHeat < Core.Epsilon) && (thresholdStability < Core.Epsilon)
         && (armorDamgeLocationThreshold.Count == 0) && (structureDamgeLocationThreshold.Count == 0)) { Clear(); return; };
       Mech mech = owner as Mech;
@@ -184,23 +188,20 @@ namespace CustomActivatableEquipment.DamageHelpers {
       __instance.Combat.commitDamage();
     }
   }
-  [HarmonyPatch(typeof(AbstractActor), "OnActivationEnd")]
   public static class AbstractActor_OnActivationEnd_Patch {
     public static void Prefix(AbstractActor __instance) {
       DamageHelper.completedTurnFor(__instance);
     }
   }
-
   [HarmonyPatch(typeof(Mech), "AddExternalHeat")]
   public static class Mech_AddExternalHeat_Patch {
-
     private static void Postfix(Mech __instance, string reason, int amt) {
       if (__instance == null) {
         Log.Debug?.Write("No mech\n");
         return;
       }
       Log.Debug?.Write($"{new string('═', 46)}\n");
-      Log.Debug?.Write($"{__instance.DisplayName} :{__instance.GUID } took {amt} Heat Damage from {reason ?? "null"}\n");
+      Log.Debug?.Write($"{__instance.PilotableActorDef.ChassisID} :{__instance.GUID } took {amt} Heat Damage from {reason ?? "null"}\n");
       //DamageHelper.BatchHeatDamage(__instance, amt);
       if (__instance.isHasHeat()) { __instance.IncomingDamage().Heat(amt); }
     }

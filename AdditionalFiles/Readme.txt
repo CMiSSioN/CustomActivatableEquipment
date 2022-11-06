@@ -68,7 +68,110 @@ AI related mod settings
   "auraUpdateMinPosDelta": 20 - position delta for Position aura update fix strategy
   "auraUpdateMinTimeDelta": 2 - time delta for Time aura update fix strategy
 ------------------------------------------------------------------------------------------------------------------------
-    "Custom":{
+    if ComponentRefInjector is installed (ModTek 3.0+ Mods/ModTek/Injectors/ComponentRefInjector.dll)
+	you can create weapon addon component. Weapon addon can have target component - weapon it is attached to. 
+	inside MechDef in inventory list two optional fields was added. "LocalGUID" and "TargetComponentGUID"
+	non empty "TargetComponentGUID" means this component have dedicated target inside this MechDef.
+	Relevant UI in mech lab been added to give user ability to select addon target. 
+  "inventory": [
+    {
+      "MountedLocation": "RightTorso",
+      "ComponentDefID": "Weapon_PPC_LPPCER_3",
+      "SimGameUID": "",
+      "ComponentDefType": "Weapon",
+      "HardpointSlot": 0,
+      "GUID": null,
+      "DamageLevel": "Functional",
+      "prefabName": null,
+      "hasPrefabName": false
+    },
+    {
+      "MountedLocation": "RightTorso",
+      "ComponentDefID": "Weapon_PPC_LPPCER_3",
+      "SimGameUID": "",
+      "ComponentDefType": "Weapon",
+      "HardpointSlot": 1,
+      "GUID": null,
+      "DamageLevel": "Functional",
+      "prefabName": null,
+      "hasPrefabName": false,
+	  "LocalGUID":"some_guid_0"
+    },
+    {
+      "MountedLocation": "RightTorso",
+      "ComponentDefID": "Gear_C3_slave_debug",
+      "SimGameUID": "",
+      "ComponentDefType": "Upgrade",
+      "HardpointSlot": -1,
+      "GUID": null,
+      "DamageLevel": "Functional",
+      "prefabName": null,
+      "hasPrefabName": false,
+	  "TargetComponentGUID":"some_guid_0"
+    }
+],
+    to make UpgradeDef a weapon addon you need to make two things.
+	1. Create WeaponAddonDef json file and add it to any mod manifest
+	2. Add AddonReference to UpgradeDef custom section
+
+	"Custom": {
+		"AddonReference":{ 
+			"installedLocationOnly":true,     - if true user can only select weapons from same location as target for this addon
+			"autoTarget":true,     - target for this component will be selected automatically on component add to mech configuration. 
+				                     If false addon will be have no target unless user set it implicitly 
+			"WeaponAddonIds": [ "ppc_capacitor", "ppc_capacitor2" ] - list of addons. If component have multiply addons 
+			                                                          only suitable (detected by targetComponentTags) will be actually applied
+		},
+
+WeaponAddonDef example
+
+{
+	"Id":"ppc_capacitor",  - ID should same as file name
+	"addonType":"ppc_capacitor_type", - string used to track addons of the same type. If ommited Id is used. 
+	                                    Only one addon of certain type can be attached to weapon
+	"targetComponentTags":["overload_mode_unlockable"], - set of tags weapon should have to be able to be target for an addon
+	"modes":[                                           - list of modes this addon adding to weapon. 
+	                                                      If isBaseMode is true this mode will be forced to be default for this weapon
+														  If weapon been damaged due to jamming crit goes to addon first. 
+														  If addon been destroyed mode it added been disabled
+    {
+      "Id": "overload",
+      "UIName": "purple",
+      "isBaseMode": true,
+      "DamagePerShot": 10,
+      "FireDelayMultiplier": 1,
+      "WeaponEffectID": "WeaponEffect-Weapon_PPC",
+      "ProjectileScale": { "x": 3, "y": 3, "z": 3 },
+      "preFireSFX": "Play_PPC3",
+      "ColorChangeRule": "Linear",
+      "ProjectileSpeedMultiplier": 0.5,
+      "ShotsWhenFired": 1,
+      "ColorSpeedChange": 7,
+      "HeatGenerated": 50,
+      "HeatDamagePerShot": 50
+    }
+	]
+}
+
+    if StatisticEffectDataInjector is installed (ModTek 3.0+ Mods/ModTek/Injectors/StatisticEffectDataInjector.dll)
+	you can define Location field in statisticData
+	if this field is set components from other locations can't be target for this statistic effect
+	works for passive and activatable effects (not working for auras, abilities and weapon impact/on-fire effects)
+	Location:"{current}" means location where component is installed
+	Location:"{above}" means location where component is installed and only one nearest component placed in location 
+	                   above current is affected. 
+	Location:"{onlyone}" means location where component is installed and only one component placed in location current is affected.
+	                     Affection is tracked by effect id. 
+    if ComponentRefInjector is installed (ModTek 3.0+ Mods/ModTek/Injectors/ComponentRefInjector.dll)
+	Location:"{target}" means effect will be applied only component been selected as target for this weapon addon. Refer WeaponAddonDef section. 
+
+    if StatisticEffectDataInjector is installed (ModTek 3.0+ Mods/ModTek/Injectors/StatisticEffectDataInjector.dll)
+	you can define ShouldHaveTags and ShouldNotHaveTags fields in statisticData. 
+	Value for both fields is string - set of tags separated by "," ("ShouldHaveTags":"my_cool_tag1,my_cool_tag2")
+	if ShouldHaveTags field is set components do not have all mentioned tags in their definitions can't be target for this statistic effect
+	if ShouldNotHaveTags field is set components have at least one mentioned tag in their definitions can't be target for this statistic effect
+	if this field is set components does not have all mentioned tags in their definitions can't be target for this statistic effect
+	"Custom":{
 		"Category" : [ {"CategoryID" : "Activatable"}, {"CategoryID" : "MASC"}], 
 		"ActivatableComponent":{
 			"SwitchOffOnFall": false, - if true component will be switched off on mech knockdown. You should set it to true if you want your LAM animations working properly. 
@@ -90,6 +193,9 @@ AI related mod settings
 			"FailISDamage":10,  - Damage to inner structure on fail
 			"FailCrit":true, - if true fail inflicts critical rolls.
 			"SelfCrit": false - if true make crit hit to self.
+			"ShutdownOnFail": true, - if true on component fail it will be deactivated, if false component will continue to work after fail.
+			                          Note: it does not affects manual activation. If component failed on manual activation it remains offline regardless this setting
+			"FailCheckOnActivationEnd": false - if true fail check will be performed on activation end instead of move end
 			"FailDamageLocations":["LeftLeg","RightLeg"], - list of locations to damage. 
 			                              Available values Head,LeftArm, LeftTorso, CenterTorso, RightTorso,RightArm,LeftLeg,RightLeg. ONLY this values.
 			"FailDamageVehicleLocations":["Front","Left"], - list of locations to damage. Used if component installed on vehicle
@@ -103,6 +209,8 @@ AI related mod settings
 										  will be targeted. Eg. if FailDamageLocations array contains three locations three crit roll will be preformed
 										  But if FailCritComponents is true, fail results only one crit roll. It will list all components from FailCritLocations
 										  and than choose one to crit.
+			"FailDamageToInstalledLocation": false - if true location component is installed will be added to FailDamageLocations/FailDamageVehicleLocations
+			"FailCritToInstalledLocation": false - if true location component is installed will be added to FailCritLocations/FailCritVehicleLocations
 			"FailCritExcludeComponentsTags" : [], - if component have one of tag from this list it will be excluded from fail damage crit roll both (FailCrit and FailCritComponents) methods
 			"FailCritOnlyComponentsTags" : [], - if not empty only component having at least one tag from this list will be used to drit roll crit roll both (FailCrit and FailCritComponents) methods
 			"MechTonnageWeightMult" : 20 - installed chassis tonnage restriction multiplier. Tonnage restriction from (Component.Tonnage-1)*(MechTonnageWeightMult)+1 to (Component.Tonnage)*(MechTonnageWeightMult)

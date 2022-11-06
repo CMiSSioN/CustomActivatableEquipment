@@ -27,15 +27,21 @@ namespace CustomActivatablePatches {
       return unit.StatCollection.GetStatistic(ArmAbsenceStoodUpModStatName).Value<float>();
     }
     public static void Postfix(AbstractActor __instance) {
-      Log.Debug?.Write("AbstractActor.InitEffectStats " + __instance.DisplayName + ":" + __instance.GUID + "\n");
-      if (Core.checkExistance(__instance.StatCollection, StoodUpRollModStatName) == false) {
-        __instance.StatCollection.AddStatistic<float>(StoodUpRollModStatName, 0f);
+      try {
+        AbstractActor_InitEffectStatsAuras.Postfix(__instance);
+        AbstractActor_InitEffectStatsHeadHit.Postfix(__instance);
+        Log.Debug?.Write("AbstractActor.InitEffectStats " + __instance.DisplayName + ":" + __instance.GUID + "\n");
+        if (Core.checkExistance(__instance.StatCollection, StoodUpRollModStatName) == false) {
+          __instance.StatCollection.AddStatistic<float>(StoodUpRollModStatName, 0f);
+        }
+        if (Core.checkExistance(__instance.StatCollection, ArmAbsenceStoodUpModStatName) == false) {
+          __instance.StatCollection.AddStatistic<float>(ArmAbsenceStoodUpModStatName, Core.Settings.DefaultArmsAbsenceStoodUpMod);
+        }
+        Log.Debug?.Write(" StoodUpRollMod " + __instance.StoodUpRollMod() + "\n");
+        Log.Debug?.Write(" ArmAbsenceStoodUpMod " + __instance.ArmAbsenceStoodUpMod() + "\n");
+      } catch (Exception e) {
+        Log.Error?.TWL(0,e.ToString(),true);
       }
-      if (Core.checkExistance(__instance.StatCollection, ArmAbsenceStoodUpModStatName) == false) {
-        __instance.StatCollection.AddStatistic<float>(ArmAbsenceStoodUpModStatName, Core.Settings.DefaultArmsAbsenceStoodUpMod);
-      }
-      Log.Debug?.Write(" StoodUpRollMod " + __instance.StoodUpRollMod()+"\n");
-      Log.Debug?.Write(" ArmAbsenceStoodUpMod " + __instance.ArmAbsenceStoodUpMod()+"\n");
     }
   }
   [HarmonyPatch(typeof(MechStandInvocation))]

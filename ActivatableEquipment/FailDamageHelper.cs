@@ -1,6 +1,7 @@
 ﻿using BattleTech;
 using CustAmmoCategories;
 using HBS.Collections;
+using IRBTModUtils;
 using Localize;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,12 +32,12 @@ namespace CustomActivatableEquipment {
       fakeHit.hitPositions = new Vector3[1] { target.CurrentPosition };
       fakeHit.secondaryTargetIds = new string[1] { null };
       fakeHit.secondaryHitLocations = new int[1] { 0 };
-      Log.Debug?.TWL(0, "StructureDamage:"+target.DisplayName+" amount:"+amount+ " critComponents:"+critComponents);
+      Log.Debug?.TWL(0, "StructureDamage:" + target.DisplayName + " amount:" + amount + " critComponents:" + critComponents);
       foreach (int location in locations) {
-        Log.Debug?.WL(1,"location:"+location);
+        Log.Debug?.WL(1, "location:" + location);
         fakeHit.hitLocations[0] = location;
         fakeHit.hitPositions[0] = target.GameRep.GetHitPosition(location);
-        if(amount >= 1f) target.TakeWeaponDamage(fakeHit, location, target.ImaginaryLaserWeapon, 0, amount, 0, DamageType.ComponentExplosion);
+        if (amount >= 1f) target.TakeWeaponDamage(fakeHit, location, target.ImaginaryLaserWeapon, 0, amount, 0, DamageType.ComponentExplosion);
         if (critComponents) { target.CritComponentsInLocation(location, ref fakeHit, excludeTags, onlyTags); }
       }
     }
@@ -60,31 +61,37 @@ namespace CustomActivatableEquipment {
         fakeHit.hitPositions[0] = target.GameRep.GetHitPosition(location);
         float prev_armor = target.ArmorForLocation(location);
         if (amount >= 1f) target.TakeWeaponDamage(fakeHit, location, target.ImaginaryLaserWeapon, amount, 0, 0, DamageType.ComponentExplosion);
-        if ((critComponents)&&(prev_armor < amount)) { target.CritComponentsInLocation(location, ref fakeHit, excludeTags, onlyTags); }
+        if ((critComponents) && (prev_armor < amount)) { target.CritComponentsInLocation(location, ref fakeHit, excludeTags, onlyTags); }
       }
     }
     public static List<MechComponent> GetComponentsInLocation(this AbstractActor target, int location, HashSet<string> excludeTags, HashSet<string> onlyTags) {
       List<MechComponent> result = new List<MechComponent>();
       TagSet oTags = new TagSet(onlyTags);
       TagSet eTags = new TagSet(excludeTags);
-      Log.Debug?.TWL(0, "GetComponentsInLocation " + target.DisplayName);
+      Log.Debug?.TWL(0, "GetComponentsInLocation " + target.DisplayName + " location:" + location);
       for (int t = 0; t < target.allComponents.Count; ++t) {
         MechComponent component = target.allComponents[t];
         if (component.IsFunctional == false) { continue; }
         if (component.Location != location) { continue; }
-        Log.Debug?.W(1, "component:"+ component.defId);
+        Log.Debug?.W(1, "component:" + component.defId);
         if (onlyTags.Count > 0) {
           if (component.componentDef.ComponentTags.ContainsAny(oTags) == false) {
             Log.Debug?.WL(1, "onlyTags check fail");
-            continue; }
+            continue;
+          }
         }
-        if(excludeTags.Count > 0) {
+        if (excludeTags.Count > 0) {
           if (component.componentDef.ComponentTags.ContainsAny(eTags)) {
             Log.Debug?.WL(1, "excludeTags check fail");
-            continue; }
+            continue;
+          }
         }
-        Log.Debug?.WL(1, "suitable");
+        Log.Debug?.WL(1, $"suitable inventorySize:{component.inventorySize}");
         for (int i = 0; i < component.inventorySize; ++i) { result.Add(component); }
+      }
+      Log.Debug?.WL(1, $"result:{result.Count}");
+      for (int i = 0; i < result.Count; ++i) {
+        Log.Debug?.WL(2, $"[{i}]:{result[i].defId}");
       }
       return result;
     }
@@ -148,36 +155,32 @@ namespace CustomActivatableEquipment {
       List<MechComponent> components = target.GetComponentsInLocation(location, excludeTags, onlyTags);
       Log.Debug?.TWL(0, "CritComponentsInLocation:" + target.DisplayName + " location:" + location);
       for (int t = 0; t < components.Count; ++t) {
-        Log.Debug?.WL(1,"["+t+"]"+components[t].defId);
+        Log.Debug?.WL(1, "[" + t + "]" + components[t].defId);
       }
       if (components.Count == 0) { return; }
       int slotRoll = Random.Range(0, components.Count);
       MechComponent component = components[slotRoll];
       component.CritComponent(ref hitInfo);
     }
-    public static bool FakeVehicle(this ICombatant combatant) {
-      return false;
-    }
     public static void CritComponentInLocations(this AbstractActor target, ActivatableComponent activatable, MechComponent component) {
       List<MechComponent> components = new List<MechComponent>();
+      ICustomMech custMech = target as ICustomMech;
       Mech mech = target as Mech;
       Vehicle vehicle = target as Vehicle;
       Turret turret = target as Turret;
       HashSet<int> affectedLocation = new HashSet<int>();
-      if (mech != null) {
-        if (mech.FakeVehicle() == false) {
-          foreach (ChassisLocations loc in activatable.FailCritLocations) {
-            LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
-            if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor == 0f)) { continue; }
-            affectedLocation.Add((int)loc);
-          }
-        } else {
-          foreach (VehicleChassisLocations vloc in activatable.FailCritVehicleLocations) {
-            ChassisLocations loc = vloc.FakeVehicleLocation();
-            LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
-            if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor <= 0f)) { continue; }
-            affectedLocation.Add((int)loc);
-          }
+      if ((mech != null) && ((custMech == null) || (custMech.isVehicle == false))) {
+        foreach (ChassisLocations loc in activatable.FailCritLocations) {
+          LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
+          if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor == 0f)) { continue; }
+          affectedLocation.Add((int)loc);
+        }
+      } else if ((custMech != null) && (custMech.isVehicle)) {
+        foreach (VehicleChassisLocations vloc in activatable.FailCritVehicleLocations) {
+          ChassisLocations loc = vloc.FakeVehicleLocation();
+          LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
+          if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor <= 0f)) { continue; }
+          affectedLocation.Add((int)loc);
         }
       } else if (vehicle != null) {
         foreach (VehicleChassisLocations vloc in activatable.FailCritVehicleLocations) {
@@ -188,7 +191,7 @@ namespace CustomActivatableEquipment {
       } else if (turret != null) {
         affectedLocation.Add((int)BuildingLocation.Structure);
       }
-      if (activatable.FailDamageToInstalledLocation) { affectedLocation.Add(component.Location); }
+      if (activatable.FailCritToInstalledLocation) { affectedLocation.Add(component.Location); }
       HashSet<string> excludeTags = new HashSet<string>();
       HashSet<string> onlyTags = new HashSet<string>();
       foreach (string tag in activatable.FailCritExcludeComponentsTags) { excludeTags.Add(tag); }
@@ -199,7 +202,7 @@ namespace CustomActivatableEquipment {
         components.AddRange(locComps);
       }
       for (int t = 0; t < components.Count; ++t) {
-        Log.Debug?.WL(1, "[" + t + "]" + components[t].defId+" location:"+ components[t].Location);
+        Log.Debug?.WL(1, "[" + t + "]" + components[t].defId + " location:" + components[t].Location);
       }
       int slotRoll = Random.Range(0, components.Count);
       MechComponent critComp = components[slotRoll];
@@ -233,32 +236,31 @@ namespace CustomActivatableEquipment {
       component.CritComponent(ref fakeHit);
     }
     public static void StructureDamage(this AbstractActor target, ActivatableComponent activatable, MechComponent component) {
+      ICustomMech custMech = target as ICustomMech;
       Mech mech = target as Mech;
       Vehicle vehicle = target as Vehicle;
       Turret turret = target as Turret;
       HashSet<int> affectedLocation = new HashSet<int>();
-      if (mech != null) {
-        if (mech.FakeVehicle() == false) {
-          foreach (ChassisLocations loc in activatable.FailCritLocations) {
-            LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
-            if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor == 0f)) { continue; }
-            affectedLocation.Add((int)loc);
-          }
-        } else {
-          foreach (VehicleChassisLocations vloc in activatable.FailCritVehicleLocations) {
-            ChassisLocations loc = vloc.FakeVehicleLocation();
-            LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
-            if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor <= 0f)) { continue; }
-            affectedLocation.Add((int)loc);
-          }
+      if ((mech != null) && ((custMech == null) || (custMech.isVehicle == false))) {
+        foreach (ChassisLocations loc in activatable.FailDamageLocations) {
+          LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
+          if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor == 0f)) { continue; }
+          affectedLocation.Add((int)loc);
         }
-      } else if(vehicle != null) {
-        foreach (VehicleChassisLocations vloc in activatable.FailCritVehicleLocations) {
+      } else if ((custMech != null) && (custMech.isVehicle)) {
+        foreach (VehicleChassisLocations vloc in activatable.FailDamageVehicleLocations) {
+          ChassisLocations loc = vloc.FakeVehicleLocation();
+          LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
+          if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor <= 0f)) { continue; }
+          affectedLocation.Add((int)loc);
+        }
+      } else if (vehicle != null) {
+        foreach (VehicleChassisLocations vloc in activatable.FailDamageVehicleLocations) {
           VehicleLocationDef locDef = vehicle.VehicleDef.Chassis.GetLocationDef(vloc);
           if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor <= 0f)) { continue; }
           affectedLocation.Add((int)vloc);
         }
-      } else if(turret != null) {
+      } else if (turret != null) {
         affectedLocation.Add((int)BuildingLocation.Structure);
       }
       if (activatable.FailDamageToInstalledLocation) { affectedLocation.Add(component.Location); }
@@ -269,24 +271,23 @@ namespace CustomActivatableEquipment {
       target.StructureDamage(affectedLocation.ToList(), activatable.FailISDamage, activatable.FailCrit, excludeTags, onlyTags);
     }
     public static void ArmorDamage(this AbstractActor target, ActivatableComponent activatable, MechComponent component) {
+      ICustomMech custMech = target as ICustomMech;
       Mech mech = target as Mech;
       Vehicle vehicle = target as Vehicle;
       Turret turret = target as Turret;
       HashSet<int> affectedLocation = new HashSet<int>();
-      if (mech != null) {
-        if (mech.FakeVehicle() == false) {
-          foreach (ChassisLocations loc in activatable.FailCritLocations) {
-            LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
-            if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor == 0f)) { continue; }
-            affectedLocation.Add((int)loc);
-          }
-        } else {
-          foreach (VehicleChassisLocations vloc in activatable.FailCritVehicleLocations) {
-            ChassisLocations loc = vloc.FakeVehicleLocation();
-            LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
-            if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor <= 0f)) { continue; }
-            affectedLocation.Add((int)loc);
-          }
+      if ((mech != null) && ((custMech == null) || (custMech.isVehicle == false))) {
+        foreach (ChassisLocations loc in activatable.FailDamageLocations) {
+          LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
+          if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor == 0f)) { continue; }
+          affectedLocation.Add((int)loc);
+        }
+      } else if ((custMech != null) && (custMech.isVehicle)) {
+        foreach (VehicleChassisLocations vloc in activatable.FailCritVehicleLocations) {
+          ChassisLocations loc = vloc.FakeVehicleLocation();
+          LocationDef locDef = mech.MechDef.Chassis.GetLocationDef(loc);
+          if ((locDef.InternalStructure <= 1.0f) && (locDef.MaxArmor <= 0f)) { continue; }
+          affectedLocation.Add((int)loc);
         }
       } else if (vehicle != null) {
         foreach (VehicleChassisLocations vloc in activatable.FailCritVehicleLocations) {

@@ -22,10 +22,10 @@ namespace CustomActivatableEquipment {
       }      
     }
   }
-  [HarmonyPatch(typeof(AbstractActor))]
-  [HarmonyPatch("InitEffectStats")]
-  [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPatch(new Type[] { })]
+  //[HarmonyPatch(typeof(AbstractActor))]
+  //[HarmonyPatch("InitEffectStats")]
+  //[HarmonyPatch(MethodType.Normal)]
+  //[HarmonyPatch(new Type[] { })]
   public static class AbstractActor_InitEffectStatsHeadHit {
     public static void Postfix(AbstractActor __instance) {
       __instance.StatCollection.AddStatistic<bool>(Core.Settings.unaffectedByHeadHitStatName, false);
