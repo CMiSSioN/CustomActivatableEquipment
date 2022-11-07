@@ -147,11 +147,11 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>if exist "$(BattleTechGameDir)\Mods\Core\ActivatableEquipment" (
+    <PostBuildEvent>if exist "$(BattleTechGameDir)\Mods\CustomActivatableEquipment" (
    echo %25BattleTechGameDir%25
-   xcopy "$(TargetPath)" "$(BattleTechGameDir)\Mods\Core\ActivatableEquipment" /y
-   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods\Core\ActivatableEquipment\Localization"
-   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods\Core\ActivatableEquipment"
+   xcopy "$(TargetPath)" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment" /y
+   xcopy /Y /S /E "$(ProjectDir)..\AdditionalFiles\Localization" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment\Localization"
+   xcopy /Y "$(ProjectDir)..\AdditionalFiles\Readme.txt" "$(BattleTechGameDir)\Mods\CustomActivatableEquipment"
 )
 if exist "$(BattleTechGameDir)\Mods\Core\CustomActivatableEquipment" (
    echo %25BattleTechGameDir%25
