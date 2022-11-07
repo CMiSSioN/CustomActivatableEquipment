@@ -145,6 +145,8 @@ namespace CustomActivatableEquipment {
         var mechLabPanel = __instance.GetComponentInParent<MechLabPanel>();
         refTracker.Init(mechlabItem, __instance.GetComponentInParent<MechLabPanel>());
         if ((mechlabItem.ComponentRef.Def.isHasTarget())&&(mechlabItem.ComponentRef.Def.isAutoTarget())) {
+          mechlabItem.ComponentRef.LocalGUID(Guid.NewGuid().ToString());
+          mechlabItem.ComponentRef.TargetComponentGUID(string.Empty);
           TargetsPopupSupervisor.ResolveAddonsOnInventory(mechLabPanel.activeMechInventory);
         }
       } catch (Exception e) {
@@ -208,6 +210,8 @@ namespace CustomActivatableEquipment {
       try {
         MechLabItemSlotElement mechlabItem = item as MechLabItemSlotElement;
         MLComponentRefTracker refTracker = mechlabItem.gameObject.GetComponent<MLComponentRefTracker>();
+        mechlabItem.ComponentRef.LocalGUID(string.Empty);
+        mechlabItem.ComponentRef.TargetComponentGUID(string.Empty);
         if ((refTracker != null)&&(refTracker.settingsButton != null)&&(refTracker.settingsButton.svg != null)) {
           refTracker.settingsButton.svg.gameObject.SetActive(false);
         }
@@ -549,7 +553,7 @@ namespace CustomActivatableEquipment {
         Traverse.Create(component).Field<UIColorRefTracker>("itemTextColor").Value.SetUIColor(textColor);
         dataElement.debugDetails = $"L:{dataElement.componentRef.LocalGUID()}\nT:{parent.componentRef.TargetComponentGUID()}";
         component.SetTooltipData(dataElement.componentRef.Def);
-        Traverse.Create(component).Field<HBSTooltip>("EquipmentTooltip").Value.SetDefaultStateData(dataElement.debugDescription.GetTooltipStateData());
+        //Traverse.Create(component).Field<HBSTooltip>("EquipmentTooltip").Value.SetDefaultStateData(dataElement.debugDescription.GetTooltipStateData());
       }
       gameObject.transform.SetParent(listParent, false);
       if (dataElement != null) {
@@ -655,9 +659,17 @@ namespace CustomActivatableEquipment {
         if (invItem == null) { continue; }
         string LocalGUID = invItem.LocalGUID();
         if (string.IsNullOrEmpty(LocalGUID)) { LocalGUID = Guid.NewGuid().ToString(); }
+        if (componetByGuid.TryGetValue(LocalGUID, out var sameidRef)) {
+          if (sameidRef != invItem) {
+            LocalGUID = Guid.NewGuid().ToString();
+            invItem.TargetComponentGUID(string.Empty);
+          } else {
+            continue;
+          }
+        }
         invItem.LocalGUID(LocalGUID);
-        Log.Debug?.WL(1, $"{invItem.ComponentDefID} SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} TargetComponentGUID:{invItem.TargetComponentGUID()} MountedLocation:{invItem.MountedLocation}");
         componetByGuid.Add(LocalGUID, invItem);
+        Log.Debug?.WL(1, $"{invItem.ComponentDefID} SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} TargetComponentGUID:{invItem.TargetComponentGUID()} MountedLocation:{invItem.MountedLocation}");
       }
       foreach (var invItem in inventory) {
         if (string.IsNullOrEmpty(invItem.TargetComponentGUID())) { continue; }
