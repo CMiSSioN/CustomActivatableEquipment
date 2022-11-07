@@ -553,7 +553,7 @@ namespace CustomActivatableEquipment {
         Traverse.Create(component).Field<UIColorRefTracker>("itemTextColor").Value.SetUIColor(textColor);
         dataElement.debugDetails = $"L:{dataElement.componentRef.LocalGUID()}\nT:{parent.componentRef.TargetComponentGUID()}";
         component.SetTooltipData(dataElement.componentRef.Def);
-        Traverse.Create(component).Field<HBSTooltip>("EquipmentTooltip").Value.SetDefaultStateData(dataElement.debugDescription.GetTooltipStateData());
+        //Traverse.Create(component).Field<HBSTooltip>("EquipmentTooltip").Value.SetDefaultStateData(dataElement.debugDescription.GetTooltipStateData());
       }
       gameObject.transform.SetParent(listParent, false);
       if (dataElement != null) {
