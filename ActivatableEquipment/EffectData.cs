@@ -83,9 +83,41 @@ namespace CustomActivatableEquipment {
       try {
         if (EffectManager_GetTargetStatCollections.StatisticEffectData_Location == null) { return; }
         string SourceLocation = EffectManager_GetTargetStatCollections.StatisticEffectData_Location.GetValue(effectData.statisticData) as string;
-        if (SourceLocation != "{onlyone}") { return; }
-        if (targetStatCollection == null) { return; }
-        targetStatCollection.GetOrCreateStatisic<bool>(effectData.Description.Id + "_only_one_tracker", false).SetValue<bool>(true);
+        if ((SourceLocation == "{onlyone}") && (targetStatCollection != null)) {
+          targetStatCollection.GetOrCreateStatisic<bool>(effectData.Description.Id + "_only_one_tracker", false).SetValue<bool>(true);
+        }
+        AbstractActor unit = targetStatCollection.actor();
+        MechComponent sourceComponent = Thread.CurrentThread.peekFromStack<MechComponent>("EFFECT_SOURCE");
+        Log.Debug?.TWL(0,$"StatisticEffect.initStatisiticEffect target:{(unit==null?"null":unit.PilotableActorDef.ChassisID)} sourceComponent:{(sourceComponent==null?"null":sourceComponent.defId)}");
+        if ((unit != null)&&(string.IsNullOrEmpty(SourceLocation) == false)) {
+          if (sourceComponent != null) {
+            int sourceLocation = -1;
+            if (SourceLocation == "{current}") {
+              if (sourceComponent != null) {
+                sourceLocation = sourceComponent.Location;
+              }
+            } else {
+              if (Enum.TryParse<ChassisLocations>(SourceLocation, out var cloc)) {
+                sourceLocation = (int)cloc;
+              } else if (Enum.TryParse<VehicleChassisLocations>(SourceLocation, out var vloc)) {
+                sourceLocation = (int)vloc.FakeVehicleLocation();
+              } else if (Enum.TryParse<BuildingLocation>(SourceLocation, out var bloc)) {
+                sourceLocation = 1;
+              }
+            }
+            Statistic stat = targetStatCollection.GetStatistic(effectData.statisticData.statName);
+            if ((sourceLocation >= 0) && (stat != null)) {
+              string locstatname = sourceLocation.ToString() + "." + effectData.statisticData.statName;
+              if (targetStatCollection.GetStatistic(locstatname) == null) {
+                MethodInfo AddStatistic = targetStatCollection.GetType().GetMethods().First(x => {return x.Name == "AddStatistic" && (x.GetParameters().Length == 2); });
+                object defValue = stat.GetType().GetMethod("DefaultValue").MakeGenericMethod(stat.ValueType()).Invoke(stat, new object[] { });
+                AddStatistic.MakeGenericMethod(stat.ValueType()).Invoke(targetStatCollection, new object[] { locstatname, defValue });
+              }
+              Log.Debug?.WL(1, $"location stat name:{locstatname}");
+              __instance.ModVariant.statName = locstatname;
+            }
+          }
+        }
       } catch (Exception ex) {
         Log.Error?.TWL(0, ex.ToString(), true);
       }
