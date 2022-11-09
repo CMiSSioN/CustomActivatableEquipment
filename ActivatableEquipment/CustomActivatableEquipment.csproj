@@ -119,6 +119,7 @@
     <Compile Include="AuraPreviewCache.cs" />
     <Compile Include="Auras.cs" />
     <Compile Include="AuraUpdateHelper.cs" />
+    <Compile Include="AutoReplenishment.cs" />
     <Compile Include="C3Helper.cs" />
     <Compile Include="CombatGameDestroyed.cs" />
     <Compile Include="CustomComponentRef.cs" />

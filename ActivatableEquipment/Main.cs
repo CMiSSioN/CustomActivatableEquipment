@@ -300,29 +300,36 @@ namespace CustomActivatablePatches {
       MoveStatusPreview_DisplayPreviewStatus.setAdditionalStringMoving(actor, "__/CAE.COMPONENTS/__", result.ToString());
     }
     public static void Postfix(TurnDirector __instance) {
-      CustomActivatableEquipment.Log.Debug?.Write("TurnDirector.EndCurrentRound\n");
-      foreach (var mech in __instance.Combat.AllActors) {
-        CustomActivatableEquipment.Log.Debug?.Write(" Actor:" + mech.DisplayName + ":" + mech.GUID + "\n");
-        foreach (MechComponent component in mech.allComponents) {
-          ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
-          if (activatable == null) { continue; }
-          float curFailChance = ActivatableComponent.getComponentFailChance(component);
-          CustomActivatableEquipment.Log.Debug?.Write("  " + component.defId + " activatable\n");
-          if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
-            if (curFailChance < activatable.FailFlatChance) { curFailChance = activatable.FailFlatChance; };
-            curFailChance += activatable.FailChancePerTurn;
-            int actRounds = ActivatableComponent.getComponentActiveRounds(component);
-            ++actRounds;
-            ActivatableComponent.setComponentActiveRounds(component, actRounds);
-            CustomActivatableEquipment.Log.Debug?.Write("  active for " + actRounds + "\n");
-          } else {
-            curFailChance -= activatable.FailChancePerTurn;
-            if (curFailChance < activatable.FailFlatChance) { curFailChance = activatable.FailFlatChance; };
+      CustomActivatableEquipment.Log.Debug?.WL(0,"TurnDirector.EndCurrentRound");
+      try {
+        foreach (var mech in __instance.Combat.AllActors) {
+          if (mech.IsDead) { continue; }
+          if (mech.IsShutDown) { continue; }
+          CustomActivatableEquipment.Log.Debug?.WL(1, "Actor:" + mech.DisplayName + ":" + mech.GUID);
+          mech.Replentish();
+          foreach (MechComponent component in mech.allComponents) {
+            ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+            if (activatable == null) { continue; }
+            float curFailChance = ActivatableComponent.getComponentFailChance(component);
+            CustomActivatableEquipment.Log.Debug?.WL(2, component.defId + " activatable");
+            if (CustomActivatableEquipment.ActivatableComponent.isComponentActivated(component)) {
+              if (curFailChance < activatable.FailFlatChance) { curFailChance = activatable.FailFlatChance; };
+              curFailChance += activatable.FailChancePerTurn;
+              int actRounds = ActivatableComponent.getComponentActiveRounds(component);
+              ++actRounds;
+              ActivatableComponent.setComponentActiveRounds(component, actRounds);
+              CustomActivatableEquipment.Log.Debug?.WL(3, "active for " + actRounds);
+            } else {
+              curFailChance -= activatable.FailChancePerTurn;
+              if (curFailChance < activatable.FailFlatChance) { curFailChance = activatable.FailFlatChance; };
+            }
+            ActivatableComponent.setComponentFailChance(component, curFailChance);
+            CustomActivatableEquipment.Log.Debug?.WL(3, "new fail chance " + curFailChance);
           }
-          ActivatableComponent.setComponentFailChance(component, curFailChance);
-          CustomActivatableEquipment.Log.Debug?.Write("  new fail chance " + curFailChance + "\n");
+          mech.CollectDangerComponents();
         }
-        mech.CollectDangerComponents();
+      }catch(Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
       }
     }
   }
