@@ -100,6 +100,11 @@ namespace CustomActivatableEquipment {
       }
     }
     public Dictionary<int, string> AdditionalInjuryReasonsTable = new Dictionary<int, string>();
+    public enum ArcDecalTexture { arc90, arc60 };
+    public Dictionary<ArcDecalTexture, string> arcTextures = new Dictionary<ArcDecalTexture, string>() {
+      { ArcDecalTexture.arc90, "targeting_arc_90" },
+      { ArcDecalTexture.arc60, "targeting_arc_60" }
+    };
     public Settings() {
       debug = true;
       AdditionalAssets = new List<string>();

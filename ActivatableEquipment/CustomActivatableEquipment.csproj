@@ -89,6 +89,10 @@
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\BattleTech_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.ParticleSystemModule">
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
     </Reference>
@@ -113,6 +117,7 @@
     <Compile Include="ActivateDialog.cs" />
     <Compile Include="ActiveByDefault.cs" />
     <Compile Include="AIHelper.cs" />
+    <Compile Include="ArcSelectionState.cs" />
     <Compile Include="AudioHelper.cs" />
     <Compile Include="AuraAISupport.cs" />
     <Compile Include="AuraDef.cs" />
