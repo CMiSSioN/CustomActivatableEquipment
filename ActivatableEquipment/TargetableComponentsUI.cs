@@ -390,6 +390,7 @@ namespace CustomActivatableEquipment {
       data.TargetGUID = componentRef.TargetComponentGUID(false);
     }
     public static void ReadAdditionaldataRegistry(this BaseComponentRef componentRef) {
+      if (componentRef == null) { return; }
       if (string.IsNullOrEmpty(componentRef.SimGameUID)) { return; }
       if (baseComponentRefRegistry.additionalDataRegistry.TryGetValue(componentRef.SimGameUID, out var data)) {
         componentRef.LocalGUID(data.LocalGUID, false);
@@ -592,17 +593,25 @@ namespace CustomActivatableEquipment {
       }
     }
     public void Clear() {
-      for (int index = this.weaponsList.Count - 1; index >= 0; --index) {
-        LanceMechEquipmentListItem labItemSlotElement = this.weaponsList[index].ui;
-        labItemSlotElement.gameObject.transform.SetParent((Transform)null, false);
-        TargetUIItem weaponsOrderItem = this.weaponsList[index];
-        if (weaponsOrderItem != null) {
-          weaponsOrderItem.parent = null;
-          weaponsOrderItem.data = null;
+      try {
+        for (int index = this.weaponsList.Count - 1; index >= 0; --index) {
+          try {
+            LanceMechEquipmentListItem labItemSlotElement = this.weaponsList[index].ui;
+            labItemSlotElement.gameObject.transform.SetParent((Transform)null, false);
+            TargetUIItem weaponsOrderItem = this.weaponsList[index];
+            if (weaponsOrderItem != null) {
+              weaponsOrderItem.parent = null;
+              weaponsOrderItem.data = null;
+            }
+            UIManager.Instance.dataManager.PoolGameObject("uixPrfPanl_LC_TargetItem", labItemSlotElement.gameObject);
+          } catch (Exception e) {
+            Log.Error?.TWL(0, e.ToString(), true);
+          }
         }
-        UIManager.Instance.dataManager.PoolGameObject("uixPrfPanl_LC_TargetItem", labItemSlotElement.gameObject);
+        this.weaponsList.Clear();
+      }catch(Exception e) {
+        Log.Error.TWL(0,e.ToString(),true);
       }
-      this.weaponsList.Clear();
     }
 
   }
@@ -880,20 +889,32 @@ namespace CustomActivatableEquipment {
       this.OnShow();
     }
     public void OnClose() {
-      if (targetsControl != null) {
-        targetsControl.gameObject.SetActive(false);
-        targetsControl.gameObject.transform.SetParent(this.transform);
-        targetsControl.Clear();
-        this.ClearError();
-      }
-      this.componetByGuid.Clear();
-      this.placedAddons.Clear();
-      //this.mechDef = null;
-      this.componentRef = null;
-      if (popup != null) {
-        Traverse.Create(popup).Field<LocalizableText>("_contentText").Value.gameObject.SetActive(true);
-        popup.Pool();
-        popup = null;
+      try {
+        if (targetsControl != null) {
+          try {
+            targetsControl.gameObject.SetActive(false);
+            targetsControl.gameObject.transform.SetParent(this.transform);
+            targetsControl.Clear();
+            this.ClearError();
+          }catch(Exception e) {
+            Log.Error?.TWL(0,e.ToString(),true);
+          }
+        }
+        this.componetByGuid?.Clear();
+        this.placedAddons?.Clear();
+        //this.mechDef = null;
+        this.componentRef = null;
+        if (popup != null) {
+          try {
+            Traverse.Create(popup).Field<LocalizableText>("_contentText").Value.gameObject.SetActive(true);
+          }catch(Exception e) {
+            Log.Error?.TWL(0,e.ToString(),true);
+          }
+          popup.Pool();
+          popup = null;
+        }
+      }catch(Exception e) {
+        Log.Error?.TWL(0,e.ToString(),true);
       }
     }
     public void OnShow() {

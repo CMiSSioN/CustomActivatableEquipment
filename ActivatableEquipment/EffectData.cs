@@ -88,7 +88,7 @@ namespace CustomActivatableEquipment {
         }
         AbstractActor unit = targetStatCollection.actor();
         MechComponent sourceComponent = Thread.CurrentThread.peekFromStack<MechComponent>("EFFECT_SOURCE");
-        Log.Debug?.TWL(0,$"StatisticEffect.initStatisiticEffect target:{(unit==null?"null":unit.PilotableActorDef.ChassisID)} sourceComponent:{(sourceComponent==null?"null":sourceComponent.defId)}");
+        Log.Debug?.TWL(0,$"StatisticEffect.initStatisiticEffect id:{effectData.Description.Id} statName:{effectData.statisticData.statName} target:{(unit==null?"null":unit.PilotableActorDef.ChassisID)} sourceComponent:{(sourceComponent==null?"null":sourceComponent.defId)}");
         if ((unit != null)&&(string.IsNullOrEmpty(SourceLocation) == false)) {
           if (sourceComponent != null) {
             int sourceLocation = -1;
@@ -96,6 +96,9 @@ namespace CustomActivatableEquipment {
               if (sourceComponent != null) {
                 sourceLocation = sourceComponent.Location;
               }
+            } else if (SourceLocation == "{adjacent}") {
+              if (sourceComponent == null) { return; }
+              sourceLocation = sourceComponent.parent.GetEffectAdjacentLocation(sourceComponent.Location);
             } else {
               if (Enum.TryParse<ChassisLocations>(SourceLocation, out var cloc)) {
                 sourceLocation = (int)cloc;
@@ -156,6 +159,61 @@ namespace CustomActivatableEquipment {
       if (string.IsNullOrEmpty(shouldNotHaveTags)) { return new HashSet<string>(); }
       return shouldNotHaveTags.Split(',').ToHashSet();
     }
+    public static int GetEffectAdjacentLocation(this AbstractActor unit, int location) {
+      ICustomMech custMech = unit as ICustomMech;
+      int sourceLocation = 0;
+      if (custMech != null) {
+        if (custMech.isSquad) { sourceLocation = (int)ChassisLocations.None; } else
+        if (custMech.isTurret) { sourceLocation = (int)ChassisLocations.None; } else
+        if (custMech.isVehicle) {
+          switch ((ChassisLocations)location) {
+            case ChassisLocations.LeftArm: sourceLocation = (int)ChassisLocations.None; break;
+            case ChassisLocations.LeftLeg: sourceLocation = (int)ChassisLocations.LeftArm; break;
+            case ChassisLocations.RightArm: sourceLocation = (int)ChassisLocations.None; break;
+            case ChassisLocations.RightLeg: sourceLocation = (int)ChassisLocations.LeftArm; break;
+            case ChassisLocations.LeftTorso: sourceLocation = (int)ChassisLocations.None; break;
+            case ChassisLocations.RightTorso: sourceLocation = (int)ChassisLocations.None; break;
+            case ChassisLocations.CenterTorso: sourceLocation = (int)ChassisLocations.None; break;
+            case ChassisLocations.Head: sourceLocation = (int)ChassisLocations.LeftArm; break;
+            default: sourceLocation = (int)ChassisLocations.None; break;
+          }
+        } else {
+          switch ((ChassisLocations)location) {
+            case ChassisLocations.LeftArm: sourceLocation = (int)ChassisLocations.LeftTorso; break;
+            case ChassisLocations.LeftLeg: sourceLocation = (int)ChassisLocations.LeftTorso; break;
+            case ChassisLocations.RightArm: sourceLocation = (int)ChassisLocations.RightTorso; break;
+            case ChassisLocations.RightLeg: sourceLocation = (int)ChassisLocations.LeftTorso; break;
+            case ChassisLocations.LeftTorso: sourceLocation = (int)ChassisLocations.CenterTorso; break;
+            case ChassisLocations.RightTorso: sourceLocation = (int)ChassisLocations.CenterTorso; break;
+            case ChassisLocations.CenterTorso: sourceLocation = (int)ChassisLocations.None; break;
+            case ChassisLocations.Head: sourceLocation = (int)ChassisLocations.CenterTorso; break;
+            default: sourceLocation = (int)ChassisLocations.None; break;
+          }
+        }
+      } else if (unit is Mech mech) {
+        switch ((ChassisLocations)location) {
+          case ChassisLocations.LeftArm: sourceLocation = (int)ChassisLocations.LeftTorso; break;
+          case ChassisLocations.LeftLeg: sourceLocation = (int)ChassisLocations.LeftTorso; break;
+          case ChassisLocations.RightArm: sourceLocation = (int)ChassisLocations.RightTorso; break;
+          case ChassisLocations.RightLeg: sourceLocation = (int)ChassisLocations.LeftTorso; break;
+          case ChassisLocations.LeftTorso: sourceLocation = (int)ChassisLocations.CenterTorso; break;
+          case ChassisLocations.RightTorso: sourceLocation = (int)ChassisLocations.CenterTorso; break;
+          case ChassisLocations.CenterTorso: sourceLocation = (int)ChassisLocations.None; break;
+          case ChassisLocations.Head: sourceLocation = (int)ChassisLocations.CenterTorso; break;
+          default: sourceLocation = (int)ChassisLocations.None; break;
+        }
+      } else if (unit is Vehicle vehicle) {
+        switch ((VehicleChassisLocations)location) {
+          case VehicleChassisLocations.Front: sourceLocation = (int)VehicleChassisLocations.None; break;
+          case VehicleChassisLocations.Left: sourceLocation = (int)VehicleChassisLocations.Front; break;
+          case VehicleChassisLocations.Right: sourceLocation = (int)VehicleChassisLocations.Front; break;
+          case VehicleChassisLocations.Turret: sourceLocation = (int)VehicleChassisLocations.Front; break;
+          case VehicleChassisLocations.Rear: sourceLocation = (int)VehicleChassisLocations.None; break;
+          default: sourceLocation = (int)VehicleChassisLocations.None; break;
+        }
+      } else { sourceLocation = 0; }
+      return sourceLocation;
+    }
     public static void Postfix(EffectManager __instance, EffectData effectData, ICombatant target, ref List<StatCollection> __result) {
       try {
         if (StatisticEffectData_Location == null) {
@@ -184,7 +242,10 @@ namespace CustomActivatableEquipment {
         if (SourceLocation == "{current}") {
           if (sourceComponent == null) { return; }
           sourceLocation = sourceComponent.Location;
-        } else {
+        } else if (SourceLocation == "{adjacent}") {
+          if (sourceComponent == null) { return; }
+          sourceLocation = sourceComponent.parent.GetEffectAdjacentLocation(sourceComponent.Location);
+        } else { 
           if(Enum.TryParse<ChassisLocations>(SourceLocation, out var cloc)) {
             sourceLocation = (int)cloc;
           } else if(Enum.TryParse<VehicleChassisLocations>(SourceLocation, out var vloc)) {
