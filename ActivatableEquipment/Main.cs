@@ -1273,6 +1273,7 @@ namespace CustomActivatableEquipment {
       }
       component.playActivateSound();
       component.UpdateAuras(false);
+      try { UIManager.Instance.UIRoot.GetComponentInChildren<CombatHUD>()?.WeaponPanel?.RefreshDisplayedWeapons(); } catch (Exception e) { Log.Error?.TWL(0,e.ToString(),true); }
       component.parent?.bodyAura()?.RetriggerEnter(false, false, true);
       component.parent?.bodyAura()?.RetriggerExit();
       //component.parent.bodyAura()?.ReapplyAllEffects();
@@ -1419,6 +1420,7 @@ namespace CustomActivatableEquipment {
       component.parent?.bodyAura()?.RetriggerExit();
       ObjectSpawnDataSelf activeVFX = component.ActivateVFX();
       if (activeVFX != null) { activeVFX.CleanupSelf(); }
+      try { UIManager.Instance.UIRoot.GetComponentInChildren<CombatHUD>()?.WeaponPanel?.RefreshDisplayedWeapons(); } catch (Exception e) { Log.Error?.TWL(0, e.ToString(), true); }
       Log.Debug?.Write(component.defId+" shutdown\n");
     }
     public static void startupComponent(MechComponent component) {
@@ -1431,6 +1433,7 @@ namespace CustomActivatableEquipment {
         activatable.applyOfflineEffects(component, true);
       }
       component.UpdateAuras(false);
+      try { UIManager.Instance.UIRoot.GetComponentInChildren<CombatHUD>()?.WeaponPanel?.RefreshDisplayedWeapons(); } catch (Exception e) { Log.Error?.TWL(0, e.ToString(), true); }
     }
     public static void deactivateComponent(MechComponent component) {
       CombatHUDEquipmentSlotEx.ClearCache(component);
@@ -1463,6 +1466,7 @@ namespace CustomActivatableEquipment {
       component.UpdateAuras(false);
       component.parent?.bodyAura()?.RetriggerEnter(false, false, true);
       component.parent?.bodyAura()?.RetriggerExit();
+      try { UIManager.Instance.UIRoot.GetComponentInChildren<CombatHUD>()?.WeaponPanel?.RefreshDisplayedWeapons(); } catch (Exception e) { Log.Error?.TWL(0, e.ToString(), true); }
       CAEAuraHelper.ClearAuraPreviewCache();
       component.LinkageDectivate(false);
     }
