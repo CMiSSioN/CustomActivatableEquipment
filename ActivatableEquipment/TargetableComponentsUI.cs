@@ -318,17 +318,26 @@ namespace CustomActivatableEquipment {
     private static Dictionary<string, VersionManifestEntry> existingAddons = new Dictionary<string, VersionManifestEntry>();
     private static BaseComponentRefRegistry baseComponentRefRegistry = new BaseComponentRefRegistry();
     public static void InitweaponsAddons(this AbstractActor unit) {
-      Log.Debug?.TWL(0,$"InitweaponsAddons {unit.PilotableActorDef.ChassisID}");
+      Log.Debug?.TWL(0,$"InitWeaponsAddons {unit.PilotableActorDef.ChassisID}");
       //Dictionary<string, Weapon> weapons = new Dictionary<string, Weapon>();
       //foreach(Weapon weapon in unit.Weapons) {
       //  if (string.IsNullOrEmpty(weapon.baseComponentRef.LocalGUID())) { continue; }
       //  weapons[weapon.baseComponentRef.LocalGUID()] = weapon;
       //}
+      MechDef mechDef = unit.Combat.DataManager.MechDefs.Get(unit.PilotableActorDef.Description.Id);
+      if (mechDef != null) {
+        Log.Debug?.WL(0, $"mechdef exists");
+        foreach(var cmpref in mechDef.Inventory) {
+          Log.Debug?.WL(1, $"{cmpref.ComponentDefID}:{cmpref.LocalGUID()}");
+        }
+      }
       Dictionary<Weapon, HashSet<string>> addons = new Dictionary<Weapon, HashSet<string>>();
       foreach (Weapon weapon in unit.Weapons) { addons.Add(weapon, new HashSet<string>()); };
       foreach (MechComponent component in unit.allComponents) {
         if (component.baseComponentRef.Def.isHasAddons() == false) { continue; }
+        Log.Debug?.WL(1,$"addon {component.baseComponentRef.Def.Description.Id} target:{component.baseComponentRef.TargetComponentGUID()} hasTarget:{component.baseComponentRef.Def.isHasTarget()}");
         foreach (Weapon weapon in unit.Weapons) {
+          Log.Debug?.WL(2, $"weapon {weapon.defId} LocalGUID:{weapon.baseComponentRef.LocalGUID()}");
           if (component.baseComponentRef.Def.isHasTarget()) {
             if (string.IsNullOrEmpty(component.baseComponentRef.TargetComponentGUID())) { continue; }
             if (component.baseComponentRef.TargetComponentGUID() != weapon.baseComponentRef.LocalGUID()) { continue; }
@@ -344,10 +353,22 @@ namespace CustomActivatableEquipment {
       List<WeaponMode> result = new List<WeaponMode>();
       AddonReference addonReference = component.componentDef.GetComponent<AddonReference>();
       if (addonReference == null) { return result; }
+      Log.Debug.WL(4,$"GatherModesFor {component.defId} weapon:{weapon.defId} location:{component.Location} weapon location:{weapon.Location}");
       if (addonReference.installedLocationOnly && component.Location != weapon.Location) { return result; }
       foreach (var addon in component.componentDef.GetWeaponAddons()) {
-        if (addedAddons != null) { if (addedAddons.Contains(addon.safeAddonType)) { continue; } else { addedAddons.Add(addon.safeAddonType); }; };
-        if (weapon.baseComponentRef.CanBeTarget(addon)) { result.AddRange(addon.modes); }
+        Log.Debug.WL(5, $"addon:{addon.Id}");
+        if (addedAddons != null) { if (addedAddons.Contains(addon.safeAddonType)) {
+            Log.Debug.WL(5, $"already have {addon.safeAddonType}");
+            continue;
+          };
+        };
+        if (weapon.baseComponentRef.CanBeTarget(addon)) {
+          addedAddons.Add(addon.safeAddonType);
+          result.AddRange(addon.modes);
+        } else {
+          Log.Debug.WL(5, $"can't be target");
+
+        }
       }
       return result;
     }
