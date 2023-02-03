@@ -353,6 +353,8 @@ namespace CustomActivatableEquipment {
     public static void Postfix(SelectionType type, CombatGameState Combat, CombatHUD HUD, CombatHUDActionButton FromButton, AbstractActor actor, ref SelectionState __result) {
       try {
         if (type != SelectionType.ActiveProbe) { return; }
+        if (FromButton == null) { return; }
+        if (FromButton.Ability == null) { return; }
         if (string.IsNullOrEmpty(FromButton.Ability.Def.StringParam2)) { return; }
         Log.Debug?.TWL(0, "SelectionState.GetNewSelectionStateByType SelectionStateActiveProbeArc");
         __result = new SelectionStateActiveProbeArc(Combat, HUD, FromButton, actor);

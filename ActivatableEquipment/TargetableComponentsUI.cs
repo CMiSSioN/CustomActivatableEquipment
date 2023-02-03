@@ -147,7 +147,7 @@ namespace CustomActivatableEquipment {
         if ((mechlabItem.ComponentRef.Def.isHasTarget())&&(mechlabItem.ComponentRef.Def.isAutoTarget())) {
           mechlabItem.ComponentRef.LocalGUID(Guid.NewGuid().ToString());
           mechlabItem.ComponentRef.TargetComponentGUID(string.Empty);
-          TargetsPopupSupervisor.ResolveAddonsOnInventory(mechLabPanel.activeMechInventory);
+          TargetsPopupSupervisor.ResolveAddonsOnInventory(mechLabPanel.activeMechInventory, $"{mechLabPanel.activeMechDef.ChassisID}:MechLabLocationWidget.OnAddItem");
         }
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
@@ -181,7 +181,7 @@ namespace CustomActivatableEquipment {
           if (refTracker == null) { refTracker = mechlabItem.gameObject.AddComponent<MLComponentRefTracker>(); }
           refTracker.Init(mechlabItem, __instance.GetComponentInParent<MechLabPanel>());
         }
-        TargetsPopupSupervisor.ResolveAddonsOnInventory(mechLabPanel.activeMechInventory);
+        TargetsPopupSupervisor.ResolveAddonsOnInventory(mechLabPanel.activeMechInventory, $"{mechLabPanel.activeMechDef.ChassisID}:MechLabLocationWidget.SetData");
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
       }
@@ -458,9 +458,11 @@ namespace CustomActivatableEquipment {
     private static readonly string ADDITIONAL_COMPONENTS_DATA = "ADDITIONAL_COMPONENTS_DATA";
     public static void ComponentsAdditionaDataSave(this SimGameState sim) {
       sim.CompanyStats.GetOrCreateStatisic<string>(ADDITIONAL_COMPONENTS_DATA, "{}").SetValue<string>(JsonConvert.SerializeObject(baseComponentRefRegistry));
+      Log.Debug?.TWL(0, $"ComponentsAdditionaDataSave:{JsonConvert.SerializeObject(baseComponentRefRegistry, Formatting.Indented)}");
     }
     public static void ComponentsAdditionaDataLoad(this SimGameState sim) {
       baseComponentRefRegistry = JsonConvert.DeserializeObject< BaseComponentRefRegistry >(sim.CompanyStats.GetOrCreateStatisic<string>(ADDITIONAL_COMPONENTS_DATA, "{}").Value<string>());
+      Log.Debug?.TWL(0, $"ComponentsAdditionaDataLoad:{JsonConvert.SerializeObject(baseComponentRefRegistry, Formatting.Indented)}");
     }
     public static HashSet<WeaponAddonDef> GetWeaponAddons(this MechComponent component) {
       return GetWeaponAddons(component.componentDef);
@@ -527,6 +529,8 @@ namespace CustomActivatableEquipment {
       return false;
     }
     public static bool CanBeTarget(this BaseComponentRef componentRef, WeaponAddonDef addon) {
+      if (componentRef == null) { return false; }
+      if (componentRef.Def == null) { return false; }
       return componentRef.Def.CanBeTarget(addon);
     }
     public static bool CanBeTarget(this BaseComponentRef componentRef, BaseComponentRef addonSrc) {
@@ -609,8 +613,8 @@ namespace CustomActivatableEquipment {
           textColor = UIColor.Gold;
         }
         Traverse.Create(weapon.ui).Field<UIColorRefTracker>("itemTextColor").Value.SetUIColor(textColor);
-        weapon.data.debugDetails = $"L:{weapon.data.componentRef.LocalGUID()}\nT:{parent.componentRef.TargetComponentGUID()}";
-        Traverse.Create(weapon.ui).Field<HBSTooltip>("EquipmentTooltip").Value.SetDefaultStateData(weapon.data.debugDescription.GetTooltipStateData());
+        //weapon.data.debugDetails = $"L:{weapon.data.componentRef.LocalGUID()}\nT:{parent.componentRef.TargetComponentGUID()}";
+        //Traverse.Create(weapon.ui).Field<HBSTooltip>("EquipmentTooltip").Value.SetDefaultStateData(weapon.data.debugDescription.GetTooltipStateData());
       }
     }
     public void Clear() {
@@ -689,6 +693,7 @@ namespace CustomActivatableEquipment {
     public MechComponentRef componentRef { get; set; } = null;
     public HBSTooltip helpTooltip { get; set; } = null;
     public MechDef mechDef { get; set; } = null;
+    public bool popupShown { get; set; } = false;
     public List<MechComponentRef> inventory { get; set; } = new List<MechComponentRef>();
     public Dictionary<string, HashSet<string>> placedAddons = new Dictionary<string, HashSet<string>>();
     public Dictionary<string, MechComponentRef> componetByGuid = new Dictionary<string, MechComponentRef>();
@@ -700,10 +705,10 @@ namespace CustomActivatableEquipment {
       targetsControl.componentCountText.SetText("__/CAE.TARGET.HELP/__");
       helpTooltip.SetDefaultStateData(new BaseDescriptionDef("TargetsHelpTooltipID", "__/CAE.TRG.USAGE/__", "__/CAE.TRG.USAGE.TARGETS.DETAILS/__", string.Empty).GetTooltipStateData());
     }
-    public static void ResolveAddonsOnInventory(List<MechComponentRef> inventory) {
+    public static void ResolveAddonsOnInventory(List<MechComponentRef> inventory, string chassisid) {
       Dictionary<MechComponentRef, HashSet<string>> placedAddons = new Dictionary<MechComponentRef, HashSet<string>>();
       Dictionary<string, MechComponentRef> componetByGuid = new Dictionary<string, MechComponentRef>();
-      Log.Debug?.TWL(0, "ResolveAddonsOnInventory");
+      Log.Debug?.TWL(0, $"ResolveAddonsOnInventory {chassisid}");
       foreach (var invItem in inventory) {
         if (invItem == null) { continue; }
         string LocalGUID = invItem.LocalGUID();
@@ -721,6 +726,7 @@ namespace CustomActivatableEquipment {
         Log.Debug?.WL(1, $"{invItem.ComponentDefID} SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} TargetComponentGUID:{invItem.TargetComponentGUID()} MountedLocation:{invItem.MountedLocation}");
       }
       foreach (var invItem in inventory) {
+        if (invItem == null) { continue; }
         if (string.IsNullOrEmpty(invItem.TargetComponentGUID())) { continue; }
         if (invItem.Def.isHasTarget() == false) { continue; }
         if (componetByGuid.TryGetValue(invItem.TargetComponentGUID(), out var targetRef)) {
@@ -736,6 +742,7 @@ namespace CustomActivatableEquipment {
         }
       }
       foreach(var invItem in inventory) {
+        if (invItem == null) { continue; }
         if (invItem.Def.isHasTarget() == false) { continue; }
         if (invItem.Def.isAutoTarget() == false) { continue; }
         if (string.IsNullOrEmpty(invItem.TargetComponentGUID()) == false) { continue; }
@@ -900,6 +907,8 @@ namespace CustomActivatableEquipment {
     }
     public void OnTargetsButtonClick(MechComponentRef componentRef, MechDef mechDef, List<MechComponentRef> inventory) {
       if (mechDef == null) { return; }
+      if (popupShown) { return; }
+      popupShown = true;
       GenericPopupBuilder builder = GenericPopupBuilder.Create("__/CAE.TRG.LIST/__", "PLACEHOLDER");
       builder.AddButton("__/CAE.TRG.CLOSE/__", new Action(this.OnBack), false);
       popup = builder.CancelOnEscape().Render();
@@ -934,6 +943,7 @@ namespace CustomActivatableEquipment {
           popup.Pool();
           popup = null;
         }
+        this.popupShown = false;
       }catch(Exception e) {
         Log.Error?.TWL(0,e.ToString(),true);
       }
@@ -1103,21 +1113,25 @@ namespace CustomActivatableEquipment {
     private static d_MechDef_set i_MechDef_set = null;
     public static string LocalGUID(this BattleTech.BaseComponentRef src, bool cached = true) {
       if (i_LocalGUID_get == null) { return string.Empty; }
-      if (cached) { src.ReadAdditionaldataRegistry();  }
+      if (src == null) { return string.Empty; }
+      if (cached) { src.ReadAdditionaldataRegistry(); }
       return i_LocalGUID_get(src);
     }
     public static void LocalGUID(this BattleTech.BaseComponentRef src, string value, bool update = true) {
       if (i_LocalGUID_set == null) { return; }
+      if (src == null) { return; }
       i_LocalGUID_set(src, value);
       if (update) { src.WriteAdditionaldataRegistry(); }
     }
     public static string TargetComponentGUID(this BattleTech.BaseComponentRef src, bool cached = true) {
+      if (src == null) { return string.Empty; }
       if (i_TargetComponentGUID_get == null) { return string.Empty; }
       if (cached) { src.ReadAdditionaldataRegistry(); }
       return i_TargetComponentGUID_get(src);
     }
     public static void TargetComponentGUID(this BattleTech.BaseComponentRef src, string value, bool update = true) {
       if (i_TargetComponentGUID_set == null) { return; }
+      if (src == null) { return; }
       i_TargetComponentGUID_set(src, value);
       if (update) { src.WriteAdditionaldataRegistry(); }
     }
@@ -1247,7 +1261,7 @@ namespace CustomActivatableEquipment {
           //refTracker.mechDef = component.mechDef();
           refTracker.Init();
         }
-        TargetsPopupSupervisor.ResolveAddonsOnInventory(componentRefTrackersList.inventory);
+        TargetsPopupSupervisor.ResolveAddonsOnInventory(componentRefTrackersList.inventory, $"{componentRefTrackersList.mechDef.ChassisID}:LanceMechEquipmentList.SetLoadout");
       } catch(Exception e) {
         Log.Error?.TWL(0,e.ToString());
       }
@@ -1308,6 +1322,59 @@ namespace CustomActivatableEquipment {
       try {
         Log.Debug?.TWL(0, "AbstractActor.AssignAmmoToWeapons " + __instance.PilotableActorDef.Description.Id);
         __instance.InitweaponsAddons();
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
+  [HarmonyPatch(typeof(ActorDef))]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch("SetGuid")]
+  [HarmonyPatch(new Type[] { typeof(string) })]
+  public static class ActorDef_SetGuid {
+    public static void Postfix(ActorDef __instance) {
+      try {
+        Log.Debug?.TWL(0, "ActorDef.SetGuid " + __instance.Description.Id);
+        if (UnityGameInstance.BattleTechGame.Simulation == null) { return; }
+        if (__instance is MechDef mechDef) {
+          Log.Debug?.TWL(0, "MechDef.SetGuid " + mechDef.ChassisID);
+          foreach (var invItem in mechDef.Inventory) {
+            if (invItem == null) { continue; }
+            if (invItem.Def == null) { continue; }
+            if (string.IsNullOrEmpty(invItem.SimGameUID)) { invItem.SetSimGameUID(UnityGameInstance.BattleTechGame.Simulation.GenerateSimGameUID()); }
+            if (string.IsNullOrEmpty(invItem.LocalGUID()) == false) {
+              invItem.LocalGUID(invItem.LocalGUID(), true);
+            }
+            Log.Debug?.WL(1,$"{invItem.ComponentDefID} SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} target:{invItem.TargetComponentGUID()}");
+          }
+        } else {
+          Log.Debug?.TWL(0, $"ActorDef.SetGuid {__instance.Description.Id}:{__instance.GetType().ToString()}");
+        }
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
+  [HarmonyPatch(typeof(SimGameState))]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch("AddMech")]
+  [HarmonyPatch(new Type[] { typeof(int), typeof(MechDef), typeof(bool), typeof(bool), typeof(bool), typeof(string) })]
+  public static class SimGameState_AddMech {
+    public static void Postfix(SimGameState __instance, int idx, MechDef mech,bool active,bool forcePlacement,bool displayMechPopup, string mechAddedHeader) {
+      try {
+        Log.Debug?.TWL(0, "SimGameState.AddMech " + mech.ChassisID);
+        foreach (var invItem in mech.Inventory) {
+          if (invItem == null) { continue; }
+          if (invItem.Def == null) { continue; }
+          if (string.IsNullOrEmpty(invItem.SimGameUID)) { invItem.SetSimGameUID(UnityGameInstance.BattleTechGame.Simulation.GenerateSimGameUID()); }
+          if (string.IsNullOrEmpty(invItem.LocalGUID()) == false) {
+            invItem.LocalGUID(invItem.LocalGUID(), true);
+          }
+          if (string.IsNullOrEmpty(invItem.TargetComponentGUID()) == false) {
+            invItem.TargetComponentGUID(invItem.TargetComponentGUID(), true);
+          }
+          Log.Debug?.WL(1, $"{invItem.ComponentDefID} SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} target:{invItem.TargetComponentGUID()}");
+        }
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
       }
