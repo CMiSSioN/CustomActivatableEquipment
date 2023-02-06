@@ -324,11 +324,21 @@ namespace CustomActivatableEquipment {
       //  if (string.IsNullOrEmpty(weapon.baseComponentRef.LocalGUID())) { continue; }
       //  weapons[weapon.baseComponentRef.LocalGUID()] = weapon;
       //}
-      MechDef mechDef = unit.Combat.DataManager.MechDefs.Get(unit.PilotableActorDef.Description.Id);
-      if (mechDef != null) {
-        Log.Debug?.WL(0, $"mechdef exists");
-        foreach(var cmpref in mechDef.Inventory) {
-          Log.Debug?.WL(1, $"{cmpref.ComponentDefID}:{cmpref.LocalGUID()}");
+      if (unit.Combat.DataManager.MechDefs.Exists(unit.PilotableActorDef.Description.Id)) {
+        MechDef mechDef = unit.Combat.DataManager.MechDefs.Get(unit.PilotableActorDef.Description.Id);
+        if (mechDef != null) {
+          Log.Debug?.WL(0, $"mechdef exists");
+          foreach (var cmpref in mechDef.Inventory) {
+            Log.Debug?.WL(1, $"{cmpref.ComponentDefID}:{cmpref.LocalGUID()}");
+          }
+        }
+      }else if (unit.Combat.DataManager.TurretDefs.Exists(unit.PilotableActorDef.Description.Id)) {
+        TurretDef turretDef = unit.Combat.DataManager.TurretDefs.Get(unit.PilotableActorDef.Description.Id);
+        if (turretDef != null) {
+          Log.Debug?.WL(0, $"turretDef exists");
+          foreach (var cmpref in turretDef.Inventory) {
+            Log.Debug?.WL(1, $"{cmpref.ComponentDefID}:{cmpref.LocalGUID()}");
+          }
         }
       }
       Dictionary<Weapon, HashSet<string>> addons = new Dictionary<Weapon, HashSet<string>>();
