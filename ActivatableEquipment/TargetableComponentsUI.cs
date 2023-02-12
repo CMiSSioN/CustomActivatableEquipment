@@ -365,19 +365,31 @@ namespace CustomActivatableEquipment {
       if (addonReference == null) { return result; }
       Log.Debug.WL(4,$"GatherModesFor {component.defId} weapon:{weapon.defId} location:{component.Location} weapon location:{weapon.Location}");
       if (addonReference.installedLocationOnly && component.Location != weapon.Location) { return result; }
+      Dictionary<string, HashSet<WeaponAddonDef>> addons = new Dictionary<string, HashSet<WeaponAddonDef>>();
       foreach (var addon in component.componentDef.GetWeaponAddons()) {
-        Log.Debug.WL(5, $"addon:{addon.Id}");
-        if (addedAddons != null) { if (addedAddons.Contains(addon.safeAddonType)) {
-            Log.Debug.WL(5, $"already have {addon.safeAddonType}");
+        if(addons.TryGetValue(addon.safeAddonType, out var namedaddons) == false) {
+          namedaddons = new HashSet<WeaponAddonDef>();
+          addons.Add(addon.safeAddonType, namedaddons);
+        }
+        namedaddons.Add(addon);
+      }
+      foreach (var addon in addons) {
+        Log.Debug.WL(5, $"addon type:{addon.Key}");
+        if (addedAddons != null) {
+          if (addedAddons.Contains(addon.Key)) {
+            Log.Debug.WL(5, $"already have {addon.Key}");
             continue;
-          };
+          } else {
+            addedAddons.Add(addon.Key);
+          }
         };
-        if (weapon.baseComponentRef.CanBeTarget(addon)) {
-          addedAddons.Add(addon.safeAddonType);
-          result.AddRange(addon.modes);
-        } else {
-          Log.Debug.WL(5, $"can't be target");
-
+        foreach(var mode in addon.Value) {
+          Log.Debug.WL(5, $"addon:{mode.Id}");
+          if (weapon.baseComponentRef.CanBeTarget(mode)) {
+            result.AddRange(mode.modes);
+          } else {
+            Log.Debug.WL(5, $"can't be target");
+          }
         }
       }
       return result;
@@ -387,6 +399,7 @@ namespace CustomActivatableEquipment {
       try {
         //TargetsPopupSupervisor.ResolveAddonsOnInventory(inventory);
         HashSet<string> addedAddons = new HashSet<string>();
+        Log.Debug?.TWL(0, $"gather addons for mechbay {componentRef.ComponentDefID} SimGUID:{componentRef.SimGameUID} LocalGUID:{componentRef.LocalGUID()}");
         foreach(var addonSrc in inventory) {
           if (addonSrc.Def.isHasAddons() == false) { continue; }
           if (addonSrc.Def.isHasTarget()) {
@@ -394,9 +407,28 @@ namespace CustomActivatableEquipment {
             if (addonSrc.TargetComponentGUID() != componentRef.LocalGUID()) { continue; }
           }
           if (componentRef.CanBeTarget(addonSrc) == false) { continue; }
+          Log.Debug?.WL(1,$"attachment found:{addonSrc.ComponentDefID} SimGUID:{addonSrc.SimGameUID} LocalGUID:{addonSrc.LocalGUID()}");
+          Dictionary<string, HashSet<WeaponAddonDef>> addons = new Dictionary<string, HashSet<WeaponAddonDef>>();
           foreach (var addon in componentRef.GetAddonsFromSource(addonSrc)) {
-            if (addedAddons.Contains(addon.safeAddonType)) { continue; } else { addedAddons.Add(addon.safeAddonType); };
-            result.AddRange(addon.modes);
+            if(addons.TryGetValue(addon.safeAddonType, out var typedaddons) == false) {
+              typedaddons = new HashSet<WeaponAddonDef>();
+              addons.Add(addon.safeAddonType, typedaddons);
+            }
+            typedaddons.Add(addon);
+          }
+          foreach(var addon in addons){
+            Log.Debug?.W(2, $"{addon.Key}");
+            if (addedAddons.Contains(addon.Key)) {
+              Log.Debug?.WL(1, $"already have");
+              continue;
+            } else {
+              addedAddons.Add(addon.Key);
+            };
+            foreach (var mode in addon.Value) {
+              result.AddRange(mode.modes);
+              foreach (var m in mode.modes) { Log.Debug?.W(1, $"{m.Id}"); }
+            }
+            Log.Debug?.WL(0, "");
           }
         }
       }catch(Exception e) {

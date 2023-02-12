@@ -32,16 +32,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Mono.Cecil">
-      <HintPath>..\..\..\Mods\ModTek\Mono.Cecil.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\ModTek\Mono.Cecil.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil.Mdb">
-      <HintPath>..\..\..\Mods\ModTek\Mono.Cecil.Mdb.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\ModTek\Mono.Cecil.Mdb.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil.Pdb">
-      <HintPath>..\..\..\Mods\ModTek\Mono.Cecil.Pdb.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\ModTek\Mono.Cecil.Pdb.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil.Rocks">
-      <HintPath>..\..\..\Mods\ModTek\Mono.Cecil.Rocks.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\ModTek\Mono.Cecil.Rocks.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
