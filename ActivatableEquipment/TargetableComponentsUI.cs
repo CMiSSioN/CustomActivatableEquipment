@@ -22,6 +22,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -117,7 +118,63 @@ namespace CustomActivatableEquipment {
       //this.uiInited = false;
     }
   }
-
+  [HarmonyPatch(typeof(InventoryItemElement))]
+  [HarmonyPatch("SetData")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(InventoryDataObject_BASE), typeof(IMechLabDropTarget), typeof(int), typeof(bool), typeof(UnityAction<InventoryItemElement>) })]
+  public static class InventoryItemElement_SetData {
+    private static bool? PrepareCalled = new bool?();
+    public static bool Prepare() {
+      if (PrepareCalled.HasValue) { return PrepareCalled.Value; }
+      PrepareCalled = true;
+      FieldInfo LocalGUID = typeof(BattleTech.BaseComponentRef).GetField("LocalGUID", BindingFlags.Public | BindingFlags.Instance);
+      Log.Debug?.WL(1, $"BaseComponentRef.LocalGUID {(LocalGUID == null ? "not found" : "found")}");
+      if (LocalGUID != null) {
+      } else { PrepareCalled = false; return false; }
+      FieldInfo TargetComponentGUID = typeof(BattleTech.BaseComponentRef).GetField("TargetComponentGUID", BindingFlags.Public | BindingFlags.Instance);
+      Log.Debug?.WL(1, $"BaseComponentRef.TargetComponentGUID {(TargetComponentGUID == null ? "not found" : "found")}");
+      if (TargetComponentGUID != null) {
+      } else { PrepareCalled = false; return false; }
+      return true;
+    }
+    public static void Prefix(InventoryItemElement __instance, InventoryDataObject_BASE controller, IMechLabDropTarget dropParent, int quantity, bool isStoreItem, UnityAction<InventoryItemElement> callback) {
+      try {
+        if (controller == null) { return; }
+        if (controller.mechDef == null) { return; }
+        TargetsPopupSupervisor.ResolveAddonsOnInventory(controller.mechDef.Inventory.ToList(), $"{__instance.MechDef.ChassisID}:InventoryItemElement.SetData");
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
+  [HarmonyPatch(typeof(MechBayMechUnitElement))]
+  [HarmonyPatch("SetData")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(IMechLabDropTarget), typeof(DataManager), typeof(int), typeof(MechDef), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool) })]
+  public static class MechBayMechUnitElement_SetData {
+    private static bool? PrepareCalled = new bool?();
+    public static bool Prepare() {
+      if (PrepareCalled.HasValue) { return PrepareCalled.Value; }
+      PrepareCalled = true;
+      FieldInfo LocalGUID = typeof(BattleTech.BaseComponentRef).GetField("LocalGUID", BindingFlags.Public | BindingFlags.Instance);
+      Log.Debug?.WL(1, $"BaseComponentRef.LocalGUID {(LocalGUID == null ? "not found" : "found")}");
+      if (LocalGUID != null) {
+      } else { PrepareCalled = false; return false; }
+      FieldInfo TargetComponentGUID = typeof(BattleTech.BaseComponentRef).GetField("TargetComponentGUID", BindingFlags.Public | BindingFlags.Instance);
+      Log.Debug?.WL(1, $"BaseComponentRef.TargetComponentGUID {(TargetComponentGUID == null ? "not found" : "found")}");
+      if (TargetComponentGUID != null) {
+      } else { PrepareCalled = false; return false; }
+      return true;
+    }
+    public static void Prefix(MechBayMechUnitElement __instance, IMechLabDropTarget dropParent, DataManager dataManager, int baySlot, MechDef mechDef, bool inMaintenance, bool isFieldable, bool hasFieldableWarnings, bool allowInteraction, bool blockRaycast, bool buttonEnabled) {
+      try {
+        if (mechDef == null) { return; }
+        TargetsPopupSupervisor.ResolveAddonsOnInventory(mechDef.Inventory.ToList(), $"{mechDef.ChassisID}:MechBayMechUnitElement.SetData");
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
   [HarmonyPatch(typeof(MechLabLocationWidget))]
   [HarmonyPatch("OnAddItem")]
   [HarmonyPatch(MethodType.Normal)]
@@ -144,10 +201,30 @@ namespace CustomActivatableEquipment {
         if (refTracker == null) { refTracker = mechlabItem.gameObject.AddComponent<MLComponentRefTracker>(); }
         var mechLabPanel = __instance.GetComponentInParent<MechLabPanel>();
         refTracker.Init(mechlabItem, __instance.GetComponentInParent<MechLabPanel>());
+        bool need_resolve = false;
         if ((mechlabItem.ComponentRef.Def.isHasTarget())&&(mechlabItem.ComponentRef.Def.isAutoTarget())) {
           mechlabItem.ComponentRef.LocalGUID(Guid.NewGuid().ToString());
           mechlabItem.ComponentRef.TargetComponentGUID(string.Empty);
+          need_resolve = true;
+        }
+        if(need_resolve == false) {
+          HashSet<string> guids = new HashSet<string>();
+          foreach(var component in mechLabPanel.activeMechInventory) {
+            guids.Add(component.LocalGUID());
+          }
+          foreach (var component in mechLabPanel.activeMechInventory) {
+            if ((component.Def.isHasTarget()) && (component.Def.isAutoTarget())) {
+              string targetGUID = component.TargetComponentGUID();
+              if (string.IsNullOrEmpty(targetGUID)) { need_resolve = true; break; }
+              if (guids.Contains(targetGUID) == false) { need_resolve = true; break; }
+            }
+          }
+        }
+        if (need_resolve) {
           TargetsPopupSupervisor.ResolveAddonsOnInventory(mechLabPanel.activeMechInventory, $"{mechLabPanel.activeMechDef.ChassisID}:MechLabLocationWidget.OnAddItem");
+          foreach (var invitem in mechLabPanel.activeMechInventory) {
+            if (invitem != null) { invitem.ClearAmmoModeCache(); }
+          }
         }
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
@@ -182,6 +259,41 @@ namespace CustomActivatableEquipment {
           refTracker.Init(mechlabItem, __instance.GetComponentInParent<MechLabPanel>());
         }
         TargetsPopupSupervisor.ResolveAddonsOnInventory(mechLabPanel.activeMechInventory, $"{mechLabPanel.activeMechDef.ChassisID}:MechLabLocationWidget.SetData");
+        foreach (var invitem in mechLabPanel.activeMechInventory) {
+          if (invitem != null) { invitem.ClearAmmoModeCache(); }
+        }
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
+  [HarmonyPatch(typeof(MechBayMechInfoWidget))]
+  [HarmonyPatch("SetData")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(SimGameState), typeof(MechBayPanel), typeof(DataManager), typeof(MechBayMechUnitElement), typeof(bool), typeof(bool) })]
+  public static class MechBayMechInfoWidget_SetData {
+    private static bool? PrepareCalled = new bool?();
+    public static bool Prepare() {
+      if (PrepareCalled.HasValue) { return PrepareCalled.Value; }
+      PrepareCalled = true;
+      FieldInfo LocalGUID = typeof(BattleTech.BaseComponentRef).GetField("LocalGUID", BindingFlags.Public | BindingFlags.Instance);
+      Log.Debug?.WL(1, $"BaseComponentRef.LocalGUID {(LocalGUID == null ? "not found" : "found")}");
+      if (LocalGUID != null) {
+      } else { PrepareCalled = false; return false; }
+      FieldInfo TargetComponentGUID = typeof(BattleTech.BaseComponentRef).GetField("TargetComponentGUID", BindingFlags.Public | BindingFlags.Instance);
+      Log.Debug?.WL(1, $"BaseComponentRef.TargetComponentGUID {(TargetComponentGUID == null ? "not found" : "found")}");
+      if (TargetComponentGUID != null) {
+      } else { PrepareCalled = false; return false; }
+      return true;
+    }
+    public static void Prefix(MechBayMechInfoWidget __instance, SimGameState sim, MechBayPanel mechBay, DataManager dataManager, MechBayMechUnitElement mechElement, bool useNoMechOverlay, bool useRepairButton) {
+      try {
+        if (mechElement == null) { return; }
+        if (mechElement.MechDef == null) { return; }
+        TargetsPopupSupervisor.ResolveAddonsOnInventory(mechElement.MechDef.Inventory.ToList(), $"{mechElement.MechDef.ChassisID}:MechBayMechInfoWidget.SetData");
+        foreach (var invitem in mechElement.MechDef.Inventory) {
+          if (invitem != null) { invitem.ClearAmmoModeCache(); }
+        }
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
       }
@@ -214,6 +326,11 @@ namespace CustomActivatableEquipment {
         mechlabItem.ComponentRef.TargetComponentGUID(string.Empty);
         if ((refTracker != null)&&(refTracker.settingsButton != null)&&(refTracker.settingsButton.svg != null)) {
           refTracker.settingsButton.svg.gameObject.SetActive(false);
+        }
+        var mechLabPanel = __instance.GetComponentInParent<MechLabPanel>();
+        TargetsPopupSupervisor.ResolveAddonsOnInventory(mechLabPanel.activeMechInventory, $"{mechLabPanel.activeMechDef.ChassisID}:MechLabLocationWidget.OnRemoveItem");
+        foreach (var invitem in mechLabPanel.activeMechInventory) {
+          if (invitem != null) { invitem.ClearAmmoModeCache(); }
         }
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
@@ -445,12 +562,22 @@ namespace CustomActivatableEquipment {
     }
     public static void WriteAdditionaldataRegistry(this BaseComponentRef componentRef) {
       if (string.IsNullOrEmpty(componentRef.SimGameUID)) { return; }
+      bool updated = false;
       if (baseComponentRefRegistry.additionalDataRegistry.TryGetValue(componentRef.SimGameUID, out var data) == false) {
         data = new BaseComponentRefData();
         baseComponentRefRegistry.additionalDataRegistry.Add(componentRef.SimGameUID, data);
+        updated = true;
       }
+      string old_LocalGUID = data.LocalGUID;
       data.LocalGUID = componentRef.LocalGUID(false);
+      string old_TargetGUID = data.TargetGUID;
       data.TargetGUID = componentRef.TargetComponentGUID(false);
+      if (updated || (old_LocalGUID != data.LocalGUID)) {
+        Log.Debug?.WL(0,$"WriteAdditionaldataRegistry:{componentRef.SimGameUID} LocalGUID '{old_LocalGUID}'->'{baseComponentRefRegistry.additionalDataRegistry[componentRef.SimGameUID].LocalGUID}'");
+      }
+      if (updated || (old_TargetGUID != data.TargetGUID)) {
+        Log.Debug?.WL(0, $"WriteAdditionaldataRegistry:{componentRef.SimGameUID} TargetComponentGUID '{old_TargetGUID}'->'{baseComponentRefRegistry.additionalDataRegistry[componentRef.SimGameUID].TargetGUID}'");
+      }
     }
     public static void ReadAdditionaldataRegistry(this BaseComponentRef componentRef) {
       if (componentRef == null) { return; }
@@ -718,10 +845,14 @@ namespace CustomActivatableEquipment {
       if(string.IsNullOrEmpty(parent.parent.componentRef.TargetComponentGUID()) == false) {
         if(parent.parent.componetByGuid.TryGetValue(parent.parent.componentRef.TargetComponentGUID(), out var prevTargetRef)) {
           parent.parent.removeAddon(prevTargetRef, parent.parent.componentRef);
+          prevTargetRef.UpdateModes(parent.parent.inventory.ToList<BaseComponentRef>());
         }
       }
       parent.parent.placeAddon(this.data.componentRef, parent.parent.componentRef);
-      parent.UpdateColors();
+      this.data.componentRef.UpdateModes(parent.parent.inventory.ToList<BaseComponentRef>());
+      foreach(var invitem in parent.parent.inventory) {
+        invitem.ClearAmmoModeCache();
+      }
     }
   }
 
@@ -806,6 +937,13 @@ namespace CustomActivatableEquipment {
           placedAddons[targetItem] = targetAddons;
           invItem.TargetComponentGUID(targetItem.LocalGUID());
           break;
+        }
+      }
+      foreach (var invItem in inventory) {
+        if (invItem == null) { return; }
+        WeaponDef weaponDef = invItem.Def as WeaponDef;
+        if (weaponDef != null) {
+          invItem.UpdateModes(inventory.ToList<BaseComponentRef>());
         }
       }
     }

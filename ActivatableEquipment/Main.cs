@@ -1837,6 +1837,37 @@ namespace CustomActivatableEquipment {
         WeaponDefModesCollectHelper.RegisterCallback("ActivatebleEquipment", WeaponAddonDefHelper.GatherModes);
         C3Helper.Init();
         Core.harmony.Patch(InjurePilot_Check.PatchMethod(),new HarmonyMethod(InjurePilot_Check.PrefixMethod()), new HarmonyMethod(InjurePilot_Check.PostfixMethod()));
+        Core.harmony.Patch(AccessTools.Method(typeof(MechComponent), "DamageComponent"), MechComponent_DamageComponent_Stack.PrefixMethod(), MechComponent_DamageComponent_Stack.PostfixMethod());
+        //var DamageComponent_patches = Core.harmony.GetPatchInfo(AccessTools.Method(typeof(MechComponent), "DamageComponent"));
+        //bool prefix_patched = false;
+        //foreach(var prefix in DamageComponent_patches.Prefixes) {
+        //  try {
+        //    Core.harmony.Patch(prefix.patch, new HarmonyMethod(MechComponent_DamageComponent_Hack.PrefixMethod()));
+        //    prefix_patched = true;
+        //    break;
+        //  }catch(Exception e) {
+        //    Log.Error?.TWL(0, e.ToString(), true);
+        //  }
+        //}
+        //if(prefix_patched == false) {
+        //  Core.harmony.Patch(AccessTools.Method(typeof(MechComponent), "DamageComponent"), new HarmonyMethod(MechComponent_DamageComponent_Hack.PrefixMethod()));
+        //}
+        //bool postfix_patched = false;
+        //List<Patch> postfixes = new List<Patch>(DamageComponent_patches.Postfixes);
+        //postfixes.Reverse();
+        //foreach (var postfix in postfixes) {
+        //  try {
+        //    postfix.ow
+        //    Core.harmony.Patch(postfix.patch, null, new HarmonyMethod(MechComponent_DamageComponent_Hack.PostfixMethod()));
+        //    postfix_patched = true;
+        //    break;
+        //  } catch (Exception e) {
+        //    Log.Error?.TWL(0, e.ToString(), true);
+        //  }
+        //}
+        //if (postfix_patched == false) {
+        //  Core.harmony.Patch(AccessTools.Method(typeof(MechComponent), "DamageComponent"),null, new HarmonyMethod(MechComponent_DamageComponent_Hack.PostfixMethod()));
+        //}
         //ExtendedDescriptionHelper.DetectMechEngineer();
       } catch (Exception e) {
         Log.Debug?.TWriteCritical(0, e.ToString());
@@ -1915,6 +1946,7 @@ namespace CustomActivatableEquipment {
       try {
         CustomComponents.Registry.RegisterSimpleCustomComponents(Assembly.GetExecutingAssembly());
         harmony = HarmonyInstance.Create("io.mission.activatablecomponents");
+        harmony.Patch(AccessTools.Method(typeof(PatchInfoSerialization), "PriorityComparer"), null, new HarmonyMethod(MechComponent_DamageComponent_Stack.PriorityComparerMethod()));
         harmony.PatchAll(Assembly.GetExecutingAssembly());
         harmony.Patch(
         typeof(Weapon).Assembly.GetType("AreAnyHostilesInWeaponRangeNode").GetMethod("Tick", BindingFlags.Instance | BindingFlags.NonPublic), 

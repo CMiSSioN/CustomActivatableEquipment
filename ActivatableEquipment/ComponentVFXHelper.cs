@@ -108,7 +108,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(WeaponHitInfo),typeof(ComponentDamageLevel),typeof(bool) })]
   public static class MechComponent_DamageComponent {
-    public static void Postfix(MechComponent __instance, WeaponHitInfo hitInfo, ComponentDamageLevel damageLevel, bool applyEffects) {
+    public static void Postfix(MechComponent __instance, WeaponHitInfo hitInfo, ComponentDamageLevel damageLevel) {
       try {
         Log.Debug?.TWL(0, "MechComponent.DamageComponent Postfix " + __instance.defId + " DamageLevel:" + __instance.DamageLevel + "/" + damageLevel);
         if ((__instance.DamageLevel >= ComponentDamageLevel.Destroyed) || (damageLevel >= ComponentDamageLevel.Destroyed)) {

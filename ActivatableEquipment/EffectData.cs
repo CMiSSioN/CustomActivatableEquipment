@@ -34,6 +34,53 @@ namespace CustomActivatableEquipment {
   //    }
   //  }
   //}
+  public static class MechComponent_DamageComponent_Stack {
+    public static MethodInfo PriorityComparerMethod() {
+      return AccessTools.Method(typeof(MechComponent_DamageComponent_Stack), nameof(PriorityComparerPostfix));
+    }
+    public static void PriorityComparerPostfix(object obj, int index, int priority, string[] before, string[] after, int __result) {
+      try {
+        Traverse traverse = Traverse.Create(obj);
+        MethodInfo patch = traverse.Field("patch").GetValue<MethodInfo>();
+        string owner = traverse.Field("owner").GetValue<string>();
+        int spriority = traverse.Field(nameof(priority)).GetValue<int>();
+        int sindex = traverse.Field(nameof(index)).GetValue<int>();
+        Log.Debug?.TWL(0, $"PatchInfoSerialization.PriorityComparer:{patch.DeclaringType.Name}.{patch.Name}({owner}) priority:{priority}/{spriority} index:{index}:{sindex} result:{__result}");
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+    public static void Prefix(MechComponent __instance) {
+      try {
+        Thread.CurrentThread.SetFlag("CAE_DamageComponent_set");
+        Thread.CurrentThread.pushToStack<MechComponent>("CAE_DamageComponent", __instance);
+        Log.Debug?.TWL(0, $"MechComponent.DamageComponent component push:{__instance.defId}");
+      } catch (Exception e) {
+        Log.Error.TWL(0, e.ToString(), true);
+      }
+    }
+    public static HarmonyMethod PrefixMethod() {
+      HarmonyMethod result = new HarmonyMethod(AccessTools.Method(typeof(MechComponent_DamageComponent_Stack), nameof(Prefix)));
+      result.prioritiy = 1000;
+      return result;
+    }
+    public static void Postfix(MechComponent __instance) {
+      try {
+        if (Thread.CurrentThread.isFlagSet("CAE_DamageComponent_set")) {
+          Thread.CurrentThread.popFromStack<MechComponent>("CAE_DamageComponent");
+          Thread.CurrentThread.ClearFlag("CAE_DamageComponent_set");
+          Log.Debug?.TWL(0, $"MechComponent.DamageComponent component pop:{__instance.defId}");
+        }
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+    public static HarmonyMethod PostfixMethod() {
+      HarmonyMethod result = new HarmonyMethod(AccessTools.Method(typeof(MechComponent_DamageComponent_Stack), nameof(Postfix)));
+      result.prioritiy = -400;
+      return result;
+    }
+  }
   [HarmonyPatch(typeof(MechComponent))]
   [HarmonyPatch("InitPassiveSelfEffects")]
   [HarmonyPatch(MethodType.Normal)]
@@ -67,7 +114,7 @@ namespace CustomActivatableEquipment {
         if (e is StatisticEffect statEffect) {
           StatCollection statCollection = Traverse.Create(statEffect).Property<StatCollection>("statCollection").Value;
           if (statCollection == null) { return; }
-          statCollection.RemoveStatistic(e.EffectData.Description.Id+"_only_one_tracker");
+          statCollection.RemoveStatistic(e.EffectData.Description.Id + "_only_one_tracker");
         }
       } catch (Exception ex) {
         Log.Error?.TWL(0, ex.ToString(), true);
@@ -77,7 +124,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(typeof(StatisticEffect))]
   [HarmonyPatch("initStatisiticEffect")]
   [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPatch(new Type[] { typeof(ICombatant),typeof(EffectData),typeof(StatCollection) })]
+  [HarmonyPatch(new Type[] { typeof(ICombatant), typeof(EffectData), typeof(StatCollection) })]
   public static class StatisticEffect_initStatisiticEffect {
     public static void Postfix(StatisticEffect __instance, ICombatant target, EffectData effectData, StatCollection targetStatCollection) {
       try {
@@ -88,8 +135,8 @@ namespace CustomActivatableEquipment {
         }
         AbstractActor unit = targetStatCollection.actor();
         MechComponent sourceComponent = Thread.CurrentThread.peekFromStack<MechComponent>("EFFECT_SOURCE");
-        Log.Debug?.TWL(0,$"StatisticEffect.initStatisiticEffect id:{effectData.Description.Id} statName:{effectData.statisticData.statName} target:{(unit==null?"null":unit.PilotableActorDef.ChassisID)} sourceComponent:{(sourceComponent==null?"null":sourceComponent.defId)}");
-        if ((unit != null)&&(string.IsNullOrEmpty(SourceLocation) == false)) {
+        Log.Debug?.TWL(0, $"StatisticEffect.initStatisiticEffect id:{effectData.Description.Id} statName:{effectData.statisticData.statName} target:{(unit == null ? "null" : unit.PilotableActorDef.ChassisID)} sourceComponent:{(sourceComponent == null ? "null" : sourceComponent.defId)}");
+        if ((unit != null) && (string.IsNullOrEmpty(SourceLocation) == false)) {
           if (sourceComponent != null) {
             int sourceLocation = -1;
             if (SourceLocation == "{current}") {
@@ -112,7 +159,7 @@ namespace CustomActivatableEquipment {
             if ((sourceLocation >= 0) && (stat != null)) {
               string locstatname = sourceLocation.ToString() + "." + effectData.statisticData.statName;
               if (targetStatCollection.GetStatistic(locstatname) == null) {
-                MethodInfo AddStatistic = targetStatCollection.GetType().GetMethods().First(x => {return x.Name == "AddStatistic" && (x.GetParameters().Length == 2); });
+                MethodInfo AddStatistic = targetStatCollection.GetType().GetMethods().First(x => { return x.Name == "AddStatistic" && (x.GetParameters().Length == 2); });
                 object defValue = stat.GetType().GetMethod("DefaultValue").MakeGenericMethod(stat.ValueType()).Invoke(stat, new object[] { });
                 AddStatistic.MakeGenericMethod(stat.ValueType()).Invoke(targetStatCollection, new object[] { locstatname, defValue });
               }
@@ -139,7 +186,7 @@ namespace CustomActivatableEquipment {
       if (Prepare_already_run) { return true; }
       Prepare_already_run = true;
       StatisticEffectData_Location = AccessTools.Field(typeof(StatisticEffectData), "Location");
-      Log.Debug?.TWL(0, $"EffectManager.GetTargetStatCollections Prepare StatisticEffectData.Location {(StatisticEffectData_Location==null?"not found":"found")}");
+      Log.Debug?.TWL(0, $"EffectManager.GetTargetStatCollections Prepare StatisticEffectData.Location {(StatisticEffectData_Location == null ? "not found" : "found")}");
       StatisticEffectData_ShouldHaveTags = AccessTools.Field(typeof(StatisticEffectData), "ShouldHaveTags");
       Log.Debug?.TWL(0, $"EffectManager.GetTargetStatCollections Prepare StatisticEffectData.ShouldHaveTags {(StatisticEffectData_ShouldHaveTags == null ? "not found" : "found")}");
       StatisticEffectData_ShouldNotHaveTags = AccessTools.Field(typeof(StatisticEffectData), "ShouldNotHaveTags");
@@ -226,77 +273,97 @@ namespace CustomActivatableEquipment {
         bool isAbove = false;
         bool isOnlyOne = false;
         bool isTarget = false;
+        bool isDamaged = false;
+        HashSet<StatCollection> result = new HashSet<StatCollection>();
         if (SourceLocation == "{above}") {
           isAbove = true;
           SourceLocation = "{current}";
-        }
-        if(SourceLocation == "{onlyone}") {
+        } else
+        if (SourceLocation == "{onlyone}") {
           isOnlyOne = true;
           SourceLocation = "{current}";
-        }
+        } else
         if (SourceLocation == "{target}") {
           isTarget = true;
           SourceLocation = "{current}";
+        } else
+        if (SourceLocation == "{damaged}") {
+          isDamaged = true;
+          SourceLocation = "{current}";
         }
-        MechComponent sourceComponent = Thread.CurrentThread.peekFromStack<MechComponent>("EFFECT_SOURCE");
-        if (SourceLocation == "{current}") {
-          if (sourceComponent == null) { return; }
-          sourceLocation = sourceComponent.Location;
-        } else if (SourceLocation == "{adjacent}") {
-          if (sourceComponent == null) { return; }
-          sourceLocation = sourceComponent.parent.GetEffectAdjacentLocation(sourceComponent.Location);
-        } else { 
-          if(Enum.TryParse<ChassisLocations>(SourceLocation, out var cloc)) {
-            sourceLocation = (int)cloc;
-          } else if(Enum.TryParse<VehicleChassisLocations>(SourceLocation, out var vloc)) {
-            sourceLocation = (int)vloc.FakeVehicleLocation();
-          } else if(Enum.TryParse<BuildingLocation>(SourceLocation, out var bloc)) {
-            sourceLocation = 1;
-          }
-        }
-        if (sourceLocation < 0) { return; }
-        HashSet<StatCollection> result = new HashSet<StatCollection>();
-        TagSet ShouldNotHaveTags = new TagSet(effectData.statisticData.ShouldNotHaveTags());
-        TagSet ShouldHaveTags = new TagSet(effectData.statisticData.ShouldHaveTags());
-        MechComponent aboveComponent = null;
-        foreach (StatCollection statCollection in __result) {
-          MechComponent targetComponent = statCollection.getComponent();
-          if (targetComponent == null) { result.Add(statCollection); continue; }
-          int targetLocation = targetComponent.Location;
-          if (targetComponent.vehicleComponentRef != null) {
-            targetLocation = (int)targetComponent.vehicleComponentRef.MountedLocation.FakeVehicleLocation();
-          }
-          Log.Debug?.WL(1, $"component {targetComponent.defId} UID:{targetComponent.uid} location:{targetLocation} effect location:{sourceLocation}");
-          if (ShouldNotHaveTags.Count > 0) {
-            if (targetComponent.componentDef.ComponentTags.ContainsAny(ShouldNotHaveTags)) { continue; }
-          }
-          if (ShouldHaveTags.Count > 0) {
-            if (targetComponent.componentDef.ComponentTags.ContainsAll(ShouldHaveTags) == false) { continue; }
-          }
-          if (isTarget) {
-            if (string.IsNullOrEmpty(targetComponent.baseComponentRef.LocalGUID()) == false) {
-              if(targetComponent.baseComponentRef.LocalGUID() == sourceComponent.baseComponentRef.TargetComponentGUID()) {
-                result.Add(statCollection);
-              }
+        if (isDamaged) {
+          MechComponent damagedComponent = Thread.CurrentThread.peekFromStack<MechComponent>("CAE_DamageComponent");
+          if (damagedComponent == null) { return; }
+          Log.Debug?.WL(1, $"Damaged component:{damagedComponent.defId}");
+          foreach (StatCollection statCollection in __result) {
+            MechComponent targetComponent = statCollection.getComponent();
+            if (targetComponent == null) { result.Add(statCollection); continue; }
+            if (targetComponent == damagedComponent) {
+              Log.Debug?.WL(2, $"collection is in list");
+              result.Add(statCollection);
             }
-            continue;
           }
-          if (targetLocation != sourceLocation) { continue; }
-          if ((targetComponent.uid.CompareTo(sourceComponent.uid) < 0)) {
-            if ((aboveComponent == null)||(targetComponent.uid.CompareTo(aboveComponent.uid) > 0)) { aboveComponent = targetComponent; }
+        } else {
+          MechComponent sourceComponent = Thread.CurrentThread.peekFromStack<MechComponent>("EFFECT_SOURCE");
+          if (SourceLocation == "{current}") {
+            if (sourceComponent == null) { return; }
+            sourceLocation = sourceComponent.Location;
+          } else if (SourceLocation == "{adjacent}") {
+            if (sourceComponent == null) { return; }
+            sourceLocation = sourceComponent.parent.GetEffectAdjacentLocation(sourceComponent.Location);
+          } else {
+            if (Enum.TryParse<ChassisLocations>(SourceLocation, out var cloc)) {
+              sourceLocation = (int)cloc;
+            } else if (Enum.TryParse<VehicleChassisLocations>(SourceLocation, out var vloc)) {
+              sourceLocation = (int)vloc.FakeVehicleLocation();
+            } else if (Enum.TryParse<BuildingLocation>(SourceLocation, out var bloc)) {
+              sourceLocation = 1;
+            }
           }
-          if (isAbove) { continue; }
-          if (isOnlyOne) { if (statCollection.GetStatistic(effectData.Description.Id+"_only_one_tracker") != null) {
-              Log.Debug?.WL(2, $"already applied");
+          if (sourceLocation < 0) { return; }
+          TagSet ShouldNotHaveTags = new TagSet(effectData.statisticData.ShouldNotHaveTags());
+          TagSet ShouldHaveTags = new TagSet(effectData.statisticData.ShouldHaveTags());
+          MechComponent aboveComponent = null;
+          foreach (StatCollection statCollection in __result) {
+            MechComponent targetComponent = statCollection.getComponent();
+            if (targetComponent == null) { result.Add(statCollection); continue; }
+            int targetLocation = targetComponent.Location;
+            if (targetComponent.vehicleComponentRef != null) {
+              targetLocation = (int)targetComponent.vehicleComponentRef.MountedLocation.FakeVehicleLocation();
+            }
+            Log.Debug?.WL(1, $"component {targetComponent.defId} UID:{targetComponent.uid} location:{targetLocation} effect location:{sourceLocation}");
+            if (ShouldNotHaveTags.Count > 0) {
+              if (targetComponent.componentDef.ComponentTags.ContainsAny(ShouldNotHaveTags)) { continue; }
+            }
+            if (ShouldHaveTags.Count > 0) {
+              if (targetComponent.componentDef.ComponentTags.ContainsAll(ShouldHaveTags) == false) { continue; }
+            }
+            if (isTarget) {
+              if (string.IsNullOrEmpty(targetComponent.baseComponentRef.LocalGUID()) == false) {
+                if (targetComponent.baseComponentRef.LocalGUID() == sourceComponent.baseComponentRef.TargetComponentGUID()) {
+                  result.Add(statCollection);
+                }
+              }
               continue;
             }
+            if (targetLocation != sourceLocation) { continue; }
+            if ((targetComponent.uid.CompareTo(sourceComponent.uid) < 0)) {
+              if ((aboveComponent == null) || (targetComponent.uid.CompareTo(aboveComponent.uid) > 0)) { aboveComponent = targetComponent; }
+            }
+            if (isAbove) { continue; }
+            if (isOnlyOne) {
+              if (statCollection.GetStatistic(effectData.Description.Id + "_only_one_tracker") != null) {
+                Log.Debug?.WL(2, $"already applied");
+                continue;
+              }
+            }
+            result.Add(statCollection);
+            if (isOnlyOne) { break; }
           }
-          result.Add(statCollection);
-          if (isOnlyOne) { break; }
-        }
-        if (aboveComponent != null) {
-          Log.Debug?.WL(1, $"above component {aboveComponent.defId} UID:{aboveComponent.uid} sourceComponent.UID:{sourceComponent.uid}");
-          result.Add(aboveComponent.StatCollection);
+          if (aboveComponent != null) {
+            Log.Debug?.WL(1, $"above component {aboveComponent.defId} UID:{aboveComponent.uid} sourceComponent.UID:{sourceComponent.uid}");
+            result.Add(aboveComponent.StatCollection);
+          }
         }
         __result = result.ToList();
         Log.Debug?.WL(1, $"filtered:{__result.Count}");
