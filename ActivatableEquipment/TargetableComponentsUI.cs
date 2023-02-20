@@ -11,6 +11,7 @@ using Harmony;
 using HBS;
 using HBS.Collections;
 using IRBTModUtils;
+using Localize;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SVGImporter;
@@ -20,6 +21,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Text;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.Events;
@@ -27,6 +29,93 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace CustomActivatableEquipment {
+  public class TooltipPrefab_Weapon_Attach: MonoBehaviour {
+    private GameObject attachmentsLayout = null;
+    public RectTransform layout_range = null;
+    public LocalizableText attachments_text = null;
+    public void Hide() {
+      attachmentsLayout.SetActive(false);
+      layout_range.sizeDelta = new Vector2(layout_range.sizeDelta.x, 44f);
+    }
+    public void Show() {
+      attachmentsLayout.SetActive(true);
+      layout_range.sizeDelta = new Vector2(layout_range.sizeDelta.x, 22f);
+    }
+    public void Instantine() {
+      TooltipPrefab_Weapon parent = this.gameObject.GetComponent<TooltipPrefab_Weapon>();
+      RectTransform layout_primaries = this.gameObject.FindObject<RectTransform>("layout_primaries",false);
+      this.layout_range = this.gameObject.FindObject<RectTransform>("layout_range", false);
+      attachmentsLayout = GameObject.Instantiate(layout_primaries.gameObject);
+      attachmentsLayout.transform.localScale = Vector3.one;
+      attachmentsLayout.transform.SetParent(layout_primaries.parent);
+      attachmentsLayout.transform.SetSiblingIndex(layout_primaries.GetSiblingIndex());
+      attachmentsLayout.name = "layout_attachments";
+      RectTransform attachmentsLayoutRT = attachmentsLayout.GetComponent<RectTransform>();
+      attachmentsLayoutRT.pivot = new Vector2(0f, 0.5f);
+      this.attachmentsLayout.FindObject<RectTransform>("stat-stability", false).gameObject.SetActive(false);
+      this.attachmentsLayout.FindObject<RectTransform>("stat-heat", false).gameObject.SetActive(false);
+      this.attachmentsLayout.FindObject<RectTransform>("txt-heatdamage", false).gameObject.SetActive(false);
+      this.attachmentsLayout.FindObject<LocalizableText>("label-damage", false).SetText(Strings.CurrentCulture == Strings.Culture.CULTURE_RU_RU?"Подсоединено:":"Attachments:");
+      this.attachments_text = this.attachmentsLayout.FindObject<LocalizableText>("txt-damage", false);
+    }
+  }
+  [HarmonyPatch(typeof(TooltipPrefab_Weapon))]
+  [HarmonyPatch("SetData")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(object) })]
+  public static class TooltipPrefab_Weapon_SetData {
+    private static Dictionary<BaseComponentRef, HashSet<BaseComponentRef>> attachmentsCache = new Dictionary<BaseComponentRef, HashSet<BaseComponentRef>>();
+    public static void ClearAttachmentsCache(this BaseComponentRef compRef) {
+      if (attachmentsCache.TryGetValue(compRef, out var cache)) { attachmentsCache.Remove(compRef); }
+    }
+    public static void AddAttachmentCache(this BaseComponentRef compRef, BaseComponentRef attachRef) {
+      if (attachmentsCache.TryGetValue(compRef, out var cache) == false) {
+        cache = new HashSet<BaseComponentRef>();
+        attachmentsCache.Add(compRef, cache);
+      }
+      cache.Add(attachRef);
+    }
+    public static HashSet<BaseComponentRef> GetAttachments(this BaseComponentRef compRef) {
+      if (attachmentsCache.TryGetValue(compRef, out var cache)) { return cache; }
+      return new HashSet<BaseComponentRef>();
+    }
+    public static void Postfix(TooltipPrefab_Weapon __instance, bool __result) {
+      if (__result == false) { return; }
+      try {
+        TooltipPrefab_Weapon_Attach attachments = __instance.gameObject.GetComponent<TooltipPrefab_Weapon_Attach>();
+        if (attachments == null) {
+          attachments = __instance.gameObject.AddComponent<TooltipPrefab_Weapon_Attach>();
+          attachments.Instantine();
+        }
+        TooltipPrefab_Weapon_Additional additional = __instance.gameObject.GetComponent<TooltipPrefab_Weapon_Additional>();
+        Log.Debug?.WL(0, $"TooltipPrefab_Weapon.SetData");
+        if(additional == null){
+          Log.Debug?.WL(1, $"no additional component");
+          attachments.Hide(); return;
+        }
+        if (additional.componentRef == null) {
+          Log.Debug?.WL(1, $"component ref is null");
+          attachments.Hide(); return;
+        }
+        if (attachmentsCache.TryGetValue(additional.componentRef, out var attachments_list) == false) {
+          Log.Debug?.WL(1, $"no attachments for {additional.componentRef.ComponentDefID}:{additional.componentRef.LocalGUID()}");
+          attachments.Hide(); return;
+        }
+        if (attachments_list.Count() == 0) {
+          Log.Debug?.WL(1, $"empty attachments for {additional.componentRef.ComponentDefID}:{additional.componentRef.LocalGUID()}");
+          attachments.Hide(); return;
+        }
+        attachments.Show();
+        StringBuilder attach_str = new StringBuilder();
+        foreach (var attach in attachments_list) {
+          attach_str.Append($" {(string.IsNullOrEmpty(attach.Def.Description.UIName)?attach.Def.Description.Name:attach.Def.Description.UIName)}");
+        }
+        attachments.attachments_text.SetText(attach_str.ToString());
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
   public class MechLabItemButton : EventTrigger {
     public SVGImage svg { get; set; } = null;
     public Image img { get; set; } = null;
@@ -324,6 +413,7 @@ namespace CustomActivatableEquipment {
         MLComponentRefTracker refTracker = mechlabItem.gameObject.GetComponent<MLComponentRefTracker>();
         mechlabItem.ComponentRef.LocalGUID(string.Empty);
         mechlabItem.ComponentRef.TargetComponentGUID(string.Empty);
+        mechlabItem.ComponentRef.ClearAttachmentsCache();
         if ((refTracker != null)&&(refTracker.settingsButton != null)&&(refTracker.settingsButton.svg != null)) {
           refTracker.settingsButton.svg.gameObject.SetActive(false);
         }
@@ -361,6 +451,36 @@ namespace CustomActivatableEquipment {
         MLComponentRefTracker refTracker = __instance.gameObject.GetComponent<MLComponentRefTracker>();
         if (refTracker == null) { refTracker = __instance.gameObject.AddComponent<MLComponentRefTracker>(); }
         refTracker.Clear();
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
+  [HarmonyPatch(typeof(MechValidationRules))]
+  [HarmonyPatch("GetMechFieldableWarnings")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(DataManager), typeof(MechDef) })]
+  public static class MechValidationRules_GetMechFieldableWarnings {
+    private static bool? PrepareCalled = new bool?();
+    public static bool Prepare() {
+      if (PrepareCalled.HasValue) { return PrepareCalled.Value; }
+      PrepareCalled = true;
+      FieldInfo LocalGUID = typeof(BattleTech.BaseComponentRef).GetField("LocalGUID", BindingFlags.Public | BindingFlags.Instance);
+      Log.Debug?.WL(1, $"BaseComponentRef.LocalGUID {(LocalGUID == null ? "not found" : "found")}");
+      if (LocalGUID != null) {
+      } else { PrepareCalled = false; return false; }
+      FieldInfo TargetComponentGUID = typeof(BattleTech.BaseComponentRef).GetField("TargetComponentGUID", BindingFlags.Public | BindingFlags.Instance);
+      Log.Debug?.WL(1, $"BaseComponentRef.TargetComponentGUID {(TargetComponentGUID == null ? "not found" : "found")}");
+      if (TargetComponentGUID != null) {
+      } else { PrepareCalled = false; return false; }
+      return true;
+    }
+    public static void Prefix(MechLabItemSlotElement __instance, DataManager dataManager, MechDef mechDef) {
+      try {
+        TargetsPopupSupervisor.ResolveAddonsOnInventory(mechDef.Inventory.ToList(), $"{mechDef.ChassisID}:MechValidationRules.GetMechFieldableWarnings");
+        foreach (var invitem in mechDef.Inventory) {
+          if (invitem != null) { invitem.ClearAmmoModeCache(); }
+        }
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
       }
@@ -886,6 +1006,7 @@ namespace CustomActivatableEquipment {
         if (invItem == null) { continue; }
         string LocalGUID = invItem.LocalGUID();
         if (string.IsNullOrEmpty(LocalGUID)) { LocalGUID = Guid.NewGuid().ToString(); }
+        invItem.ClearAttachmentsCache();
         if (componetByGuid.TryGetValue(LocalGUID, out var sameidRef)) {
           if (sameidRef != invItem) {
             LocalGUID = Guid.NewGuid().ToString();
@@ -903,6 +1024,7 @@ namespace CustomActivatableEquipment {
         if (string.IsNullOrEmpty(invItem.TargetComponentGUID())) { continue; }
         if (invItem.Def.isHasTarget() == false) { continue; }
         if (componetByGuid.TryGetValue(invItem.TargetComponentGUID(), out var targetRef)) {
+          targetRef.AddAttachmentCache(invItem);
           if (placedAddons.TryGetValue(targetRef, out var targetAddons) == false) {
             targetAddons = new HashSet<string>();
           }
@@ -936,6 +1058,7 @@ namespace CustomActivatableEquipment {
           }          
           placedAddons[targetItem] = targetAddons;
           invItem.TargetComponentGUID(targetItem.LocalGUID());
+          targetItem.AddAttachmentCache(invItem);
           break;
         }
       }
@@ -1498,7 +1621,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch("AssignAmmoToWeapons")]
   [HarmonyPatch(new Type[] { })]
   public static class AbstractActor_AssignAmmoToWeapons {
-    public static void Postfix(AbstractActor __instance) {
+    public static void Prefix(AbstractActor __instance) {
       try {
         Log.Debug?.TWL(0, "AbstractActor.AssignAmmoToWeapons " + __instance.PilotableActorDef.Description.Id);
         __instance.InitweaponsAddons();

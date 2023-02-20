@@ -655,29 +655,65 @@ namespace CustomActivatableEquipment {
     }
     public override void OnPointerClick(PointerEventData eventData) {
       Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.OnPointerClick");
-      if (activeDef == null) { return; }
-      if (component == null) { return; }
-      if (activeDef.CanBeactivatedManualy == false) { return; }
-      if (HUD.SelectedTarget != null) { return; }
-      if (HUD.SelectionHandler.ActiveState is SelectionStateJump) { return; }
-      if (component.IsFunctional == false) { return; }
-      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
-      if (activatable == null) { return; }
-      if (activatable.CanActivateAfterMove == false) {
-        if (component.parent.HasMovedThisRound) { return; }
+      try {
+        if (activeDef == null) { return; }
+        if (component == null) { return; }
+        if (activeDef.CanBeactivatedManualy == false) {
+          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, new Localize.Text("{0} can't be activated manually", activeDef.ButtonName), FloatieMessage.MessageNature.Neutral));
+          return;
+        }
+        if (HUD.SelectedTarget != null) {
+          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, new Localize.Text("{0} can't be activated while target is selected", activeDef.ButtonName), FloatieMessage.MessageNature.Neutral));
+          return;
+        }
+        if (HUD.SelectionHandler.ActiveState is SelectionStateJump) {
+          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, new Localize.Text("{0} can't be activated while jumping", activeDef.ButtonName), FloatieMessage.MessageNature.Neutral));
+          return;
+        }
+        if (component.IsFunctional == false) {
+          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, new Localize.Text("{0} is not functional", activeDef.ButtonName), FloatieMessage.MessageNature.Neutral));
+          return;
+        }
+        ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+        if (activatable == null) {
+          return;
+        }
+        if (activatable.CanActivateAfterMove == false) {
+          if (component.parent.HasMovedThisRound) {
+            component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, new Localize.Text("unit already moved"), FloatieMessage.MessageNature.Neutral));
+            return;
+          }
+        }
+        if (activatable.CanActivateAfterFire == false) {
+          if (component.parent.HasFiredThisRound) {
+            component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, new Localize.Text("unit already fired"), FloatieMessage.MessageNature.Neutral));
+            return;
+          }
+        }
+        if (ActivatableComponent.isOutOfCharges(component)) {
+          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, new Localize.Text("{0} out of charges", activeDef.ButtonName), FloatieMessage.MessageNature.Neutral));
+          return;
+        }
+        if (component.parent.IsAvailableThisPhase == false) {
+          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, new Localize.Text("unit is not available this phase"), FloatieMessage.MessageNature.Neutral));
+          return;
+        }
+        if (component.parent.BlockComponentsActivation()) {
+          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, new Localize.Text("components activations is blocked"), FloatieMessage.MessageNature.Neutral));
+          return;
+        }
+        int activatedRound = ActivatableComponent.getComponentActivedRound(component);
+        int currentRound = component.parent.Combat.TurnDirector.CurrentRound;
+        if (activeDef.ActivateOncePerRound && (activatedRound != currentRound) && (activatedRound >= 0)) {
+          component.parent.Combat.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(component.parent.GUID, component.parent.GUID, new Localize.Text("{0} can only be activated once per round", activeDef.ButtonName), FloatieMessage.MessageNature.Neutral));
+          return;
+        }
+        Log.Debug?.WL(1, $"Toggle activatable {component.defId}");
+        ActivatableComponent.toggleComponentActivation(this.component);
+        equipPanel.RefreshDisplayedEquipment(component.parent);
+      }catch(Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
       }
-      if (activatable.CanActivateAfterFire == false) {
-        if (component.parent.HasFiredThisRound) { return; }
-      }
-      if (ActivatableComponent.isOutOfCharges(component)) { return; }
-      if (component.parent.IsAvailableThisPhase == false) { return; }
-      if (component.parent.BlockComponentsActivation()) { return; }
-      int activatedRound = ActivatableComponent.getComponentActivedRound(component);
-      int currentRound = component.parent.Combat.TurnDirector.CurrentRound;
-      if (activeDef.ActivateOncePerRound && (activatedRound != currentRound) && (activatedRound >= 0)) { return; }
-      Log.Debug?.Write("Toggle activatable " + component.defId + "\n");
-      ActivatableComponent.toggleComponentActivation(this.component);
-      equipPanel.RefreshDisplayedEquipment(component.parent);
     }
     public static Dictionary<MechComponent, string> stateCache = new Dictionary<MechComponent, string>();
     public static Dictionary<MechComponent, float> failCache = new Dictionary<MechComponent, float>();
