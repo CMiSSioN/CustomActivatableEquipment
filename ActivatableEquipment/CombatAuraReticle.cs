@@ -1,5 +1,5 @@
 ﻿using BattleTech.UI;
-using Harmony;
+using HarmonyLib;
 using CustomActivatableEquipment;
 using System.Reflection;
 using BattleTech;

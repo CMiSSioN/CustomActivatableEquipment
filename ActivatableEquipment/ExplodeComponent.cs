@@ -3,7 +3,7 @@ using BattleTech.UI;
 using CustAmmoCategories;
 using CustomAmmoCategoriesPatches;
 using CustomComponents;
-using Harmony;
+using HarmonyLib;
 using Localize;
 using System;
 using System.Collections.Generic;

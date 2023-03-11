@@ -1,7 +1,7 @@
 ﻿using BattleTech;
 using BattleTech.UI;
 using CustAmmoCategories;
-using Harmony;
+using HarmonyLib;
 using HBS.Collections;
 using Localize;
 using System;

@@ -5,7 +5,7 @@ using BattleTech.UI;
 using CustAmmoCategories;
 using CustomActivatablePatches;
 using CustomComponents;
-using Harmony;
+using HarmonyLib;
 using HBS.Util;
 using Localize;
 using Newtonsoft.Json;

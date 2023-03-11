@@ -1,6 +1,6 @@
 ﻿using BattleTech;
 using CustomActivatableEquipment;
-using Harmony;
+using HarmonyLib;
 using HBS.Collections;
 using HBS.Util;
 using Newtonsoft.Json;

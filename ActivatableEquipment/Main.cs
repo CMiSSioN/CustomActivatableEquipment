@@ -1,5 +1,5 @@
 ﻿using CustomComponents;
-using Harmony;
+using HarmonyLib;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -1700,7 +1700,7 @@ namespace CustomActivatableEquipment {
   public static partial class Core {
     public static float Epsilon = 0.01f;
     //public static Dictionary<string, GameObject> AdditinalFXObjects = new Dictionary<string, GameObject>();
-    public static HarmonyInstance harmony { get; set; } = null;
+    public static Harmony harmony { get; set; } = null;
     //public static List<ActivatableComponent> currentActiveComponentsDlg = new List<ActivatableComponent>();
     public static readonly string HeatSinkOfflineTagName = "offline";
     //public static Dictionary<string,List<ComponentToggle>>
@@ -1945,8 +1945,8 @@ namespace CustomActivatableEquipment {
       }*/
       try {
         CustomComponents.Registry.RegisterSimpleCustomComponents(Assembly.GetExecutingAssembly());
-        harmony = HarmonyInstance.Create("io.mission.activatablecomponents");
-        harmony.Patch(AccessTools.Method(typeof(PatchInfoSerialization), "PriorityComparer"), null, new HarmonyMethod(MechComponent_DamageComponent_Stack.PriorityComparerMethod()));
+        harmony = new Harmony("io.mission.activatablecomponents");
+        //harmony.Patch(AccessTools.Method(typeof(PatchInfoSerialization), "PriorityComparer"), null, new HarmonyMethod(MechComponent_DamageComponent_Stack.PriorityComparerMethod()));
         harmony.PatchAll(Assembly.GetExecutingAssembly());
         harmony.Patch(
         typeof(Weapon).Assembly.GetType("AreAnyHostilesInWeaponRangeNode").GetMethod("Tick", BindingFlags.Instance | BindingFlags.NonPublic), 

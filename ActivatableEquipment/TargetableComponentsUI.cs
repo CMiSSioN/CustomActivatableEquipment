@@ -7,7 +7,7 @@ using BattleTech.UI.Tooltips;
 using CustAmmoCategories;
 using CustomComponents;
 using CustomSettings;
-using Harmony;
+using HarmonyLib;
 using HBS;
 using HBS.Collections;
 using IRBTModUtils;
@@ -1024,19 +1024,30 @@ namespace CustomActivatableEquipment {
         if (string.IsNullOrEmpty(invItem.TargetComponentGUID())) { continue; }
         if (invItem.Def.isHasTarget() == false) { continue; }
         if (componetByGuid.TryGetValue(invItem.TargetComponentGUID(), out var targetRef)) {
-          targetRef.AddAttachmentCache(invItem);
           if (placedAddons.TryGetValue(targetRef, out var targetAddons) == false) {
             targetAddons = new HashSet<string>();
           }
-          foreach (var addon in targetRef.GetAddonsFromSource(invItem)) {
-            targetAddons.Add(addon.safeAddonType);
+          HashSet<WeaponAddonDef> addons = targetRef.GetAddonsFromSource(invItem);
+          bool alreadyHasAddon = false;
+          foreach (var addon in addons) {
+            if (targetAddons.Contains(addon.safeAddonType)) { alreadyHasAddon = true; break; }
+          }
+          if (alreadyHasAddon) {
+            Log.Debug?.WL(2, $"duplicate attachment detected SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} TargetComponentGUID:{invItem.TargetComponentGUID()} MountedLocation:{invItem.MountedLocation}");
+            invItem.TargetComponentGUID(string.Empty);
+          } else {
+            targetRef.AddAttachmentCache(invItem);
+            foreach (var addon in addons) {
+              targetAddons.Add(addon.safeAddonType);
+            }
           }
           placedAddons[targetRef] = targetAddons;
+
         } else {
           invItem.TargetComponentGUID(string.Empty);
         }
       }
-      foreach(var invItem in inventory) {
+      foreach (var invItem in inventory) {
         if (invItem == null) { continue; }
         if (invItem.Def.isHasTarget() == false) { continue; }
         if (invItem.Def.isAutoTarget() == false) { continue; }
@@ -1068,6 +1079,10 @@ namespace CustomActivatableEquipment {
         if (weaponDef != null) {
           invItem.UpdateModes(inventory.ToList<BaseComponentRef>());
         }
+      }
+      Log.Debug?.TWL(0, $"ResolvedAddonsOnInventory {chassisid}");
+      foreach (var invItem in inventory) {
+        Log.Debug?.WL(1, $"{invItem.ComponentDefID} SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} TargetComponentGUID:{invItem.TargetComponentGUID()} MountedLocation:{invItem.MountedLocation}");
       }
     }
     public void GatherAddonsInfo() {

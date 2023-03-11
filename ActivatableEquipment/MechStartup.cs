@@ -1,7 +1,7 @@
 ﻿using BattleTech;
 using CustomActivatableEquipment;
 using CustomComponents;
-using Harmony;
+using HarmonyLib;
 using System;
 using UnityEngine;
 using Random = UnityEngine.Random;

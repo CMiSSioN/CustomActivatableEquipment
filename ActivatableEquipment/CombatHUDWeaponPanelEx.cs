@@ -6,7 +6,7 @@ using CustomAmmoCategoriesPatches;
 using CustomAmmoCategoriesPathes;
 using CustomComponents;
 using CustomComponents.ExtendedDetails;
-using Harmony;
+using HarmonyLib;
 using HBS;
 using Newtonsoft.Json;
 using SVGImporter;

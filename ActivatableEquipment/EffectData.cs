@@ -1,5 +1,5 @@
 ﻿using BattleTech;
-using Harmony;
+using HarmonyLib;
 using HBS.Collections;
 using IRBTModUtils;
 using System;
@@ -61,7 +61,7 @@ namespace CustomActivatableEquipment {
     }
     public static HarmonyMethod PrefixMethod() {
       HarmonyMethod result = new HarmonyMethod(AccessTools.Method(typeof(MechComponent_DamageComponent_Stack), nameof(Prefix)));
-      result.prioritiy = 1000;
+      result.priority = 1000;
       return result;
     }
     public static void Postfix(MechComponent __instance) {
@@ -77,7 +77,7 @@ namespace CustomActivatableEquipment {
     }
     public static HarmonyMethod PostfixMethod() {
       HarmonyMethod result = new HarmonyMethod(AccessTools.Method(typeof(MechComponent_DamageComponent_Stack), nameof(Postfix)));
-      result.prioritiy = -400;
+      result.priority = -400;
       return result;
     }
   }

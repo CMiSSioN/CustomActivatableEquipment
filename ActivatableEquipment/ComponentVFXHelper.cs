@@ -2,7 +2,7 @@
 using BattleTech.Rendering;
 using CustAmmoCategories;
 using CustomComponents;
-using Harmony;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
