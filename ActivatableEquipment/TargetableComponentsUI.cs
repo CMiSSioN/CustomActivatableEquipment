@@ -600,8 +600,13 @@ namespace CustomActivatableEquipment {
       List<WeaponMode> result = new List<WeaponMode>();
       AddonReference addonReference = component.componentDef.GetComponent<AddonReference>();
       if (addonReference == null) { return result; }
-      Log.Debug.WL(4,$"GatherModesFor {component.defId} weapon:{weapon.defId} location:{component.Location} weapon location:{weapon.Location}");
-      if (addonReference.installedLocationOnly && component.Location != weapon.Location) { return result; }
+      if (weapon.parent != component.parent) { return result; }
+      int weapon_location = weapon.Location;
+      if (weapon.parent == null) { weapon_location = component.Location; }
+      if (weapon.parent.UnitType == UnitType.Turret) { weapon_location = component.Location; };
+      if (weapon.parent.UnitType == UnitType.Building) { weapon_location = component.Location; };
+      Log.Debug.WL(4,$"GatherModesFor {component.defId} weapon:{weapon.defId} location:{component.Location} weapon location:{weapon_location}");
+      if (addonReference.installedLocationOnly && component.Location != weapon_location) { return result; }
       Dictionary<string, HashSet<WeaponAddonDef>> addons = new Dictionary<string, HashSet<WeaponAddonDef>>();
       foreach (var addon in component.componentDef.GetWeaponAddons()) {
         if(addons.TryGetValue(addon.safeAddonType, out var namedaddons) == false) {

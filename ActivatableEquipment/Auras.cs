@@ -745,6 +745,7 @@ namespace CustomActivatableEquipment {
   }
   public class AuraBubble : MonoBehaviour {
     public AbstractActor owner { get; set; }
+    public CombatHUD HUD { get; set; }
     public MechComponent source { get; set; }
     public CombatAuraReticle reticle { get; set; }
     public SphereCollider collider { get; set; }
@@ -815,6 +816,7 @@ namespace CustomActivatableEquipment {
       float radius = this.GetRadius();
       if (this.owner.IsDead || this.owner.IsShutDown) { radius = 0.1f; goto apply_radius; }
       if (Def._neededOwnerTags.IsEmpty == false) { if (Def.checkOwner(owner) == false) { radius = 0.1f; goto apply_radius; }; }
+      if (Def.TrackAcivation) { if (this.isOwnerActive() == false) { radius = 0.1f; goto apply_radius; } }
       if (source != null) {
         if (source.IsFunctional == false) { radius = 0.1f; goto apply_radius; }
         if (Def.State != AuraState.Persistent) {
@@ -826,6 +828,16 @@ apply_radius:
       if (now) { this.collider.radius = radius; };
       Radius = radius;
       Log.Debug?.Write("Aura:" + owner.DisplayName + ":" + this.Def.Id + " src:" + (source != null?source.isActive().ToString():"null") + " state:" + Def.State + " " + this.collider.radius + "->" + Radius + " speed:" + Speed + "\n");
+    }
+    public bool isOwnerActive() {
+      if (owner == null) { return false; }
+      if (Def.TrackAcivation == false) { return true; }
+      if (owner.HasActivatedThisRound) { return false; }
+      if (owner.IsCompletingActivation) { return false; }
+      if (owner.HasBegunActivation) { return true; }
+      if(HUD == null) { return false; }
+      if ((HUD.SelectedActor == owner) && (owner.IsAvailableThisPhase)) { return true; }
+      return false;
     }
     public void Init(AbstractActor owner, MechComponent source, AuraDef def, CombatAuraReticle reticle) {
       try {
@@ -915,7 +927,8 @@ apply_radius:
       //speed = 10f;
     }
     void Awake() {
-      Log.Debug?.Write("Aura collider awake " + owner.DisplayName + ":" + owner.GUID + "\n");
+      this.HUD = UIManager.Instance.UIRoot.GetComponentInChildren<CombatHUD>();
+      Log.Debug?.WL(0, $"Aura collider awake {owner.DisplayName}:{owner.GUID} HUD:{(HUD==null?"null":"not null")}");
       //speed = 2.5f;
     }
     public void PlayOnlineFX() {
@@ -955,13 +968,18 @@ apply_radius:
         int num2 = (int)WwiseManager.PostEvent(SFX, owner.GameRep.audioObject, (AkCallbackManager.EventCallback)null, (object)null);
       }
     }
+    private bool last_active_state = false;
     public void Update() {
       try {
         if (collider == null) { return; };
-        //if (this.StartupCounter > 0f) {
-          //collider.enabled = false;
-          //return;
-        //}
+        if (this.Def.TrackAcivation) {
+          bool active = this.isOwnerActive();
+          //bool is_player = false;
+          //if (owner.team != null) { is_player = owner.team.IsLocalPlayer; }
+          //Log.Debug?.WL($"Aura.Update {this.Def.Id} {this.owner.PilotableActorDef.ChassisID} player:{is_player} active:{active} changed:{(last_active_state==active?"false":"true")}");
+          if (last_active_state != active) { this.UpdateRadius(true); }
+          last_active_state = active;
+        }
         if ((collider.enabled == false) && (collider.radius > 1f)) { collider.enabled = true; this.PlayOnlineFX(); };
         if ((collider.enabled == true) && (collider.radius < 1f)) {
           List<AuraActorBody> restBodies = this.affectedTo.ToList();

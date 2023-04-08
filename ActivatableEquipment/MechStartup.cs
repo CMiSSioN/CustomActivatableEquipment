@@ -14,6 +14,9 @@ namespace CustomActivatablePatches {
   public static class AbstractActor_InitStats {
     public static readonly string StoodUpRollModStatName = "CAEStoodUpRollMod";
     public static readonly string ArmAbsenceStoodUpModStatName = "CAEArmAbsenceStoodUpMod";
+    public static readonly string UnsafeFailChanceStatName = "CAEUnsafeFailChance";
+    public static readonly string UnsafeFailChanceModStatName = "CAEUnsafeFailChanceMod";
+    public static readonly string AIUnsafeFailChanceModStatName = "CAEAIUnsafeFailChanceMod";
     public static float StoodUpRollMod(this AbstractActor unit) {
       if (Core.checkExistance(unit.StatCollection, StoodUpRollModStatName) == false) {
         unit.StatCollection.AddStatistic<float>(StoodUpRollModStatName, 0f);
@@ -26,19 +29,42 @@ namespace CustomActivatablePatches {
       }
       return unit.StatCollection.GetStatistic(ArmAbsenceStoodUpModStatName).Value<float>();
     }
+    public static float UnsafeFailChanceMod(this AbstractActor unit) {
+      if (Core.checkExistance(unit.StatCollection, UnsafeFailChanceModStatName) == false) {
+        unit.StatCollection.AddStatistic<float>(UnsafeFailChanceModStatName, 1f);
+      }
+      return unit.StatCollection.GetStatistic(UnsafeFailChanceModStatName).Value<float>();
+    }
+    public static float UnsafeFailChance(this MechComponent component) {
+      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+      if (activatable == null) { return 0f; };
+      return component.StatCollection.GetOrCreateStatisic<float>(UnsafeFailChanceStatName, activatable.UnsafeFailChance).Value<float>();
+    }
+    public static float AIUnsafeFailChanceMod(this AbstractActor unit) {
+      if (Core.checkExistance(unit.StatCollection, AIUnsafeFailChanceModStatName) == false) {
+        unit.StatCollection.AddStatistic<float>(AIUnsafeFailChanceModStatName, Core.Settings.DefaultAIUnsafeFailChanceMod);
+      }
+      return unit.StatCollection.GetStatistic(AIUnsafeFailChanceModStatName).Value<float>();
+    }
     public static void Postfix(AbstractActor __instance) {
       try {
         AbstractActor_InitEffectStatsAuras.Postfix(__instance);
         AbstractActor_InitEffectStatsHeadHit.Postfix(__instance);
-        Log.Debug?.Write("AbstractActor.InitEffectStats " + __instance.DisplayName + ":" + __instance.GUID + "\n");
+        Log.Debug?.WL(0,$"AbstractActor.InitEffectStats {__instance.DisplayName}:{__instance.GUID}");
         if (Core.checkExistance(__instance.StatCollection, StoodUpRollModStatName) == false) {
           __instance.StatCollection.AddStatistic<float>(StoodUpRollModStatName, 0f);
         }
         if (Core.checkExistance(__instance.StatCollection, ArmAbsenceStoodUpModStatName) == false) {
           __instance.StatCollection.AddStatistic<float>(ArmAbsenceStoodUpModStatName, Core.Settings.DefaultArmsAbsenceStoodUpMod);
         }
-        Log.Debug?.Write(" StoodUpRollMod " + __instance.StoodUpRollMod() + "\n");
-        Log.Debug?.Write(" ArmAbsenceStoodUpMod " + __instance.ArmAbsenceStoodUpMod() + "\n");
+        if (Core.checkExistance(__instance.StatCollection, UnsafeFailChanceModStatName) == false) {
+          __instance.StatCollection.AddStatistic<float>(UnsafeFailChanceModStatName, 1f);
+        }
+        if (Core.checkExistance(__instance.StatCollection, AIUnsafeFailChanceModStatName) == false) {
+          __instance.StatCollection.AddStatistic<float>(AIUnsafeFailChanceModStatName, Core.Settings.DefaultAIUnsafeFailChanceMod);
+        }
+        Log.Debug?.WL(1,$"StoodUpRollMod {__instance.StoodUpRollMod()}");
+        Log.Debug?.WL(1,$"ArmAbsenceStoodUpMod {__instance.ArmAbsenceStoodUpMod()}");
       } catch (Exception e) {
         Log.Error?.TWL(0,e.ToString(),true);
       }

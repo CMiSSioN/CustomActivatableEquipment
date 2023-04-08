@@ -109,6 +109,7 @@ namespace CustomActivatableEquipment {
     public static void Postfix(EffectManager __instance, Effect e) {
       try {
         if (EffectManager_GetTargetStatCollections.StatisticEffectData_Location == null) { return; }
+        if (e.EffectData.statisticData == null) { return; }
         string SourceLocation = EffectManager_GetTargetStatCollections.StatisticEffectData_Location.GetValue(e.EffectData.statisticData) as string;
         if (SourceLocation != "{onlyone}") { return; }
         if (e is StatisticEffect statEffect) {
@@ -325,40 +326,44 @@ namespace CustomActivatableEquipment {
           TagSet ShouldHaveTags = new TagSet(effectData.statisticData.ShouldHaveTags());
           MechComponent aboveComponent = null;
           foreach (StatCollection statCollection in __result) {
-            MechComponent targetComponent = statCollection.getComponent();
-            if (targetComponent == null) { result.Add(statCollection); continue; }
-            int targetLocation = targetComponent.Location;
-            if (targetComponent.vehicleComponentRef != null) {
-              targetLocation = (int)targetComponent.vehicleComponentRef.MountedLocation.FakeVehicleLocation();
-            }
-            Log.Debug?.WL(1, $"component {targetComponent.defId} UID:{targetComponent.uid} location:{targetLocation} effect location:{sourceLocation}");
-            if (ShouldNotHaveTags.Count > 0) {
-              if (targetComponent.componentDef.ComponentTags.ContainsAny(ShouldNotHaveTags)) { continue; }
-            }
-            if (ShouldHaveTags.Count > 0) {
-              if (targetComponent.componentDef.ComponentTags.ContainsAll(ShouldHaveTags) == false) { continue; }
-            }
-            if (isTarget) {
-              if (string.IsNullOrEmpty(targetComponent.baseComponentRef.LocalGUID()) == false) {
-                if (targetComponent.baseComponentRef.LocalGUID() == sourceComponent.baseComponentRef.TargetComponentGUID()) {
-                  result.Add(statCollection);
-                }
+            try {
+              MechComponent targetComponent = statCollection.getComponent();
+              if (targetComponent == null) { result.Add(statCollection); continue; }
+              int targetLocation = targetComponent.Location;
+              if (targetComponent.vehicleComponentRef != null) {
+                targetLocation = (int)targetComponent.vehicleComponentRef.MountedLocation.FakeVehicleLocation();
               }
-              continue;
-            }
-            if (targetLocation != sourceLocation) { continue; }
-            if ((targetComponent.uid.CompareTo(sourceComponent.uid) < 0)) {
-              if ((aboveComponent == null) || (targetComponent.uid.CompareTo(aboveComponent.uid) > 0)) { aboveComponent = targetComponent; }
-            }
-            if (isAbove) { continue; }
-            if (isOnlyOne) {
-              if (statCollection.GetStatistic(effectData.Description.Id + "_only_one_tracker") != null) {
-                Log.Debug?.WL(2, $"already applied");
+              Log.Debug?.WL(1, $"component {targetComponent.defId} UID:{targetComponent.uid} location:{targetLocation} effect location:{sourceLocation}");
+              if (ShouldNotHaveTags.Count > 0) {
+                if (targetComponent.componentDef.ComponentTags.ContainsAny(ShouldNotHaveTags)) { continue; }
+              }
+              if (ShouldHaveTags.Count > 0) {
+                if (targetComponent.componentDef.ComponentTags.ContainsAll(ShouldHaveTags) == false) { continue; }
+              }
+              if (isTarget) {
+                if (string.IsNullOrEmpty(targetComponent.baseComponentRef.LocalGUID()) == false) {
+                  if (targetComponent.baseComponentRef.LocalGUID() == sourceComponent.baseComponentRef.TargetComponentGUID()) {
+                    result.Add(statCollection);
+                  }
+                }
                 continue;
               }
+              if (targetLocation != sourceLocation) { continue; }
+              if ((targetComponent.uid.CompareTo(sourceComponent.uid) < 0)) {
+                if ((aboveComponent == null) || (targetComponent.uid.CompareTo(aboveComponent.uid) > 0)) { aboveComponent = targetComponent; }
+              }
+              if (isAbove) { continue; }
+              if (isOnlyOne) {
+                if (statCollection.GetStatistic(effectData.Description.Id + "_only_one_tracker") != null) {
+                  Log.Debug?.WL(2, $"already applied");
+                  continue;
+                }
+              }
+              result.Add(statCollection);
+              if (isOnlyOne) { break; }
+            }catch(Exception e) {
+              Log.Error?.TWL(0, e.ToString(), true);
             }
-            result.Add(statCollection);
-            if (isOnlyOne) { break; }
           }
           if (aboveComponent != null) {
             Log.Debug?.WL(1, $"above component {aboveComponent.defId} UID:{aboveComponent.uid} sourceComponent.UID:{sourceComponent.uid}");
