@@ -70,6 +70,7 @@ namespace CustomActivatableEquipment {
     public bool StoodUpPilotingRoll { get; set; }
     public float StoodUpPilotingRollCoeff { get; set; }
     public float DefaultArmsAbsenceStoodUpMod { get; set; }
+    public float DefaultAIUnsafeFailChanceMod { get; set; }
     public float LegAbsenceStoodUpMod { get; set; }
     public List<string> AdditionalAssets { get; set; }
     public float AIActivatableCheating { get; set; }

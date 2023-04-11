@@ -55,6 +55,7 @@ namespace CustomActivatableEquipment {
     public bool NotShowOnSelected { get; set; }
     public bool FloatieAtEndOfMove { get; set; }
     public bool ApplySelf { get; set; }
+    public bool TrackAcivation { get; set; } = false;
     public AuraState State { get; set; }
     public StealthAffection AllyStealthAffection { get; set; }
     public StealthAffection EnemyStealthAffection { get; set; }
@@ -122,6 +123,7 @@ namespace CustomActivatableEquipment {
       LineType = AuraLineType.Dashes;
       isSpining = false;
       MinefieldDetector = false;
+      TrackAcivation = false;
     }
   }
 }

@@ -1,6 +1,7 @@
 ﻿using BattleTech;
 using BattleTech.UI;
 using CustAmmoCategories;
+using CustomActivatablePatches;
 using CustomAmmoCategoriesPatches;
 using CustomComponents;
 using HarmonyLib;
@@ -156,6 +157,7 @@ namespace CustomActivatableEquipment {
           Log.Debug?.WL(1,"not activatable");
           return;
         }
+        component.StatCollection.GetOrCreateStatisic<float>(AbstractActor_InitStats.UnsafeFailChanceStatName,activatable.UnsafeFailChance).SetValue<float>(activatable.UnsafeFailChance);
         component.InitActorStat(activatable.Explosion.Range, activatable.Explosion.RangeActorStat);
         component.InitActorStat(activatable.Explosion.Damage, activatable.Explosion.DamageActorStat);
         component.InitActorStat(activatable.Explosion.Heat, activatable.Explosion.HeatActorStat);
