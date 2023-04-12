@@ -219,7 +219,7 @@ namespace CustomActivatableEquipment {
         Vector3 unitLookDirection = unit.CurrentPosition - this.SelectedActor.CurrentPosition;
         unitLookDirection.y = 0f;
         float angle = Mathf.Abs(NvMath.AngleSigned(targetLookDirection, unitLookDirection, Vector3.up));
-        Log.Debug.WL(1,$"{unit.PilotableActorDef.ChassisID} distance:{Vector3.Distance(this.SelectedActor.CurrentPosition, unit.CurrentPosition)} unitLookDirection:{unitLookDirection} angle:{angle}");
+        Log.Debug?.WL(1,$"{unit.PilotableActorDef.ChassisID} distance:{Vector3.Distance(this.SelectedActor.CurrentPosition, unit.CurrentPosition)} unitLookDirection:{unitLookDirection} angle:{angle}");
         if (angle > maxAngle) { goto untarget; }
         this.targetedActors.Add(unit);
         unit.GameRep.IsTargeted = true;

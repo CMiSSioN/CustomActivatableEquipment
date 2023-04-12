@@ -477,9 +477,11 @@ namespace CustomActivatableEquipment {
     }
     public static void Prefix(MechLabItemSlotElement __instance, DataManager dataManager, MechDef mechDef) {
       try {
-        TargetsPopupSupervisor.ResolveAddonsOnInventory(mechDef.Inventory.ToList(), $"{mechDef.ChassisID}:MechValidationRules.GetMechFieldableWarnings");
-        foreach (var invitem in mechDef.Inventory) {
-          if (invitem != null) { invitem.ClearAmmoModeCache(); }
+      if(mechDef != null) {
+          TargetsPopupSupervisor.ResolveAddonsOnInventory(mechDef.Inventory.ToList(), $"{mechDef.ChassisID}:MechValidationRules.GetMechFieldableWarnings");
+          foreach (var invitem in mechDef.Inventory) {
+            if (invitem != null) { invitem.ClearAmmoModeCache(); }
+          }
         }
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
@@ -605,7 +607,7 @@ namespace CustomActivatableEquipment {
       if (weapon.parent == null) { weapon_location = component.Location; }
       if (weapon.parent.UnitType == UnitType.Turret) { weapon_location = component.Location; };
       if (weapon.parent.UnitType == UnitType.Building) { weapon_location = component.Location; };
-      Log.Debug.WL(4,$"GatherModesFor {component.defId} weapon:{weapon.defId} location:{component.Location} weapon location:{weapon_location}");
+      Log.Debug?.WL(4,$"GatherModesFor {component.defId} weapon:{weapon.defId} location:{component.Location} weapon location:{weapon_location}");
       if (addonReference.installedLocationOnly && component.Location != weapon_location) { return result; }
       Dictionary<string, HashSet<WeaponAddonDef>> addons = new Dictionary<string, HashSet<WeaponAddonDef>>();
       foreach (var addon in component.componentDef.GetWeaponAddons()) {
@@ -616,21 +618,21 @@ namespace CustomActivatableEquipment {
         namedaddons.Add(addon);
       }
       foreach (var addon in addons) {
-        Log.Debug.WL(5, $"addon type:{addon.Key}");
+        Log.Debug?.WL(5, $"addon type:{addon.Key}");
         if (addedAddons != null) {
           if (addedAddons.Contains(addon.Key)) {
-            Log.Debug.WL(5, $"already have {addon.Key}");
+            Log.Debug?.WL(5, $"already have {addon.Key}");
             continue;
           } else {
             addedAddons.Add(addon.Key);
           }
         };
         foreach(var mode in addon.Value) {
-          Log.Debug.WL(5, $"addon:{mode.Id}");
+          Log.Debug?.WL(5, $"addon:{mode.Id}");
           if (weapon.baseComponentRef.CanBeTarget(mode)) {
             result.AddRange(mode.modes);
           } else {
-            Log.Debug.WL(5, $"can't be target");
+            Log.Debug?.WL(5, $"can't be target");
           }
         }
       }
