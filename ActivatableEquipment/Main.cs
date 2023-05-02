@@ -1811,8 +1811,17 @@ namespace CustomActivatableEquipment {
               resource.Value.RegisterWeaponAddon(resource.Key);
             }
           }
+          if (customResource.Key == nameof(AuraDef)) {
+            foreach (var resource in customResource.Value) {
+              Log.Debug?.WL(2, "resource:" + resource.Key + "=" + resource.Value.FilePath);
+              AuraDef.Register(resource.Key, resource.Value);
+            }
+          }
         }
         CustomSettings.ModsLocalSettingsHelper.RegisterLocalSettings("ActivatebleEquipment", "Activatable Equipment", LocalSettingsHelper.ResetSettings, LocalSettingsHelper.ReadSettings);
+        CustomPrewarm.Core.RegisterSerializator("CustomActivatableEquipment", BattleTechResourceType.WeaponDef, CAEAuraHelper.GetAuras);
+        CustomPrewarm.Core.RegisterSerializator("CustomActivatableEquipment", BattleTechResourceType.UpgradeDef, CAEAuraHelper.GetAuras);
+        CustomPrewarm.Core.RegisterSerializator("CustomActivatableEquipment", BattleTechResourceType.AbilityDef, CAEAuraHelper.GetAuras);
         WeaponDefModesCollectHelper.RegisterCallback("ActivatebleEquipment", WeaponAddonDefHelper.GatherModes);
         C3Helper.Init();
         Core.harmony.Patch(InjurePilot_Check.PatchMethod(), new HarmonyMethod(InjurePilot_Check.PrefixMethod()), new HarmonyMethod(InjurePilot_Check.PostfixMethod()));

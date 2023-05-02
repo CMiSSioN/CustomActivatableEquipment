@@ -51,7 +51,7 @@ namespace CustomActivatablePatches {
             return true;
           }
         }
-        if (aura.source != null) {
+        if ((aura.source != null)||(aura.pilot != null)) {
           if (aura.Def.isSpining != spinning) { return false; }
           Weapon weapon = aura.source as Weapon;
           if ((weapon == null) || (aura.Def.Id != "AMS")) {

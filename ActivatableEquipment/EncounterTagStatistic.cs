@@ -8,7 +8,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch("CreateEffect")]
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(EffectData), typeof(string), typeof(int), typeof(ICombatant), typeof(ICombatant), typeof(WeaponHitInfo), typeof(int), typeof(bool) })]
-  [HarmonyPriority(Priority.First)]
+  [HarmonyBefore("ru.kmission.customstatisticeffects")]
   public static class EffectManager_CreateEffect {
     public static void TestStatistic(this StatCollection stats, EffectData effectData) {
       if (stats.ContainsStatistic(effectData.statisticData.statName)) { return; }
@@ -105,12 +105,12 @@ namespace CustomActivatableEquipment {
         return;
       }
       string encounter_flag_name = __instance.EffectData.statisticData.statName.Substring(ADD_ENCOUNTER_FLAG_STAT_ID.Length);
-      Log.Debug?.WL(1, "encounter flag name:"+ encounter_flag_name);
       Statistic encStat = __instance.Target.StatCollection.GetStatistic(__instance.EffectData.statisticData.statName);
       if (encStat == null) { return; }
       if (encStat.Value<float>() > Core.Epsilon) {
-        Log.Debug?.TWL(0, "Add encounter flag by statistic " + __instance.Target.PilotableActorDef.ChassisID + " " + encounter_flag_name);
+        Log.Debug?.TWL(0, $"Add encounter flag by statistic {__instance.Target.PilotableActorDef.ChassisID}:{__instance.Target.GUID}:{__instance.Target.GetHashCode()} {encounter_flag_name}");
         __instance.Target.EncounterTags.Add(encounter_flag_name);
+        Log.Debug?.WL(1, $"Result:{__instance.Target.EncounterTags}");
       } else {
         Log.Debug?.TWL(0, "Remove encounter flag by statistic " + __instance.Target.PilotableActorDef.ChassisID + " " + encounter_flag_name);
         __instance.Target.EncounterTags.Remove(encounter_flag_name);

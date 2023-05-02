@@ -75,6 +75,13 @@ namespace CustomActivatableEquipment {
       }
       cache.Add(attachRef);
     }
+    public static void RemoveFromAttachmentCache(this BaseComponentRef compRef, BaseComponentRef attachRef) {
+      if (attachmentsCache.TryGetValue(compRef, out var cache) == false) {
+        cache = new HashSet<BaseComponentRef>();
+        attachmentsCache.Add(compRef, cache);
+      }
+      cache.Remove(attachRef);
+    }
     public static HashSet<BaseComponentRef> GetAttachments(this BaseComponentRef compRef) {
       if (attachmentsCache.TryGetValue(compRef, out var cache)) { return cache; }
       return new HashSet<BaseComponentRef>();
@@ -477,11 +484,10 @@ namespace CustomActivatableEquipment {
     }
     public static void Prefix(MechLabItemSlotElement __instance, DataManager dataManager, MechDef mechDef) {
       try {
-      if(mechDef != null) {
-          TargetsPopupSupervisor.ResolveAddonsOnInventory(mechDef.Inventory.ToList(), $"{mechDef.ChassisID}:MechValidationRules.GetMechFieldableWarnings");
-          foreach (var invitem in mechDef.Inventory) {
-            if (invitem != null) { invitem.ClearAmmoModeCache(); }
-          }
+        if (mechDef == null) { return; }
+        TargetsPopupSupervisor.ResolveAddonsOnInventory(mechDef.Inventory.ToList(), $"{mechDef.ChassisID}:MechValidationRules.GetMechFieldableWarnings");
+        foreach (var invitem in mechDef.Inventory) {
+          if (invitem != null) { invitem.ClearAmmoModeCache(); }
         }
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
@@ -964,21 +970,30 @@ namespace CustomActivatableEquipment {
       }
     }
     public void OnPointerClick(PointerEventData eventData) {
-      if(parent.parent.isHasAnyAddonType(this.data.componentRef, this.data.componentRef.GetAddonsFromSource(parent.parent.componentRef))) {
-        parent.parent.PlaceError("this weapon already have addon of this type");
-        return;
-      }
-      parent.parent.ClearError();
-      if(string.IsNullOrEmpty(parent.parent.componentRef.TargetComponentGUID()) == false) {
-        if(parent.parent.componetByGuid.TryGetValue(parent.parent.componentRef.TargetComponentGUID(), out var prevTargetRef)) {
-          parent.parent.removeAddon(prevTargetRef, parent.parent.componentRef);
-          prevTargetRef.UpdateModes(parent.parent.inventory.ToList<BaseComponentRef>());
+      try {
+        Log.Debug?.TWL(0,$"TargetUIItem.OnPointerClick source:{parent.parent.componentRef.ComponentDefID}:{parent.parent.componentRef.SimGameUID}:{parent.parent.componentRef.LocalGUID()} target:{parent.parent.componentRef.TargetComponentGUID()} current:{data.componentRef.ComponentDefID}:{data.componentRef.SimGameUID}:{data.componentRef.LocalGUID()}");
+        if (parent.parent.isHasAnyAddonType(this.data.componentRef, this.data.componentRef.GetAddonsFromSource(parent.parent.componentRef))) {
+          parent.parent.PlaceError("this weapon already have addon of this type");
+          Log.Debug?.WL(1, "already have addon");
+          return;
         }
-      }
-      parent.parent.placeAddon(this.data.componentRef, parent.parent.componentRef);
-      this.data.componentRef.UpdateModes(parent.parent.inventory.ToList<BaseComponentRef>());
-      foreach(var invitem in parent.parent.inventory) {
-        invitem.ClearAmmoModeCache();
+        parent.parent.ClearError();
+        if (string.IsNullOrEmpty(parent.parent.componentRef.TargetComponentGUID()) == false) {
+          if (parent.parent.componetByGuid.TryGetValue(parent.parent.componentRef.TargetComponentGUID(), out var prevTargetRef)) {
+            parent.parent.removeAddon(prevTargetRef, parent.parent.componentRef);
+            prevTargetRef.UpdateModes(parent.parent.inventory.ToList<BaseComponentRef>());
+            prevTargetRef.RemoveFromAttachmentCache(parent.parent.componentRef);
+          }
+        }
+        parent.parent.placeAddon(this.data.componentRef, parent.parent.componentRef);
+        this.data.componentRef.AddAttachmentCache(parent.parent.componentRef);
+        this.data.componentRef.UpdateModes(parent.parent.inventory.ToList<BaseComponentRef>());
+        foreach (var invitem in parent.parent.inventory) {
+          invitem.ClearAmmoModeCache();
+        }
+        parent.UpdateColors();
+      } catch (Exception e) {
+        Log.Error?.TWL(0,e.ToString());
       }
     }
   }
@@ -1133,6 +1148,7 @@ namespace CustomActivatableEquipment {
         return false;
       }
       if (placedAddons.TryGetValue(testingRef.LocalGUID(), out var targetAddons) == false) { return false; }
+      foreach (var addon in addons) { Log.Debug?.W(1, addon.safeAddonType); }; Log.Debug?.WL(0, "");
       foreach (var addon in addons) { if (targetAddons.Contains(addon.safeAddonType)) { return true; } }
       return false;
     }

@@ -1,17 +1,17 @@
 {
-	"Name": "CustomActivatableEquipment",
-	"Enabled": true,
-	"Hidden": true,
+  "Name": "CustomActivatableEquipment",
+  "Enabled": true,
+  "Hidden": true,
 
-	"Version": "0.0.44",
-	"PackagedOn": "2019-01-31T00:00:00Z",
-	"DLL": "CustomActivatableEquipment.dll",
-	"DLLEntryPoint": "CustomActivatableEquipment.Core.Init",
-	"DependsOn": [ "CustomComponents", "Custom Ammo Categories" ],
-	"ConflictsWith": [ ],
+  "Version": "0.0.44",
+  "PackagedOn": "2019-01-31T00:00:00Z",
+  "DLL": "CustomActivatableEquipment.dll",
+  "DLLEntryPoint": "CustomActivatableEquipment.Core.Init",
+  "DependsOn": [ "CustomComponents", "Custom Ammo Categories" ],
+  "ConflictsWith": [],
 
-	"Description": "Activatable equipment",
-	"Author": "KMiSSioN",
+  "Description": "Activatable equipment",
+  "Author": "KMiSSioN",
   "Website": "https://www.nexusmods.com/battletech/mods/381",
   "Settings": {
     "debug": true,
@@ -88,5 +88,6 @@
       ]
     }
   },
-	"Manifest": []
+  "CustomResourceTypes": [ "AuraDef" ],
+  "Manifest": []
 }
