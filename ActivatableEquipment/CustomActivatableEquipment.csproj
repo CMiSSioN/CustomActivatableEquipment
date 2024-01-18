@@ -24,6 +24,7 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -41,13 +42,18 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Krafs.Publicizer" Version="2.2.1" />
+    <Publicize Include="Assembly-CSharp;UnityEngine.UI;UnityEngine.CoreModule;InControl" />
+    <DoNotPublicize Include="Assembly-CSharp:BattleTech.UI.SelectionState" />
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="0Harmony, Version=1.2.0.1, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Mods\ModTek\Harmony12X\0Harmony.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\ModTek\Harmony12X\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Mods\.modtek\AssembliesInjected\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\.modtek\AssembliesInjected\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
@@ -62,17 +68,17 @@
       <HintPath>$(BattleTechGameDir)\Mods\Core\CustomLocalSettings\CustomLocalSettings.dll</HintPath>
     </Reference>
     <Reference Include="CustomPrewarm">
-      <HintPath>..\..\..\Mods\Core\CustomPrewarm\CustomPrewarm.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\Core\CustomPrewarm\CustomPrewarm.dll</HintPath>
     </Reference>
     <Reference Include="DOTweenPro, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
     <Reference Include="InControl">
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\InControl.dll</HintPath>
     </Reference>
     <Reference Include="IRBTModUtils">
-      <HintPath>..\..\..\Mods\Core\IRBTModUtils\IRBTModUtils.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\Core\IRBTModUtils\IRBTModUtils.dll</HintPath>
     </Reference>
     <Reference Include="MessagePack">
-      <HintPath>..\..\..\Mods\Core\CustomPrewarm\MessagePack.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\Mods\Core\CustomPrewarm\MessagePack.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -95,7 +101,7 @@
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\BattleTech_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ParticleSystemModule">
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
@@ -108,11 +114,11 @@
       <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>..\..\..\BattleTech_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UIModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\BattleTech_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.UIModule.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -131,6 +137,7 @@
     <Compile Include="AutoReplenishment.cs" />
     <Compile Include="C3Helper.cs" />
     <Compile Include="CombatGameDestroyed.cs" />
+    <Compile Include="ComponentRefExt.cs" />
     <Compile Include="CustomComponentRef.cs" />
     <Compile Include="DamageHelper.cs" />
     <Compile Include="CombatAuraReticle.cs" />
@@ -143,6 +150,7 @@
     <Compile Include="ExplodeComponent.cs" />
     <Compile Include="FailDamageHelper.cs" />
     <Compile Include="HeadHitsHelper.cs" />
+    <Compile Include="HeatSinkControl.cs" />
     <Compile Include="JSONSerializationUtility.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="MechStartup.cs" />

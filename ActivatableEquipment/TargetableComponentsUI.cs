@@ -67,6 +67,7 @@ namespace CustomActivatableEquipment {
     private static Dictionary<BaseComponentRef, HashSet<BaseComponentRef>> attachmentsCache = new Dictionary<BaseComponentRef, HashSet<BaseComponentRef>>();
     public static void ClearAttachmentsCache(this BaseComponentRef compRef) {
       if (attachmentsCache.TryGetValue(compRef, out var cache)) { attachmentsCache.Remove(compRef); }
+      if(compRef.Def is IMechComponentDynamicDef dynDef) { compRef.Def = dynDef.original; }
     }
     public static void AddAttachmentCache(this BaseComponentRef compRef, BaseComponentRef attachRef) {
       if (attachmentsCache.TryGetValue(compRef, out var cache) == false) {
@@ -74,6 +75,20 @@ namespace CustomActivatableEquipment {
         attachmentsCache.Add(compRef, cache);
       }
       cache.Add(attachRef);
+      if(compRef is MechComponentRef mechComponent) {
+        if(compRef.Def is IMechComponentDynamicDef dynDef) {
+          if(cache.Count == 0) {
+            compRef.Def = dynDef.original;
+          } else {
+            dynDef.Reset();
+            mechComponent.RecalculateAttachments(cache);
+          }
+        } else if(cache.Count != 0) {
+          compRef.Def = ComponentDefHelper.DeepCopy(compRef.Def) as MechComponentDef;
+          mechComponent.RecalculateAttachments(cache);
+        }
+      }
+      Log.Debug?.TWL(0, $"AddAttachmentCache:{compRef.ComponentDefID}:{compRef.GetHashCode()}:{compRef.Def.GetType()}");
     }
     public static void RemoveFromAttachmentCache(this BaseComponentRef compRef, BaseComponentRef attachRef) {
       if (attachmentsCache.TryGetValue(compRef, out var cache) == false) {
@@ -81,10 +96,29 @@ namespace CustomActivatableEquipment {
         attachmentsCache.Add(compRef, cache);
       }
       cache.Remove(attachRef);
+      if(compRef is MechComponentRef mechComponent) {
+        if(compRef.Def is IMechComponentDynamicDef dynDef) {
+          if(cache.Count == 0) {
+            compRef.Def = dynDef.original;
+          } else {
+            dynDef.Reset();
+            mechComponent.RecalculateAttachments(cache);
+          }
+        }else if (cache.Count != 0) {
+          compRef.Def = ComponentDefHelper.DeepCopy(compRef.Def) as MechComponentDef;
+          mechComponent.RecalculateAttachments(cache);
+        }
+      }
     }
     public static HashSet<BaseComponentRef> GetAttachments(this BaseComponentRef compRef) {
       if (attachmentsCache.TryGetValue(compRef, out var cache)) { return cache; }
       return new HashSet<BaseComponentRef>();
+    }
+    public static void RecalculateAttachments(this MechComponentRef component, HashSet<BaseComponentRef> attachments) {
+      HashSet<WeaponAddonDef> placedAddons = component.GatherAddons(attachments);
+      foreach(WeaponAddonDef addon in placedAddons) {
+        if(component.Def is IMechComponentDynamicDef) { component.Def.Tonnage *= addon.TonnageMod; };
+      }
     }
     public static void Postfix(TooltipPrefab_Weapon __instance, bool __result) {
       if (__result == false) { return; }
@@ -131,7 +165,7 @@ namespace CustomActivatableEquipment {
       try {
         if (parent != null && parent.listItem != null) {
           if (parent.iconParent == null) {
-            SVGImage icon = Traverse.Create(parent.listItem).Field<SVGImage>("icon").Value;
+            SVGImage icon = parent.listItem.icon;
             parent.iconParent = icon.transform.parent.gameObject.GetComponent<RectTransform>();
           }
           parent.iconParent.anchoredPosition = new Vector2(-2f, parent.iconParent.anchoredPosition.y);
@@ -178,7 +212,7 @@ namespace CustomActivatableEquipment {
       settingsButton = listItem.GetComponentInChildren<MechLabItemButton>(true);
       this.mechLabPanel = mechLabPanel;
       if (settingsButton == null) {
-        SVGImage icon = Traverse.Create(mlelement).Field<SVGImage>("icon").Value;
+        SVGImage icon = mlelement.icon;
         //RectTransform rectTransform = icon.transform.parent.gameObject.GetComponent<RectTransform>();
         GameObject svgGO = GameObject.Instantiate(icon.gameObject);
         svgGO.name = "settingsIcon";
@@ -205,7 +239,7 @@ namespace CustomActivatableEquipment {
         settingsButton = listItem.GetComponentInChildren<MechLabItemButton>(true);
       }
       settingsButton.parent = this;
-      this.componentRef = Traverse.Create(mlelement).Field<MechComponentRef>("componentRef").Value;
+      this.componentRef = mlelement.componentRef;
       //MechLabPanel mechLabPanel = dropParent.gameObject.GetComponent<MechLabPanel>();
       //if (mechLabPanel == null) { mechLabPanel = dropParent.gameObject.GetComponentInParent<MechLabPanel>(); }
       this.mechDef = mechLabPanel.activeMechDef;
@@ -526,6 +560,7 @@ namespace CustomActivatableEquipment {
     }
     [JsonIgnore]
     public List<WeaponMode> modes { get; set; } = new List<WeaponMode>();
+    public float TonnageMod { get; set; } = 1f;
     public WeaponAddonDef() {
 
     }
@@ -562,7 +597,7 @@ namespace CustomActivatableEquipment {
     private static Dictionary<string, HashSet<WeaponAddonDef>> upgradeAddons = new Dictionary<string, HashSet<WeaponAddonDef>>();
     private static Dictionary<string, VersionManifestEntry> existingAddons = new Dictionary<string, VersionManifestEntry>();
     private static BaseComponentRefRegistry baseComponentRefRegistry = new BaseComponentRefRegistry();
-    public static void InitweaponsAddons(this AbstractActor unit) {
+    public static void InitWeaponsAddons(this AbstractActor unit) {
       Log.Debug?.TWL(0,$"InitWeaponsAddons {unit.PilotableActorDef.ChassisID}");
       //Dictionary<string, Weapon> weapons = new Dictionary<string, Weapon>();
       //foreach(Weapon weapon in unit.Weapons) {
@@ -598,7 +633,7 @@ namespace CustomActivatableEquipment {
             if (component.baseComponentRef.TargetComponentGUID() != weapon.baseComponentRef.LocalGUID()) { continue; }
           }
           foreach (WeaponMode mode in component.GatherModesFor(weapon, addons[weapon])) {
-            Log.Debug?.WL(1, $"add mode {mode.Id} to {weapon.defId} guid:{weapon.baseComponentRef.LocalGUID()}");
+            Log.Debug?.WL(1, $"add mode {mode.Id}:{mode.UIName} base:{mode.isBaseMode} to {weapon.defId} guid:{weapon.baseComponentRef.LocalGUID()}");
             weapon.info().AddMode(mode, component.baseComponentRef.Def.isHasTarget()?component:null, mode.isBaseMode);
           }
         }
@@ -639,6 +674,32 @@ namespace CustomActivatableEquipment {
             result.AddRange(mode.modes);
           } else {
             Log.Debug?.WL(5, $"can't be target");
+          }
+        }
+      }
+      return result;
+    }
+    public static HashSet<WeaponAddonDef> GatherAddons(this BaseComponentRef component, HashSet<BaseComponentRef> attachments) {
+      HashSet<WeaponAddonDef> result = new HashSet<WeaponAddonDef>();
+      foreach(var attachment in attachments) {
+        AddonReference addonReference = attachment.Def.GetComponent<AddonReference>();
+        if(addonReference == null) { continue; }
+        if(addonReference.installedLocationOnly) {
+          if((component is MechComponentRef mechComponent)&&(attachment is MechComponentRef mechAttachment)) {
+            if(mechComponent.MountedLocation != mechAttachment.MountedLocation) { continue; }
+          }
+        }
+        Dictionary<string, HashSet<WeaponAddonDef>> addons = new Dictionary<string, HashSet<WeaponAddonDef>>();
+        foreach(var addon in attachment.Def.GetWeaponAddons()) {
+          if(addons.TryGetValue(addon.safeAddonType, out var namedaddons) == false) {
+            namedaddons = new HashSet<WeaponAddonDef>();
+            addons.Add(addon.safeAddonType, namedaddons);
+          }
+          namedaddons.Add(addon);
+        }
+        foreach(var addon in addons) {
+          foreach(var mode in addon.Value) {
+            if(component.CanBeTarget(mode)) { result.Add(mode); }
           }
         }
       }
@@ -873,6 +934,7 @@ namespace CustomActivatableEquipment {
     public List<TargetUIItem> weaponsList { get; set; } = new List<TargetUIItem>();
     //public TargetUIItem placeholderItem { get; set; } = null;
     public TargetsPopupSupervisor parent { get; set; } = null;
+    public MechDef parentMech { get; set; } = null;
     public void AddWeaponUIItem(TargetDataElement dataElement) {
       GameObject gameObject = UIManager.Instance.dataManager.PooledInstantiate("uixPrfPanl_LC_TargetItem", BattleTechResourceType.UIModulePrefabs);
       if (gameObject == null) {
@@ -897,10 +959,10 @@ namespace CustomActivatableEquipment {
         }
         string text = new Localize.Text("{0} {1}", dataElement.componentRef.Def.Description.UIName, Mech.GetAbbreviatedChassisLocation(dataElement.componentRef.MountedLocation)).ToString();
         component.SetData(text, ComponentDamageLevel.Functional, textColor, bgColor);
-        Traverse.Create(component).Field<UIColorRefTracker>("itemTextColor").Value.SetUIColor(textColor);
+        component.itemTextColor.SetUIColor(textColor);
         dataElement.debugDetails = $"L:{dataElement.componentRef.LocalGUID()}\nT:{parent.componentRef.TargetComponentGUID()}";
+        component.SetComponentRef(dataElement.componentRef, this.parentMech);
         component.SetTooltipData(dataElement.componentRef.Def);
-        //Traverse.Create(component).Field<HBSTooltip>("EquipmentTooltip").Value.SetDefaultStateData(dataElement.debugDescription.GetTooltipStateData());
       }
       gameObject.transform.SetParent(listParent, false);
       if (dataElement != null) {
@@ -914,9 +976,8 @@ namespace CustomActivatableEquipment {
         if ((string.IsNullOrEmpty(parent.componentRef.TargetComponentGUID()) == false) && (parent.componentRef.TargetComponentGUID() == weapon.data.componentRef.LocalGUID())) {
           textColor = UIColor.Gold;
         }
-        Traverse.Create(weapon.ui).Field<UIColorRefTracker>("itemTextColor").Value.SetUIColor(textColor);
+        weapon.ui.itemTextColor.SetUIColor(textColor);
         //weapon.data.debugDetails = $"L:{weapon.data.componentRef.LocalGUID()}\nT:{parent.componentRef.TargetComponentGUID()}";
-        //Traverse.Create(weapon.ui).Field<HBSTooltip>("EquipmentTooltip").Value.SetDefaultStateData(weapon.data.debugDescription.GetTooltipStateData());
       }
     }
     public void Clear() {
@@ -947,7 +1008,7 @@ namespace CustomActivatableEquipment {
     public BaseDescriptionDef debugDescription { get; set; } = null;
     public string debugDetails {
       set {
-        Traverse.Create(debugDescription).Property<string>("Details").Value = value;
+        debugDescription.Details = value;
       }
     }
     public TargetDataElement(MechComponentRef compRef, MechDef mechDef) {
@@ -972,9 +1033,19 @@ namespace CustomActivatableEquipment {
     public void OnPointerClick(PointerEventData eventData) {
       try {
         Log.Debug?.TWL(0,$"TargetUIItem.OnPointerClick source:{parent.parent.componentRef.ComponentDefID}:{parent.parent.componentRef.SimGameUID}:{parent.parent.componentRef.LocalGUID()} target:{parent.parent.componentRef.TargetComponentGUID()} current:{data.componentRef.ComponentDefID}:{data.componentRef.SimGameUID}:{data.componentRef.LocalGUID()}");
-        if (parent.parent.isHasAnyAddonType(this.data.componentRef, this.data.componentRef.GetAddonsFromSource(parent.parent.componentRef))) {
-          parent.parent.PlaceError("this weapon already have addon of this type");
-          Log.Debug?.WL(1, "already have addon");
+        if (parent.parent.isHasAnyAddonType(this.data.componentRef, this.data.componentRef.GetAddonsFromSource(parent.parent.componentRef), out var conflictingAddon, out var conflictingSrc)) {
+          try {
+            StringBuilder conflictsUI = new StringBuilder();
+            StringBuilder conflictsLog = new StringBuilder();
+            foreach(var confComp in conflictingSrc) {
+              conflictsUI.AppendLine($"{confComp.Def.Description.UIName} in {confComp.MountedLocation.ToString()}");
+              conflictsLog.Append($"{confComp.ComponentDefID}:{confComp.MountedLocation}:{confComp.SimGameUID},");
+            }
+            Log.Debug?.WL(1, $"{this.data.componentRef.ComponentDefID}:{this.data.componentRef.MountedLocation} already have {conflictingAddon.Id} by:\n {conflictsUI.ToString()}");
+            parent.parent.PlaceError($"{this.data.componentRef.Def.Description.UIName} already have {conflictingAddon.safeAddonType} provided by {conflictsUI.ToString()}");
+          } catch(Exception e) {
+            UIManager.logger.LogException(e);
+          }
           return;
         }
         parent.parent.ClearError();
@@ -992,6 +1063,14 @@ namespace CustomActivatableEquipment {
           invitem.ClearAmmoModeCache();
         }
         parent.UpdateColors();
+        var panel = LazySingletonBehavior<UIManager>.Instance.UIRoot.gameObject.GetComponentInChildren<MechLabPanel>();
+        if(panel != null) {
+          Log.Debug?.WL(1,"panel is not null");
+          foreach(var component in panel.activeMechInventory) {
+            Log.Debug?.WL(2, $"{component.ComponentDefID}:{component.Def.GetType()}:{component.GetHashCode()}:{component.Def.Tonnage}");
+          }
+          panel.ValidateLoadout(false);
+        }
       } catch (Exception e) {
         Log.Error?.TWL(0,e.ToString());
       }
@@ -1010,11 +1089,11 @@ namespace CustomActivatableEquipment {
     public MechDef mechDef { get; set; } = null;
     public bool popupShown { get; set; } = false;
     public List<MechComponentRef> inventory { get; set; } = new List<MechComponentRef>();
-    public Dictionary<string, HashSet<string>> placedAddons = new Dictionary<string, HashSet<string>>();
+    public Dictionary<string, Dictionary<string, HashSet<MechComponentRef>>> placedAddons = new Dictionary<string, Dictionary<string, HashSet<MechComponentRef>>>();
     public Dictionary<string, MechComponentRef> componetByGuid = new Dictionary<string, MechComponentRef>();
     public void PlaceError(string errorStr) {
       targetsControl.componentCountText.SetText("<color=red>__/CAE.TARGET.ERROR/__</color>");
-      helpTooltip.SetDefaultStateData(new BaseDescriptionDef("TargetsHelpTooltipID", "__/CAE.TRG.ERORR/__", errorStr, string.Empty).GetTooltipStateData());
+      helpTooltip.SetDefaultStateData(new BaseDescriptionDef("TargetsHelpTooltipID", "__/CAE.TRG.ERROR/__", errorStr, string.Empty).GetTooltipStateData());
     }
     public void ClearError() {
       targetsControl.componentCountText.SetText("__/CAE.TARGET.HELP/__");
@@ -1040,6 +1119,33 @@ namespace CustomActivatableEquipment {
         invItem.LocalGUID(LocalGUID);
         componetByGuid.Add(LocalGUID, invItem);
         Log.Debug?.WL(1, $"{invItem.ComponentDefID} SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} TargetComponentGUID:{invItem.TargetComponentGUID()} MountedLocation:{invItem.MountedLocation}");
+      }
+      foreach (var invItem in inventory) {
+        if (invItem == null) { continue; }
+        if (invItem.Def.isHasAddons() == false) { continue; }
+        if (invItem.Def.isHasTarget()) { continue; }
+        foreach (var targetRef in componetByGuid) {
+          if (targetRef.Value == invItem) { continue; }
+          HashSet<WeaponAddonDef> addons = targetRef.Value.GetAddonsFromSource(invItem);
+          if (addons.Count == 0) { continue; }
+          if (placedAddons.TryGetValue(targetRef.Value, out var targetAddons) == false) {
+            targetAddons = new HashSet<string>();
+          }
+          bool alreadyHasAddon = false;
+          foreach (var addon in addons) {
+            if (targetAddons.Contains(addon.safeAddonType)) { alreadyHasAddon = true; break; }
+          }
+          if (alreadyHasAddon) {
+            //Log.Debug?.WL(2, $"duplicate attachment detected SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} TargetComponentGUID:{invItem.TargetComponentGUID()} MountedLocation:{invItem.MountedLocation}");
+            //invItem.TargetComponentGUID(string.Empty);
+          } else {
+            targetRef.Value.AddAttachmentCache(invItem);
+            foreach (var addon in addons) {
+              targetAddons.Add(addon.safeAddonType);
+            }
+          }
+          placedAddons[targetRef.Value] = targetAddons;
+        }
       }
       foreach (var invItem in inventory) {
         if (invItem == null) { continue; }
@@ -1119,37 +1225,80 @@ namespace CustomActivatableEquipment {
         Log.Debug?.WL(1, $"{invItem.ComponentDefID} SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} TargetComponentGUID:{invItem.TargetComponentGUID()} MountedLocation:{invItem.MountedLocation}");
         componetByGuid.Add(LocalGUID, invItem);
       }
-      foreach (var invItem in inventory) {
-        if (string.IsNullOrEmpty(invItem.TargetComponentGUID())) { continue; }
-        if (invItem.Def.isHasTarget() == false) { continue; }
-        if (componetByGuid.TryGetValue(invItem.TargetComponentGUID(), out var targetRef)) {
-          if (this.placedAddons.TryGetValue(targetRef.LocalGUID(), out var targetAddons) == false) {
-            targetAddons = new HashSet<string>();
+      foreach(var invItem in inventory) {
+        if(string.IsNullOrEmpty(invItem.TargetComponentGUID())) { continue; }
+        if(invItem.Def.isHasTarget() == false) { continue; }
+        if(componetByGuid.TryGetValue(invItem.TargetComponentGUID(), out var targetRef)) {
+          if(this.placedAddons.TryGetValue(targetRef.LocalGUID(), out var targetAddons) == false) {
+            targetAddons = new Dictionary<string, HashSet<MechComponentRef>>();
           }
-          foreach (var addon in targetRef.GetAddonsFromSource(invItem)) {
-            targetAddons.Add(addon.safeAddonType);
+          foreach(var addon in targetRef.GetAddonsFromSource(invItem)) {
+            if(targetAddons.ContainsKey(addon.safeAddonType) == false) {
+              targetAddons[addon.safeAddonType] = new HashSet<MechComponentRef>();
+            }
+            targetAddons[addon.safeAddonType].Add(invItem);
           }
           this.placedAddons[targetRef.LocalGUID()] = targetAddons;
         } else {
           invItem.TargetComponentGUID(string.Empty);
         }
       }
+      foreach(var invItem in inventory) {
+        if (invItem == null) { continue; }
+        if (invItem.Def.isHasAddons() == false) { continue; }
+        foreach (var targetRef in componetByGuid) {
+          if (targetRef.Value == invItem) { continue; }
+          if(invItem.Def.isHasTarget() && (string.IsNullOrEmpty(invItem.TargetComponentGUID()) == false)) { continue; }
+          HashSet<WeaponAddonDef> addons = targetRef.Value.GetAddonsFromSource(invItem);
+          if (addons.Count == 0) { continue; }
+          if (placedAddons.TryGetValue(targetRef.Key, out var targetAddons) == false) {
+            targetAddons = new Dictionary<string, HashSet<MechComponentRef>>();
+          }
+          bool alreadyHasAddon = false;
+          foreach (var addon in addons) {
+            if (targetAddons.ContainsKey(addon.safeAddonType)) { alreadyHasAddon = true; break; }
+          }
+          if (alreadyHasAddon) {
+            //Log.Debug?.WL(2, $"duplicate attachment detected SimGameUID:{invItem.SimGameUID} LocalGUID:{invItem.LocalGUID()} TargetComponentGUID:{invItem.TargetComponentGUID()} MountedLocation:{invItem.MountedLocation}");
+            //invItem.TargetComponentGUID(string.Empty);
+          } else {
+            targetRef.Value.AddAttachmentCache(invItem);
+            foreach (var addon in addons) {
+              if(targetAddons.ContainsKey(addon.safeAddonType) == false) {
+                targetAddons[addon.safeAddonType] = new HashSet<MechComponentRef>();
+              }
+              targetAddons[addon.safeAddonType].Add(invItem);
+            }
+          }
+          placedAddons[targetRef.Key] = targetAddons;
+        }
+      }
       foreach (var placedAddon in this.placedAddons) {
         Log.Debug?.WL(1, $"{placedAddon.Key}");
         foreach(var addonType in placedAddon.Value) {
-          Log.Debug?.WL(2, $"{addonType}");
+          Log.Debug?.W(2, $"{addonType.Key}:");
+          foreach(var cmp in addonType.Value) { Log.Debug?.W(1, $"{cmp.ComponentDefID}"); }
+          Log.Debug?.WL(0, "");
         }
       }
     }
-    public bool isHasAnyAddonType(MechComponentRef testingRef, HashSet<WeaponAddonDef> addons) {
+    public bool isHasAnyAddonType(MechComponentRef testingRef, HashSet<WeaponAddonDef> addons, out WeaponAddonDef conflictingAddon, out HashSet<MechComponentRef> conflictingSource) {
       Log.Debug?.TW(0,$"isHasAnyAddonType {testingRef.LocalGUID()}");
+      conflictingAddon = null;
+      conflictingSource = null;
       foreach (var addon in addons) { Log.Debug?.W(1,addon.safeAddonType); }; Log.Debug?.WL(0,"");
       if (string.IsNullOrEmpty(testingRef.LocalGUID())) {
         return false;
       }
       if (placedAddons.TryGetValue(testingRef.LocalGUID(), out var targetAddons) == false) { return false; }
       foreach (var addon in addons) { Log.Debug?.W(1, addon.safeAddonType); }; Log.Debug?.WL(0, "");
-      foreach (var addon in addons) { if (targetAddons.Contains(addon.safeAddonType)) { return true; } }
+      foreach (var addon in addons) {
+        if (targetAddons.ContainsKey(addon.safeAddonType)) {
+          conflictingAddon = addon;
+          conflictingSource = targetAddons[addon.safeAddonType];
+          return true;
+        }
+      }
       return false;
     }
     public bool isHasAddon(MechComponentRef testingRef, MechComponentRef addonSource) {
@@ -1177,10 +1326,13 @@ namespace CustomActivatableEquipment {
       }
       if (string.IsNullOrEmpty(targetRef.LocalGUID()) == false) {
         if(placedAddons.TryGetValue(targetRef.LocalGUID(), out var haveAddons) == false) {
-          haveAddons = new HashSet<string>();
+          haveAddons = new Dictionary<string, HashSet<MechComponentRef>>();
         }
         foreach (var addon in addAddons) {
-          haveAddons.Add(addon.safeAddonType);
+          if(haveAddons.ContainsKey(addon.safeAddonType) == false) {
+            haveAddons[addon.safeAddonType] = new HashSet<MechComponentRef>();
+          }
+          haveAddons[addon.safeAddonType].Add(addonSource);
         }
         placedAddons[targetRef.LocalGUID()] = haveAddons;
         addonSource.TargetComponentGUID(targetRef.LocalGUID());
@@ -1225,8 +1377,8 @@ namespace CustomActivatableEquipment {
           controlGO.FindObject<LocalizableText>("txt_label").SetText("__/CAE.TRG.TARGETS/__");
           controlGO.FindObject<LocalizableText>("txt_instr").gameObject.SetActive(false);
           targetsControl = controlGO.AddComponent<TargetsControl>();
-          targetsControl.listParent = Traverse.Create(localWidget).Field<RectTransform>("listParent").Value;
-          targetsControl.componentCountText = Traverse.Create(localWidget).Field<LocalizableText>("componentCountText").Value;
+          targetsControl.listParent = localWidget.listParent;
+          targetsControl.componentCountText = localWidget.componentCountText;
           GameObject.Destroy(localWidget);
           targetsControl.componentCountText.SetText("__/CAE.TARGET.HELP/__");
           helpTooltip = targetsControl.componentCountText.gameObject.AddComponent<HBSTooltip>();
@@ -1253,9 +1405,13 @@ namespace CustomActivatableEquipment {
       GenericPopupBuilder builder = GenericPopupBuilder.Create("__/CAE.TRG.LIST/__", "PLACEHOLDER");
       builder.AddButton("__/CAE.TRG.CLOSE/__", new Action(this.OnBack), false);
       popup = builder.CancelOnEscape().Render();
-      backButton = Traverse.Create(popup).Field<List<HBSButton>>("buttons").Value[0];
+      backButton = popup.buttons[0];
       this.mechDef = mechDef;
       this.inventory = (inventory == null) ? this.mechDef.Inventory.ToList() : inventory;
+      Log.Debug?.TWL(0, "OnTargetsButtonClick");
+      foreach(var component in this.inventory) {
+        Log.Debug?.WL(1, $"{component.ComponentDefID}:{component.GetHashCode()}:{component.Def.GetType()}");
+      }
       this.componentRef = componentRef;
       this.OnShow();
     }
@@ -1277,7 +1433,7 @@ namespace CustomActivatableEquipment {
         this.componentRef = null;
         if (popup != null) {
           try {
-            Traverse.Create(popup).Field<LocalizableText>("_contentText").Value.gameObject.SetActive(true);
+            popup._contentText.gameObject.SetActive(true);
           }catch(Exception e) {
             Log.Error?.TWL(0,e.ToString(),true);
           }
@@ -1292,7 +1448,7 @@ namespace CustomActivatableEquipment {
     public void OnShow() {
       if ((targetsControl != null) && (popup != null)) {
         try {
-          LocalizableText _contentText = Traverse.Create(popup).Field<LocalizableText>("_contentText").Value;
+          LocalizableText _contentText = popup._contentText;
           _contentText.gameObject.SetActive(false);
           {
             RectTransform controlRT = targetsControl.gameObject.GetComponent<RectTransform>();
@@ -1337,12 +1493,13 @@ namespace CustomActivatableEquipment {
             possibleTargets.Add(inventory[index]);
             if (componentRef.Def.isAutoTarget() && string.IsNullOrEmpty(componentRef.TargetComponentGUID())) {
               HashSet<WeaponAddonDef> addons = inventory[index].GetAddonsFromSource(componentRef);              
-              if (this.isHasAnyAddonType(inventory[index], addons) == false) {
+              if (this.isHasAnyAddonType(inventory[index], addons, out var conflictAddon, out var conflictSrc) == false) {
                 this.placeAddon(inventory[index], componentRef);
               }
             }
           }
           Thread.CurrentThread.pushActorDef(mechDef);
+          targetsControl.parentMech = mechDef;
           for (int index = 0; index < possibleTargets.Count; ++index) {
             targetsControl.AddWeaponUIItem(new TargetDataElement(possibleTargets[index], mechDef));
           }
@@ -1662,7 +1819,7 @@ namespace CustomActivatableEquipment {
     public static void Prefix(AbstractActor __instance) {
       try {
         Log.Debug?.TWL(0, "AbstractActor.AssignAmmoToWeapons " + __instance.PilotableActorDef.Description.Id);
-        __instance.InitweaponsAddons();
+        __instance.InitWeaponsAddons();
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
       }

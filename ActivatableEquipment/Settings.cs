@@ -106,6 +106,14 @@ namespace CustomActivatableEquipment {
       { ArcDecalTexture.arc90, "targeting_arc_90" },
       { ArcDecalTexture.arc60, "targeting_arc_60" }
     };
+    private List<string> ControlHeatSinkSkipTags { get; set; } = new List<string>() { "EnginePart" };
+    private TagSet f_ControlHeatSinkSkipTags = null;
+    public TagSet controlHeatSinkSkipTags {
+      get {
+        if(f_ControlHeatSinkSkipTags == null) { f_ControlHeatSinkSkipTags = new TagSet(ControlHeatSinkSkipTags); }
+        return f_ControlHeatSinkSkipTags;
+      }
+    }
     public Settings() {
       debug = true;
       AdditionalAssets = new List<string>();

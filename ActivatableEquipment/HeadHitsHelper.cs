@@ -37,11 +37,12 @@ namespace CustomActivatableEquipment {
   [HarmonyPriority(Priority.First)]
   [HarmonyPatch(new Type[] { typeof(ChassisLocations), typeof(LocationDamageLevel), typeof(LocationDamageLevel), typeof(WeaponHitInfo) })]
   public static class Mech_ApplyHeadStructureEffects {
-    public static bool Prefix(Mech __instance, ChassisLocations location, LocationDamageLevel oldDamageLevel, LocationDamageLevel newDamageLevel, WeaponHitInfo hitInfo) {
+    public static void Prefix(ref bool __runOriginal, Mech __instance, ChassisLocations location, LocationDamageLevel oldDamageLevel, LocationDamageLevel newDamageLevel, WeaponHitInfo hitInfo) {
+      if (!__runOriginal) { return; }
       if (__instance.StatCollection.GetOrCreateStatisic<bool>(Core.Settings.unaffectedByHeadHitStatName, false).Value<bool>()) {
-        return false;
+        __runOriginal = false; return;
       }
-      return true;
+      return;
     }
   }
 }

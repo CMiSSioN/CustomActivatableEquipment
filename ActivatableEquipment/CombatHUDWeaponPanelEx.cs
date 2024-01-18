@@ -517,6 +517,12 @@ namespace CustomActivatableEquipment {
       if (activeDef == null) { return false; }
       if (activeDef.ChargesCount != 0) { return false; }
       if (component.isActive() == false) { return false; }
+      if(activeDef.CanBeactivatedManualy == false) {
+        if(activeDef.FailRoundsStart > 0) {
+          int activeRounds = ActivatableComponent.getComponentActiveRounds(component);
+          if(activeRounds < activeDef.FailRoundsStart) { return false; }
+        }
+      }
       if (component.FailChance() < Core.Settings.equipmentFlashFailChance) { return false; }
       return true;
     }
@@ -781,7 +787,13 @@ namespace CustomActivatableEquipment {
         }
         string state = CombatHUDEquipmentSlotEx.GetState(component, activeDef);
         stateText.SetText(state);
-        this.failChance = Mathf.Round(CombatHUDEquipmentSlotEx.FailChance(component)*100.0f);
+        this.failChance = Mathf.Round(CombatHUDEquipmentSlotEx.FailChance(component) * 100.0f);
+        if(activeDef.CanBeactivatedManualy == false) { 
+          int activeRounds = ActivatableComponent.getComponentActiveRounds(component);
+          if(activeRounds < activeDef.FailRoundsStart) {
+            this.failChance = 0f;
+          }
+        }
         this.failText.SetText(string.Format("{0}%", this.failChance));
       }
       AbstractActor actor = component.parent;
@@ -1113,11 +1125,10 @@ namespace CustomActivatableEquipment {
     public float TimeToUnload = 0.15f;
     private float timeInCurrentState;
     private WPState state;
-    private PropertyInfo p_numWeaponsDisplayed;
     private int numWeaponsDisplayed {
       get {
         if (this.panel == null) { Log.Debug?.TWL(0, "CombatHUDWeaponPanel is null!"); return 0; }
-        return (int)p_numWeaponsDisplayed.GetValue(this.panel);
+        return this.panel.numWeaponsDisplayed;
       }
     }
     public void Awake() {
@@ -1126,11 +1137,10 @@ namespace CustomActivatableEquipment {
     public void Init(CombatHUDWeaponPanel weaponPanel, CombatHUD HUD) {
       this.panel = weaponPanel;
       this.HUD = HUD;
-      WeaponSlots = (List<CombatHUDWeaponSlot>)typeof(CombatHUDWeaponPanel).GetField("WeaponSlots", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(weaponPanel);
-      EquipmentSlots = (List<CombatHUDEquipmentSlot>)typeof(CombatHUDWeaponPanel).GetField("EquipmentSlots", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(weaponPanel);
-      meleeSlot = (CombatHUDWeaponSlot)typeof(CombatHUDWeaponPanel).GetField("meleeSlot", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(weaponPanel);
-      dfaSlot = (CombatHUDWeaponSlot)typeof(CombatHUDWeaponPanel).GetField("dfaSlot", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(weaponPanel);
-      p_numWeaponsDisplayed = typeof(CombatHUDWeaponPanel).GetProperty("numWeaponsDisplayed", BindingFlags.Instance | BindingFlags.NonPublic);
+      WeaponSlots = weaponPanel.WeaponSlots;
+      EquipmentSlots = weaponPanel.EquipmentSlots;
+      meleeSlot = weaponPanel.meleeSlot;
+      dfaSlot = weaponPanel.dfaSlot;
       this.state = WPState.Off;
       this.timeInCurrentState = 0.0f;
     }
@@ -1154,7 +1164,7 @@ namespace CustomActivatableEquipment {
       this.state = show ? WPState.Loaded : WPState.Off;
     }
     public void ShowWeaponsUpTo(int count) {
-      typeof(CombatHUDWeaponPanel).GetMethod("ShowWeaponsUpTo", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(this.panel, new object[] { count });
+      this.panel.ShowWeaponsUpTo(count);
     }
     private void SetState(WPState newState) {
       if (this.state == newState)

@@ -1054,7 +1054,7 @@ apply_radius:
         foreach (var vfx in bubblesVFX) {
           vfx.Key.gameObject.transform.localScale = Vector3.one * this.collider.radius / vfx.Value.scaleToRangeFactor;
         }
-        reticle.auraRangeScaledObject().transform.Rotate(0f, 10f, 0f, Space.Self);
+        reticle.auraRangeScaledObject.transform.Rotate(0f, 10f, 0f, Space.Self);
       }catch(Exception e) {
         Log.WriteCritical(e.ToString() + "\n");
       }
@@ -1065,7 +1065,7 @@ apply_radius:
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(ICombatant) })]
   public static class CombatAuraReticle_Init_Aura {
-    public static void Postfix(CombatHUDInWorldElementMgr __instance, ICombatant combatant, ref List<CombatAuraReticle> ___AuraReticles, CombatHUD ___HUD) {
+    public static void Postfix(CombatHUDInWorldElementMgr __instance, ICombatant combatant) {
       try {
         Log.Debug?.Write("AddInWorldActorElements " + combatant.DisplayName + ":" + combatant.GUID + "\n");
         AbstractActor owner = combatant as AbstractActor;
@@ -1076,7 +1076,7 @@ apply_radius:
         //}
         //if (sensorsReticle == null) { return; };
         CombatAuraReticle sensorsReticle = owner.Combat.DataManager.PooledInstantiate(CombatAuraReticle.PrefabName, BattleTechResourceType.UIModulePrefabs, new Vector3?(), new Quaternion?(), (Transform)null).GetComponent<CombatAuraReticle>();
-        sensorsReticle.Init(owner, ___HUD);
+        sensorsReticle.Init(owner, __instance.HUD);
         GameObject aura = new GameObject("BODY:" + owner.DisplayName + ":" + owner.GUID);
         aura.SetActive(false);
         aura.transform.localScale = new Vector3(1f, 1f, 1f);
@@ -1084,7 +1084,7 @@ apply_radius:
         aura.gameObject.transform.position = owner.CurrentPosition;
         aura.gameObject.AddComponent<AuraBubble>().Init(owner, null, null, Core.Settings.sensorsAura, sensorsReticle);
         //aura.gameObject.GetComponent<AuraBubble>().dbgvisual = __instance.auraRangeDecal.gameObject;
-        ___AuraReticles.Add(sensorsReticle);
+        __instance.AuraReticles.Add(sensorsReticle);
         aura.SetActive(true);
         foreach (MechComponent source in owner.allComponents) {
           Log.Debug?.WL(1,$"component: {source.defId} functional:{source.IsFunctional}");
@@ -1093,14 +1093,14 @@ apply_radius:
           foreach (AuraDef auraDef in auraDefs) {
             Log.Debug?.WL(2,$"aura:{auraDef.Id}");
             CombatAuraReticle reticle = owner.Combat.DataManager.PooledInstantiate(CombatAuraReticle.PrefabName, BattleTechResourceType.UIModulePrefabs, new Vector3?(), new Quaternion?(), (Transform)null).GetComponent<CombatAuraReticle>();
-            reticle.Init(owner, ___HUD);
+            reticle.Init(owner, __instance.HUD);
             aura = new GameObject("BODY:" + owner.DisplayName + ":" + owner.GUID);
             aura.SetActive(false);
             aura.transform.localScale = new Vector3(1f, 1f, 1f);
             aura.gameObject.transform.parent = owner.GameRep.gameObject.transform;
             aura.gameObject.transform.position = owner.CurrentPosition;
             aura.gameObject.AddComponent<AuraBubble>().Init(owner, source, null, auraDef, reticle);
-            ___AuraReticles.Add(reticle);
+            __instance.AuraReticles.Add(reticle);
             aura.SetActive(true);
           }
         }
@@ -1113,20 +1113,21 @@ apply_radius:
             foreach (AuraDef auraDef in auraDefs) {
               Log.Debug?.WL(2, $"aura:{auraDef.Id}");
               CombatAuraReticle reticle = owner.Combat.DataManager.PooledInstantiate(CombatAuraReticle.PrefabName, BattleTechResourceType.UIModulePrefabs, new Vector3?(), new Quaternion?(), (Transform)null).GetComponent<CombatAuraReticle>();
-              reticle.Init(owner, ___HUD);
+              reticle.Init(owner, __instance.HUD);
               aura = new GameObject("BODY:" + owner.DisplayName + ":" + owner.GUID);
               aura.SetActive(false);
               aura.transform.localScale = new Vector3(1f, 1f, 1f);
               aura.gameObject.transform.parent = owner.GameRep.gameObject.transform;
               aura.gameObject.transform.position = owner.CurrentPosition;
               aura.gameObject.AddComponent<AuraBubble>().Init(owner, null, pilot, auraDef, reticle);
-              ___AuraReticles.Add(reticle);
+              __instance.AuraReticles.Add(reticle);
               aura.SetActive(true);
             }
           }
         }
       }catch(Exception e) {
         Log.WriteCritical(e.ToString() + "\n");
+        UIManager.logger.LogException(e);
       }
     }
   }
@@ -1135,13 +1136,14 @@ apply_radius:
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { })]
   public static class AbstractActor_EvaluateStealthState {
-    public static bool Prefix(AbstractActor __instance) {
+    public static void Prefix(ref bool __runOriginal, AbstractActor __instance) {
       try {
+        if (!__runOriginal) { return; }
         if (__instance.IsStealthFloatieSkip()) { __instance.StealthPipsPrevious(__instance.StealthPipsCurrent); };
       }catch(Exception e) {
         Log.WriteCritical(e.ToString() + "\n");
+        AbstractActor.logger.LogException(e);
       }
-      return true;
     }
   }
   [HarmonyPatch(typeof(ActorMovementSequence))]
@@ -1176,6 +1178,7 @@ apply_radius:
         __instance.InitBodyBubble();
       }catch(Exception e) {
         Log.WriteCritical(e.ToString() + "\n");
+        AbstractActor.logger.LogException(e);
       }
     }
   }
@@ -1203,6 +1206,7 @@ apply_radius:
         C3Helper.Clear();
       } catch (Exception e) {
         Log.WriteCritical(e.ToString() + "\n");
+        AbstractActor.logger.LogException(e);
       }
     }
   }

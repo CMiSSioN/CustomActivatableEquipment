@@ -133,27 +133,28 @@ namespace CustomActivatablePatches {
       mech.OnActivationBegin(mech.GUID, -1);
       return mech.GetDoneWithActorOrders();
     }
-    public static bool Prefix(MechStartupInvocation __instance, CombatGameState combatGameState, ref bool __result) {
-      if (Core.Settings.StartupByHeatControl == false) { return true; }
+    public static void Prefix(ref bool __runOriginal, MechStartupInvocation __instance, CombatGameState combatGameState, ref bool __result) {
+      if (Core.Settings.StartupByHeatControl == false) { return; }
       try {
         __result = true;
         Mech actorByGuid = combatGameState.FindActorByGUID(__instance.MechGUID) as Mech;
         if (actorByGuid == null) {
           Log.Debug?.Write("MechStartupInvocation.Invoke failed! Unable to Mech!\n");
-          return true;
+          return;
         }
         if (actorByGuid.CurrentHeatAsRatio >= Core.Settings.StartupMinHeatRatio) {
           //actorByGuid.Unused
           combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new FloatieMessage(__instance.MechGUID, __instance.MechGUID, "__/CAE.ReactroTooHot/__", FloatieMessage.MessageNature.Buff));
           combatGameState.MessageCenter.PublishMessage((MessageCenterMessage)new AddSequenceToStackMessage(actorByGuid.DoneNoAnimation()));
         } else {
-          return true;
+          return;
         }
-        return false;
+        __runOriginal = false; return;
       } catch (Exception e) {
         Log.Debug?.Write(e.ToString() + "\n");
+        CombatGameState.gameInfoLogger.LogException(e);
       }
-      return true;
+      return;
     }
   }
   [HarmonyPatch(typeof(MechComponent))]
@@ -161,14 +162,15 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(bool) })]
   public static class MechComponent_CancelCreatedEffects {
-    public static bool Prefix(MechComponent __instance, bool performAuraRefresh) {
+    public static void Prefix(MechComponent __instance, bool performAuraRefresh) {
       try {
         Log.Debug?.Write("MechComponent.CancelCreatedEffects "+__instance.defId+"\n");
         ActivatableComponent.shutdownComponent(__instance);
       } catch (Exception e) {
         Log.Debug?.Write(e.ToString() + "\n");
+        AbstractActor.logger.LogException(e);
       }
-      return true;
+      return;
     }
   }
   [HarmonyPatch(typeof(Mech))]
@@ -176,7 +178,7 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(int),typeof(string),typeof(Vector2), typeof(SequenceFinished) })]
   public static class MechComponent_GenerateFallSequence {
-    public static bool Prefix(Mech __instance, int previousStackID, string sourceID, Vector2 attackDirection, SequenceFinished fallSequenceCompletedCallback) {
+    public static void Prefix(Mech __instance, int previousStackID, string sourceID, Vector2 attackDirection, SequenceFinished fallSequenceCompletedCallback) {
       try {
         Log.Debug?.TWL(0,"Mech.GenerateFallSequence");
         foreach (MechComponent component in __instance.allComponents) {
@@ -189,8 +191,9 @@ namespace CustomActivatablePatches {
         }
       } catch (Exception e) {
         Log.Debug?.TWL(0,e.ToString());
+        AbstractActor.logger.LogException(e);
       }
-      return true;
+      return;
     }
   }
   [HarmonyPatch(typeof(MechComponent))]
@@ -198,14 +201,15 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(bool) })]
   public static class MechComponent_RestartCreatedEffects {
-    public static bool Prefix(MechComponent __instance, bool performAuraRefresh) {
+    public static void Prefix(MechComponent __instance, bool performAuraRefresh) {
       try {
         Log.Debug?.Write("MechComponent.RestartPassiveEffects " + __instance.defId + "\n");
         ActivatableComponent.startupComponent(__instance);
       } catch (Exception e) {
         Log.Debug?.Write(e.ToString() + "\n");
+        AbstractActor.logger.LogException(e);
       }
-      return true;
+      return;
     }
   }
 }

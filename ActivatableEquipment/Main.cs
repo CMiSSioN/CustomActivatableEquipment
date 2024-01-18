@@ -75,40 +75,9 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(new Type[] { })]
   public static class CombatHUDActionButton_ExecuteClick {
 
-    public static bool Prefix(CombatHUDActionButton __instance) {
+    public static void Prefix(CombatHUDActionButton __instance) {
       CustomActivatableEquipment.Log.Debug?.Write("CombatHUDActionButton.ExecuteClick '" + __instance.GUID + "'/'" + CombatHUD.ButtonID_Move + "' " + (__instance.GUID == CombatHUD.ButtonID_Move) + "\n");
-      CombatHUD HUD = (CombatHUD)typeof(CombatHUDActionButton).GetProperty("HUD", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance, null);
-      /*if (__instance.GUID == CombatHUD.ButtonID_Move) {
-        CustomActivatableEquipment.Log.LogWrite(" button is move\n");
-        bool modifyers = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
-        if (modifyers) {
-          CustomActivatableEquipment.Log.LogWrite(" ctrl is pressed\n");
-          if (HUD.SelectedActor != null) {
-            CustomActivatableEquipment.Log.LogWrite(" actor is selected\n");
-            if (HUD.SelectedActor is Mech) {
-              CustomActivatableEquipment.Log.LogWrite(" mech is selected\n");
-              CustomActivatableEquipment.Core.ShowEquipmentDlg(HUD.SelectedActor as Mech, HUD);
-            }
-          }
-          return false;
-        }
-      } else*/
-      if (__instance.GUID == CombatHUD.ButtonID_DoneWithMech) {
-        CustomActivatableEquipment.Log.Debug?.Write(" button is brase\n");
-        bool modifyers = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
-        if (modifyers) {
-          CustomActivatableEquipment.Log.Debug?.Write(" ctrl is pressed\n");
-          if (HUD.SelectedActor != null) {
-            CustomActivatableEquipment.Log.Debug?.Write(" actor is selected\n");
-            if (HUD.SelectedActor is Mech) {
-              CustomActivatableEquipment.Log.Debug?.Write(" mech is selected\n");
-              CustomActivatableEquipment.Core.ShowHeatDlg(HUD.SelectedActor as Mech);
-            }
-          }
-          return false;
-        }
-      }
-      return true;
+      CombatHUD HUD = __instance.HUD;
     }
   }
   [HarmonyPatch(typeof(ActorMovementSequence))]
@@ -401,17 +370,17 @@ namespace CustomActivatableEquipment {
     }
     public void TW(int initiation, string line, bool isCritical = false) {
       string init = new string(' ', initiation);
-      line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
+      line = "[" + DateTime.UtcNow.ToString("HH:mm:ss.fff") + "]" + init + line;
       W(line, isCritical);
     }
     public void TWL(int initiation, string line, bool isCritical = false) {
       string init = new string(' ', initiation);
-      line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
+      line = "[" + DateTime.UtcNow.ToString("HH:mm:ss.fff") + "]" + init + line;
       WL(line, isCritical);
     }
     public void TWriteCritical(int initiation, string line) {
       string init = new string(' ', initiation);
-      line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "]" + init + line;
+      line = "[" + DateTime.UtcNow.ToString("HH:mm:ss.fff") + "]" + init + line;
       WL(line, true);
     }
     public static Log Debug {
@@ -1091,6 +1060,11 @@ namespace CustomActivatableEquipment {
       }
       return component.StatCollection.GetStatistic(ActivatableComponent.CAEComponentActiveRounds).Value<int>();
     }
+    public static int getComponentFailRoundStart(MechComponent component) {
+      ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
+      if(activatable == null) { return 0; }
+      return activatable.FailRoundsStart;
+    }
     public static int getComponentActivedRound(MechComponent component) {
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) { return -1; }
@@ -1683,10 +1657,8 @@ namespace CustomActivatableEquipment {
     //public static List<ActivatableComponent> currentActiveComponentsDlg = new List<ActivatableComponent>();
     public static readonly string HeatSinkOfflineTagName = "offline";
     //public static Dictionary<string,List<ComponentToggle>>
-    private static FieldInfo f_statCollection_stats = null;
     public static bool checkExistance(StatCollection statCollection, string statName) {
-      if (f_statCollection_stats == null) { f_statCollection_stats = typeof(StatCollection).GetField("stats", BindingFlags.NonPublic | BindingFlags.Instance); }
-      return ((Dictionary<string, Statistic>)f_statCollection_stats.GetValue(statCollection)).ContainsKey(statName);
+      return statCollection.stats.ContainsKey(statName);
     }
     public static void ShowHeatDlg(Mech mech) {
       if (mech == null) {

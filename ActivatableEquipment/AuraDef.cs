@@ -318,6 +318,7 @@ namespace CustomActivatableEquipment {
       } catch (Exception e) {
         Log.Error?.TWL(0, __instance.Description?.Id);
         Log.Error?.WL(0, e.ToString(), true);
+        UnityGameInstance.BattleTechGame.DataManager?.logger.LogException(e);
       }
     }
   }

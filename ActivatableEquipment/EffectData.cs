@@ -171,6 +171,7 @@ namespace CustomActivatableEquipment {
         }
       } catch (Exception ex) {
         Log.Error?.TWL(0, ex.ToString(), true);
+        EffectManager.AbilityLogger.LogException(ex);
       }
     }
   }

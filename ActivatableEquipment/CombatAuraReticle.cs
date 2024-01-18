@@ -15,14 +15,6 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Getter)]
   [HarmonyPriority(Priority.Last)]
   public static class CombatAuraReticle_DesiredAuraProjectionState {
-    private static FieldInfo fOwner;
-    public static bool Prepare() {
-      fOwner = typeof(CombatAuraReticle).GetField("owner", BindingFlags.Instance | BindingFlags.NonPublic);
-      return true;
-    }
-    public static AbstractActor owner(this CombatAuraReticle reticle) {
-      return (AbstractActor)fOwner.GetValue(reticle);
-    }
     public static bool IsVisibleToPlayer(this AbstractActor unit) {
       if (unit == null || (UnityEngine.Object)unit.GameRep == (UnityEngine.Object)null || unit.Combat == null)
         return false;
@@ -30,9 +22,9 @@ namespace CustomActivatablePatches {
         return unit.Combat.LocalPlayerTeam.VisibilityToTarget((ICombatant)unit) == VisibilityLevel.LOSFull;
       return true;
     }
-    public static bool isAuraVisible(this CombatAuraReticle __instance, AuraBubble aura, AbstractActor ___owner, CombatHUD ___HUD, bool spinning) {
+    public static bool isAuraVisible(this CombatAuraReticle __instance, AuraBubble aura, bool spinning) {
       if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.HideAll) { return false; };
-      if ((___owner.IsVisibleToPlayer() == false) || (___owner.IsOperational == false)) {
+      if ((__instance.owner.IsVisibleToPlayer() == false) || (__instance.owner.IsOperational == false)) {
          return false;
       }
       if (aura != null) {
@@ -41,8 +33,8 @@ namespace CustomActivatablePatches {
           if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.ShowAll) { return true; }
           if (aura.Def.NotShowOnSelected) { return false; };
           if (aura.Def.HideOnNotSelected) {
-            if (___HUD.SelectedActor != null) {
-              if (___HUD.SelectedActor.GUID == ___owner.GUID) {
+            if (__instance.HUD.SelectedActor != null) {
+              if (__instance.HUD.SelectedActor.GUID == __instance.owner.GUID) {
                 return true;
               }
             }
@@ -58,8 +50,8 @@ namespace CustomActivatablePatches {
             if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.ShowAll) { return true; }
             if (aura.Def.NotShowOnSelected) { return false; };
             if (aura.Def.HideOnNotSelected) {
-              if (___HUD.SelectedActor != null) {
-                if (___HUD.SelectedActor.GUID == ___owner.GUID) {
+              if (__instance.HUD.SelectedActor != null) {
+                if (__instance.HUD.SelectedActor.GUID == __instance.owner.GUID) {
                   return true;
                 }
               }
@@ -77,8 +69,8 @@ namespace CustomActivatablePatches {
             if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.ShowAll) { return true; }
             if (aura.Def.NotShowOnSelected) { return false; };
             if (aura.Def.HideOnNotSelected) {
-              if (___HUD.SelectedActor != null) {
-                if (___HUD.SelectedActor.GUID == ___owner.GUID) {
+              if (__instance.HUD.SelectedActor != null) {
+                if (__instance.HUD.SelectedActor.GUID == __instance.owner.GUID) {
                   return true;
                 }
               }
@@ -93,14 +85,15 @@ namespace CustomActivatablePatches {
       }
       return false;
     }
-    public static bool Prefix(CombatAuraReticle __instance, ref ButtonState __result, ref AbstractActor ___owner, ref CombatHUD ___HUD) {
+    public static bool Prefix(CombatAuraReticle __instance, ref ButtonState __result) {
       try {
         AuraBubble aura = __instance.AuraBubble();
         if (aura == null) { __result = ButtonState.Disabled;  return false; }
-        __result = __instance.isAuraVisible(aura,___owner, ___HUD, false)? ButtonState.Enabled : ButtonState.Disabled;
+        __result = __instance.isAuraVisible(aura, false)? ButtonState.Enabled : ButtonState.Disabled;
         return false;
       }catch(Exception e) {
         Log.Debug?.Write(e.ToString() + "\n");
+        UIManager.logger.LogException(e);
       }
       return true;
       //__instance.GameRep.PlayVFXAt(__instance.GameRep.thisTransform, Vector3.zero, "vfxPrfPrtl_ECM_loop", true, Vector3.zero, false, -1f);
@@ -111,20 +104,13 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPriority(Priority.Last)]
   public static class CombatAuraReticle_RefreshAuraRange {
-    public static PropertyInfo pAuraRangeScaledObject;
-    public static bool Prepare() {
-      pAuraRangeScaledObject = typeof(CombatAuraReticle).GetProperty("auraRangeScaledObject", BindingFlags.NonPublic | BindingFlags.Instance);
-      return true;
-    }
-    public static GameObject auraRangeScaledObject(this CombatAuraReticle instance) {
-      return (GameObject)pAuraRangeScaledObject.GetValue(instance);
-    }
-    public static bool Prefix(CombatAuraReticle __instance, ButtonState auraProjectionState, ref AbstractActor ___owner, ref float ___currentAuraRange) {
+    public static void Prefix(ref bool __runOriginal, CombatAuraReticle __instance, ButtonState auraProjectionState) {
       try {
-        GameObject auraRangeScaledObject = __instance.auraRangeScaledObject();
+        if (!__runOriginal) { return; }
+        GameObject auraRangeScaledObject = __instance.auraRangeScaledObject;
         if (auraProjectionState == ButtonState.Disabled) {
           auraRangeScaledObject.SetActive(false);
-          return false;
+          __runOriginal = false; return;
         }
         //AuraBubble mainSensorsBubble = __instance.MainSensors();
         //Log.LogWrite("CombatAuraReticle.RefreshAuraRange " + (mainSensorsBubble == null ? "null" : mainSensorsBubble.collider.radius.ToString()) + "\n");
@@ -141,16 +127,17 @@ namespace CustomActivatablePatches {
         if (auraBubble != null) {
           auraRangeScaledObject.SetActive(true);
           float b = auraBubble.collider.radius;
-          if (!Mathf.Approximately(___currentAuraRange, b)) {
+          if (!Mathf.Approximately(__instance.currentAuraRange, b)) {
             auraRangeScaledObject.transform.localScale = new Vector3(b * 2f, 1f, b * 2f);
           }
-          ___currentAuraRange = b;
-          return false;
+          __instance.currentAuraRange = b;
+          __runOriginal = false; return;
         }
       }catch(Exception e) {
         Log.WriteCritical(e.ToString() + "\n");
+        UIManager.logger.LogException(e);
       }
-      return true;
+      return;
     }
   }
   [HarmonyPatch(typeof(CombatAuraReticle))]
@@ -158,20 +145,13 @@ namespace CustomActivatablePatches {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPriority(Priority.Last)]
   public static class CombatAuraReticle_RefreshActiveProbeRange {
-    public static PropertyInfo pactiveProbeRangeScaledObject;
-    public static bool Prepare() {
-      pactiveProbeRangeScaledObject = typeof(CombatAuraReticle).GetProperty("activeProbeRangeScaledObject", BindingFlags.NonPublic | BindingFlags.Instance);
-      return true;
-    }
-    public static GameObject activeProbeRangeScaledObject(this CombatAuraReticle instance) {
-      return (GameObject)pactiveProbeRangeScaledObject.GetValue(instance);
-    }
-    public static bool Prefix(CombatAuraReticle __instance, bool showActiveProbe, ref AbstractActor ___owner, ref float ___currentAPRange) {
+    public static void Prefix(ref bool __runOriginal, CombatAuraReticle __instance, bool showActiveProbe) {
       try {
-        GameObject activeProbeRangeScaledObject = __instance.activeProbeRangeScaledObject();
+        if (!__runOriginal) { return; }
+        GameObject activeProbeRangeScaledObject = __instance.activeProbeRangeScaledObject;
         if (showActiveProbe == false) {
           activeProbeRangeScaledObject.SetActive(false);
-          return false;
+          __runOriginal = false; return;
         }
         //AuraBubble mainSensorsBubble = __instance.MainSensors();
         //Log.LogWrite("CombatAuraReticle.RefreshAuraRange " + (mainSensorsBubble == null ? "null" : mainSensorsBubble.collider.radius.ToString()) + "\n");
@@ -188,16 +168,17 @@ namespace CustomActivatablePatches {
         if (auraBubble != null) {
           activeProbeRangeScaledObject.SetActive(true);
           float b = auraBubble.collider.radius;
-          if (!Mathf.Approximately(___currentAPRange, b)) {
+          if (!Mathf.Approximately(__instance.currentAPRange, b)) {
             activeProbeRangeScaledObject.transform.localScale = new Vector3(b * 2f, 1f, b * 2f);
           }
-          ___currentAPRange = b;
-          return false;
+          __instance.currentAPRange = b;
+          __runOriginal = false; return;
         }
       } catch (Exception e) {
         Log.WriteCritical(e.ToString() + "\n");
+        UIManager.logger.LogException(e);
       }
-      return true;
+      return;
     }
   }
   [HarmonyPatch(typeof(CombatAuraReticle))]
@@ -206,17 +187,19 @@ namespace CustomActivatablePatches {
   [HarmonyPriority(Priority.Last)]
   public static class CombatAuraReticle_RefreshActiveProbeState {
     public static Vector3 dbgPos = Vector3.zero;
-    public static bool Prefix(CombatAuraReticle __instance, ref AbstractActor ___owner, ref float ___currentAuraRange, ref CombatHUD ___HUD, ref Transform ___thisTransform, ref bool __result) {
+    public static void Prefix(ref bool __runOriginal, CombatAuraReticle __instance, ref bool __result) {
       try {
+        if (!__runOriginal) { return; }
         //if (CombatHUD_Update_HideReticlesHotKey.hideReticles == AuraShowState.HideAll) { __result = false; return false; };
         AuraBubble aura = __instance.AuraBubble();
-        if (aura == null) { return true; };
-        __result = __instance.isAuraVisible(aura,___owner,___HUD,true);
-        return false;
+        if (aura == null) { return; };
+        __result = __instance.isAuraVisible(aura,true);
+        __runOriginal = false; return;
       }catch(Exception e) {
         Log.Debug?.Write(e.ToString() + "\n");
+        UIManager.logger.LogException(e);
       }
-      return true;
+      return;
     }
   }
   [HarmonyPatch(typeof(CombatAuraReticle))]
@@ -233,12 +216,13 @@ namespace CustomActivatablePatches {
     private static void isSpining(this CombatAuraReticle reticle, bool value) {
       if (SpinSave.ContainsKey(reticle)) { SpinSave[reticle] = value; } else { SpinSave.Add(reticle, value); };
     }
-    public static bool Prefix(CombatAuraReticle __instance, bool isBright, ref AbstractActor ___owner, ref CombatHUD ___HUD, ref bool ___currentAPIsBright) {
+    public static void Prefix(ref bool __runOriginal, CombatAuraReticle __instance, bool isBright) {
       try {
+        if (!__runOriginal) { return; }
         AuraBubble aura = __instance.AuraBubble();
-        if (aura == null) { return true; }
-        if (isBright == false) { return false; }
-        isBright = ___HUD.SelectedActor != null && ___HUD.SelectionHandler.ActiveState is SelectionStateMoveBase;
+        if (aura == null) { return; }
+        if (isBright == false) { __runOriginal = false; return; }
+        isBright = __instance.HUD.SelectedActor != null && __instance.HUD.SelectionHandler.ActiveState is SelectionStateMoveBase;
         if (isBright) {
           __instance.activeProbeDecal.DecalMaterial = __instance.activeProbeMatBright;
           //this.apSpinAnim.DORestartById("spin");
@@ -246,19 +230,20 @@ namespace CustomActivatablePatches {
           __instance.activeProbeDecal.DecalMaterial = __instance.activeProbeMatDim;
           //this.apSpinAnim.DOPause();
         }
-        if(___currentAPIsBright != aura.Def.isSpining) {
-          ___currentAPIsBright = aura.Def.isSpining;
-          if (___currentAPIsBright) {
+        if(__instance.currentAPIsBright != aura.Def.isSpining) {
+          __instance.currentAPIsBright = aura.Def.isSpining;
+          if (__instance.currentAPIsBright) {
             __instance.apSpinAnim.DORestartById("spin");
           } else {
             __instance.apSpinAnim.DOPause();
           }
         }
-        return false;
+        __runOriginal = false; return;
       } catch (Exception e) {
         Log.Debug?.Write(e.ToString() + "\n");
+        UIManager.logger.LogException(e);
       }
-      return true;
+      return;
     }
   }
   [HarmonyPatch(typeof(CombatAuraReticle))]
@@ -267,10 +252,7 @@ namespace CustomActivatablePatches {
   [HarmonyPriority(Priority.Last)]
   public static class CombatAuraReticle_UpdatePosition {
     public static Vector3 dbgPos = Vector3.zero;
-    public static void Postfix(CombatAuraReticle __instance, ref AbstractActor ___owner, ref float ___currentAuraRange, ref CombatHUD ___HUD, ref Transform ___thisTransform) {
-      //if(___HUD.SelectedActor != null && ___HUD.SelectionHandler.ActiveState is SelectionStateMoveBase && ___owner.GUID == ___HUD.SelectedActor.GUID) {
-      //AuraPreviewRecord preview = 
-      //}
+    public static void Postfix(CombatAuraReticle __instance) {
     }
   }
   public enum AuraShowState { Default, ShowAll, HideAll }

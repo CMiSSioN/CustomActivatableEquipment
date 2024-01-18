@@ -195,22 +195,12 @@ namespace CustomActivatableEquipment {
     }
     private static bool weaponPanelState = true;
     public static void ResetEquipmentState(this CombatHUDWeaponPanel panel) { weaponPanelState = true; }
-    private static Dictionary<string, object> WPStates = new Dictionary<string, object>();
     public static void Init() {
-      Type states = typeof(CombatHUDWeaponPanel).GetField("state", BindingFlags.Instance | BindingFlags.NonPublic).FieldType;
-      Log.Debug?.TWL(0, "WPState:" + (states == null ? "null" : states.ToString()));
-      if (states != null) {
-        var WPStateValues = Enum.GetValues(states);
-        foreach (var WPStateValue in WPStateValues) {
-          Log.Debug?.WL(1, WPStateValue.ToString());
-          WPStates.Add(WPStateValue.ToString(),WPStateValue);
-        }
-      }
     }
     public static void ShowComponents(CombatHUD HUD) {
       Log.Debug?.TWL(0, "ShowComponents");
       //if (HUD.SelectedActor == null) { return; };
-      typeof(CombatHUDWeaponPanel).GetMethod("SetState", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(HUD.WeaponPanel, new object[] { weaponPanelState?WPStates["Unloading"] : WPStates["Loading"] });
+      HUD.WeaponPanel.SetState(weaponPanelState ? CombatHUDWeaponPanel.WPState.Unloading : CombatHUDWeaponPanel.WPState.Loading);
       weaponPanelState = !weaponPanelState;
     }
     public static void CreateDialog(this AbstractActor unit, CombatHUD HUD) {

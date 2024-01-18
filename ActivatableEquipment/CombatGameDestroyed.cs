@@ -30,6 +30,7 @@ namespace CustomActivatableEquipment {
       AbstractActor_InitAbstractActor.Clear();
       C3Helper.Clear();
       CustomStatisticEffectHelper.Clear();
+      CombatHUDHeatSinkPanel.ClearEndCombat();
       //DamageHelpers.DamageHelper.Clear();
       return true;
     }

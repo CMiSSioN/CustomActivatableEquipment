@@ -146,22 +146,9 @@ namespace CustomActivatablePatches {
   [HarmonyPriority(Priority.First)]
   public static class CombatMovementReticle_UpdateReticle {
     public static Vector3 prevResultDestination = Vector3.zero;
-    public static MethodInfo mUpdateStatusPreview;
-    public static MethodInfo mHideStatusPreview;
-    public static bool Prepare() {
-      mUpdateStatusPreview = typeof(CombatMovementReticle).GetMethod("UpdateStatusPreview", BindingFlags.Instance | BindingFlags.NonPublic);
-      mHideStatusPreview = typeof(CombatMovementReticle).GetMethod("HideStatusPreview", BindingFlags.Instance | BindingFlags.NonPublic);
-      return true;
-    }
-    public static void UpdateStatusPreview(this CombatMovementReticle instance, AbstractActor actor, Vector3 worldPos, MoveType moveType) {
-      mUpdateStatusPreview.Invoke(instance, new object[] { actor, worldPos, moveType });
-    }
-    public static void HideStatusPreview(this CombatMovementReticle instance) {
-      mHideStatusPreview.Invoke(instance, new object[] { });
-    }
-    public static bool Prefix(CombatMovementReticle __instance, AbstractActor actor, Vector3 mousePos, bool isJump, bool isMelee, bool isTargetLocked) {
+    public static void Prefix(CombatMovementReticle __instance, AbstractActor actor, Vector3 mousePos, bool isJump, bool isMelee, bool isTargetLocked) {
       //if (isJump) { return true; }
-      return true;
+      return;
       /*if (actor == null || actor.Pathing == null || (isJump && actor.JumpPathing == null)) {
         return true;
       };

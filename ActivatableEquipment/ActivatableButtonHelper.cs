@@ -15,8 +15,8 @@ namespace CustomActivatableEquipment {
   public static class CombatHUDWeaponPanel_RefreshDisplayedEquipment {
     public static List<CombatHUDEquipmentSlot> EquipmentSlots = null;
     //public static bool Prepare() { return false; }
-    public static void Postfix(CombatHUDWeaponPanel __instance, List<CombatHUDEquipmentSlot> ___EquipmentSlots, AbstractActor ___displayedActor) {
-      EquipmentSlots = ___EquipmentSlots;
+    public static void Postfix(CombatHUDWeaponPanel __instance) {
+      EquipmentSlots = __instance.EquipmentSlots;
       for (int index = 1; index < EquipmentSlots.Count; ++index) {
         EquipmentSlots[index].DisableButton();
         EquipmentSlots[index].gameObject.SetActive(false);
@@ -24,9 +24,9 @@ namespace CustomActivatableEquipment {
       if(EquipmentSlots.Count > 0){
         EquipmentSlots[0].gameObject.transform.parent.gameObject.SetActive(false);
         EquipmentSlots[0].gameObject.SetActive(false);
-        EquipmentSlots[0].InitButton(SelectionType.ActiveProbe, null, null, "ACTIVE_COMPONENTS_MENU", "Active components menu", ___displayedActor);
+        EquipmentSlots[0].InitButton(SelectionType.ActiveProbe, null, null, "ACTIVE_COMPONENTS_MENU", "Active components menu", __instance.displayedActor);
         EquipmentSlots[0].Text.SetText("COMPONENTS", (object[])Array.Empty<object>());
-        EquipmentSlots[0].ResetButtonIfNotActive(___displayedActor);
+        EquipmentSlots[0].ResetButtonIfNotActive(__instance.displayedActor);
       }
       if (CombatHUDEquipmentPanel.Instance != null) { CombatHUDEquipmentPanel.Instance.RefreshDisplayedEquipment(__instance.DisplayedActor); };
     }
@@ -70,14 +70,13 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch("TryActivate")]
   [HarmonyPatch(MethodType.Normal)]
   public static class CombatHUDEquipmentSlot_IsActive {
-    private static PropertyInfo p_HUD = typeof(CombatHUDButtonBase).GetProperty("HUD", BindingFlags.Instance | BindingFlags.NonPublic);
     //public static bool Prepare() { return false; }
     public static void Postfix(CombatHUDActionButton __instance, ref bool __result) {
       CombatHUDEquipmentSlot slot = __instance as CombatHUDEquipmentSlot;
       if (slot == null) { return; }
       Log.Debug?.TWL(0, "CombatHUDEquipmentSlot.TryActivate GUID:" + __instance.GUID+" selection type:"+ (SelectionType)typeof(CombatHUDEquipmentSlot).GetProperty("SelectionType",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(slot) +" result:"+__result);
       if (__result) {
-        CombatHUD HUD = (CombatHUD)p_HUD.GetValue(slot);
+        CombatHUD HUD = slot.HUD;
         HUD.AttackModeSelector.FireButton.FireText.SetText(slot.Ability.Def.Description.Name);
       }
     }

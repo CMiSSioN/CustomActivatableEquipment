@@ -368,10 +368,11 @@ namespace CustomActivatableEquipment {
   public static class Contract_RequestConversations {
     public static void Postfix(Contract __instance, LoadRequest loadRequest) {
       Log.Debug?.TWL(0, "Contract.RequestConversations");
+      CombatHUDHeatSinkControl.RequestResources(loadRequest);
       foreach (var arcTexture in Core.Settings.arcTextures) {
         Log.Debug?.WL(1, $"{arcTexture.Key} texture:{arcTexture.Value}");
         if (string.IsNullOrEmpty(arcTexture.Value)) { continue; }
-        if (!__instance.DataManager.Exists(BattleTechResourceType.Texture2D, arcTexture.Value)) { continue; };
+        if (__instance.DataManager.Exists(BattleTechResourceType.Texture2D, arcTexture.Value)) { continue; };
         if (__instance.DataManager.ResourceLocator.EntryByID(arcTexture.Value, BattleTechResourceType.Texture2D) != null) {
           Log.Debug?.WL(2, "exist in manifest but not loaded");
           loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, arcTexture.Value);

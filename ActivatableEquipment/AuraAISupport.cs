@@ -9,45 +9,47 @@ using UnityEngine;
 
 namespace CustAmmoCategoriesPatches {
   public static class AreAnyHostilesInWeaponRangeNode_Tick {
-    public static bool Prefix(BehaviorNode __instance, ref BehaviorTreeResults __result, ref BehaviorTree ___tree, ref AbstractActor ___unit) {
+    public static void Prefix(ref bool __runOriginal, BehaviorNode __instance, ref BehaviorTreeResults __result) {
       try {
-        List<AbstractActor> allAlliesOf = ___unit.Combat.GetAllAlliesOf(___unit);
-        AuraBubble sensors = ___unit.sensorAura();
-        for (int index1 = 0; index1 < ___tree.enemyUnits.Count; ++index1) {
-          ICombatant enemyUnit = ___tree.enemyUnits[index1];
+        if (!__runOriginal) { return; }
+        List<AbstractActor> allAlliesOf = __instance.unit.Combat.GetAllAlliesOf(__instance.unit);
+        AuraBubble sensors = __instance.unit.sensorAura();
+        for (int index1 = 0; index1 < __instance.tree.enemyUnits.Count; ++index1) {
+          ICombatant enemyUnit = __instance.tree.enemyUnits[index1];
           AbstractActor abstractActor = enemyUnit as AbstractActor;
-          float magnitude = (enemyUnit.CurrentPosition - ___unit.CurrentPosition).magnitude;
-          if (AIUtil.UnitHasVisibilityToTargetFromPosition(___unit, enemyUnit, ___unit.CurrentPosition, allAlliesOf)) {
-            if (___unit.CanEngageTarget(enemyUnit) || ___unit.CanDFATargetFromPosition(enemyUnit, ___unit.CurrentPosition)) {
+          float magnitude = (enemyUnit.CurrentPosition - __instance.unit.CurrentPosition).magnitude;
+          if (AIUtil.UnitHasVisibilityToTargetFromPosition(__instance.unit, enemyUnit, __instance.unit.CurrentPosition, allAlliesOf)) {
+            if (__instance.unit.CanEngageTarget(enemyUnit) || __instance.unit.CanDFATargetFromPosition(enemyUnit, __instance.unit.CurrentPosition)) {
               __result = new BehaviorTreeResults(BehaviorNodeState.Success);
-              return false;
+              __runOriginal = false; return;
             }
-            if ((double)magnitude <= (double)___unit.MaxWalkDistance) {
+            if (magnitude <= __instance.unit.MaxWalkDistance) {
               __result = new BehaviorTreeResults(BehaviorNodeState.Success);
-              return false;
+              __runOriginal = false; return;
             }
             if (abstractActor != null && abstractActor.IsGhosted) {
-              float num = Mathf.Lerp(___unit.MaxWalkDistance, ___unit.MaxSprintDistance, ___unit.BehaviorTree.GetBehaviorVariableValue(BehaviorVariableName.Float_SignalInWeapRngWhenEnemyGhostedWithinMoveDistance).FloatVal);
+              float num = Mathf.Lerp(__instance.unit.MaxWalkDistance, __instance.unit.MaxSprintDistance, __instance.unit.BehaviorTree.GetBehaviorVariableValue(BehaviorVariableName.Float_SignalInWeapRngWhenEnemyGhostedWithinMoveDistance).FloatVal);
               float range = sensors.collider.radius;
-              if ((double)Vector3.Distance(___unit.CurrentPosition, abstractActor.CurrentPosition) - (double)range >= (double)num) {
+              if ((double)Vector3.Distance(__instance.unit.CurrentPosition, abstractActor.CurrentPosition) - (double)range >= (double)num) {
                 continue;
               }
             }
-            for (int index2 = 0; index2 < ___unit.Weapons.Count; ++index2) {
-              Weapon weapon = ___unit.Weapons[index2];
-              if (weapon.CanFire && (double)weapon.MaxRange >= (double)magnitude) {
+            for (int index2 = 0; index2 < __instance.unit.Weapons.Count; ++index2) {
+              Weapon weapon = __instance.unit.Weapons[index2];
+              if (weapon.CanFire && weapon.MaxRange >= magnitude) {
                 __result = new BehaviorTreeResults(BehaviorNodeState.Success);
-                return false;
+                __runOriginal = false; return;
               }
             }
           }
         }
         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-        return false;
+        __runOriginal = false; return;
       } catch (Exception e) {
         Log.Debug?.Write(e.ToString() + "\n");
+        AbstractActor.logger.LogException(e);
         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-        return false;
+        __runOriginal = false; return;
       }
     }
   }
@@ -56,49 +58,13 @@ namespace CustAmmoCategoriesPatches {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(List<AbstractActor>) })]
   public static class AITeam_GetUnitThatCanReachECM {
-    private static MethodInfo mCanEntireEnemyTeamBeGhosted;
-    private static MethodInfo mGetBehaviorVariableValue;
-    private delegate bool CanEntireEnemyTeamBeGhostedDelegate(AITeam instance);
-    private delegate BehaviorVariableValue GetBehaviorVariableValueDelegate(BehaviorTree instance, BehaviorVariableName name);
-    private static CanEntireEnemyTeamBeGhostedDelegate CanEntireEnemyTeamBeGhostedInvoker = null;
-    private static GetBehaviorVariableValueDelegate GetBehaviorVariableValueInvoker = null;
-    public static bool Prepare() {
-      mCanEntireEnemyTeamBeGhosted = typeof(AITeam).GetMethod("CanEntireEnemyTeamBeGhosted", BindingFlags.NonPublic | BindingFlags.Instance);
-      if(mCanEntireEnemyTeamBeGhosted == null) {
-        Log.WriteCritical("Can't find AITeam.CanEntireEnemyTeamBeGhosted\n");
-        return false;
-      }
-      mGetBehaviorVariableValue = typeof(BehaviorTree).GetMethod("GetBehaviorVariableValue", BindingFlags.NonPublic | BindingFlags.Instance);
-      if (mGetBehaviorVariableValue == null) {
-        Log.WriteCritical("Can't find BehaviorTree.GetBehaviorVariableValue\n");
-        return false;
-      }
-      var dm = new DynamicMethod("CAECanEntireEnemyTeamBeGhosted", typeof(bool), new Type[] { typeof(AITeam) }, typeof(AITeam));
-      var gen = dm.GetILGenerator();
-      gen.Emit(OpCodes.Ldarg_0);
-      gen.Emit(OpCodes.Call, mCanEntireEnemyTeamBeGhosted);
-      gen.Emit(OpCodes.Ret);
-      CanEntireEnemyTeamBeGhostedInvoker = (CanEntireEnemyTeamBeGhostedDelegate)dm.CreateDelegate(typeof(CanEntireEnemyTeamBeGhostedDelegate));
-      var dm1 = new DynamicMethod("CAEGetBehaviorVariableValue", typeof(BehaviorVariableValue), new Type[] { typeof(BehaviorTree), typeof(BehaviorVariableName) }, typeof(BehaviorTree));
-      var gen1 = dm1.GetILGenerator();
-      gen1.Emit(OpCodes.Ldarg_0);
-      gen1.Emit(OpCodes.Ldarg_1);
-      gen1.Emit(OpCodes.Call, mGetBehaviorVariableValue);
-      gen1.Emit(OpCodes.Ret);
-      GetBehaviorVariableValueInvoker = (GetBehaviorVariableValueDelegate)dm1.CreateDelegate(typeof(GetBehaviorVariableValueDelegate));
-      return true;
-    }
-    public static bool CanEntireEnemyTeamBeGhosted(this AITeam instance) {
-      return CanEntireEnemyTeamBeGhostedInvoker(instance);
-    }
-    public static BehaviorVariableValue GetBehaviorVariableValue(this BehaviorTree instance, BehaviorVariableName name) {
-      return GetBehaviorVariableValueInvoker(instance,name);
-    }
-    public static bool Prefix(AITeam __instance, List<AbstractActor> unusedUnits, ref AbstractActor __result) {
+    public static bool Prepare() { return true; }
+    public static void Prefix(ref bool __runOriginal, AITeam __instance, List<AbstractActor> unusedUnits, ref AbstractActor __result) {
       try {
+        if (!__runOriginal) { return; }
         if (!__instance.CanEntireEnemyTeamBeGhosted()) {
           __result = null;
-          return false;
+          __runOriginal = false; return;
         }
         AbstractActor result = (AbstractActor)null;
         float minDistance = float.MaxValue;
@@ -122,11 +88,12 @@ namespace CustAmmoCategoriesPatches {
           }
         }
         __result = result;
-        return false;
-      }catch(Exception e) {
+        __runOriginal = false; return;
+      } catch (Exception e) {
         Log.WriteCritical(e.ToString() + "\n");
+        AbstractActor.logger.LogException(e);
         __result = null;
-        return false;
+        __runOriginal = false; return;
       }
     }
   }

@@ -19,6 +19,7 @@ namespace CustomActivatableEquipment {
         __instance.registerComponentsForVFX();
       }catch(Exception e) {
         Log.Debug?.Write(e.ToString()+"\n");
+        AbstractActor.logger.LogException(e);
       }
     }
   }
@@ -46,6 +47,7 @@ namespace CustomActivatableEquipment {
         __instance.registerComponentsForVFX();
       } catch (Exception e) {
         Log.Debug?.Write(e.ToString() + "\n");
+        AbstractActor.logger.LogException(e);
       }
     }
   }
@@ -96,10 +98,12 @@ namespace CustomActivatableEquipment {
             }
           } catch (Exception e) {
             Log.WriteCritical(e.ToString() + "\n");
+            AbstractActor.logger.LogException(e);
           }
         }
       }catch(Exception e) {
         Log.WriteCritical(e.ToString() + "\n");
+        AbstractActor.logger.LogException(e);
       }
     }
   }
@@ -137,6 +141,7 @@ namespace CustomActivatableEquipment {
         }
       } catch (Exception e) {
         Log.Debug?.TWL(0, e.ToString(), true);
+        AbstractActor.logger.LogException(e);
       }
     }
   }
