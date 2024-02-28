@@ -4,6 +4,7 @@ using HarmonyLib;
 using HBS.Collections;
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace CustomActivatableEquipment {
   public interface IMechComponentDynamicDef {
@@ -263,13 +264,41 @@ namespace CustomActivatableEquipment {
       }
     }
   }
+  [HarmonyPatch(typeof(GameObject))]
+  [HarmonyPatch("SetActive")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch(new Type[] { typeof(bool) })]
+  public static class GameObject_SetActive {
+    public static void Postfix(GameObject __instance, bool value) {
+      try {
+        if(__instance == null) { return; }
+        //Log.Debug?.TWL(0, $"GameObject.SetActive({value}) {__instance.name}");
+        if(value == true) { return; }
+        if(__instance.GetComponent<MechLabLocationWidget>() != null) {
+          Log.Debug?.TWL(0, $"MechLabLocationWidget.SetActive({value}) {__instance.transform.parent.name}.{__instance.name}");
+          Log.Debug?.WL(0,Environment.StackTrace);
+        }
+      } catch(Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+        UnityGameInstance.logger.LogException(e);
+      }
+    }
+  }
   [HarmonyPatch(typeof(MechLabPanel))]
   [HarmonyPatch("CreateMechDef")]
   [HarmonyPatch(MethodType.Normal)]
   public static class MechLabPanel_CreateMechDef {
+    public static Exception Finalizer(MechLabPanel __instance, Exception __exception) {
+      if(__exception != null) {
+        Log.Error?.TWL(0, __exception.ToString(), true);
+        UIManager.logger.LogException(__exception);
+      }
+      return __exception;
+    }
     public static void Postfix(MechLabPanel __instance, ref MechDef __result) {
       try {
         Log.Debug?.TWL(0, "MechLabPanel.CreateMechDef");
+        if(__result == null) { return; }
         foreach(var component in __result.inventory) {
           Log.Debug?.WL(1, $"{component.ComponentDefID}:{component.Def.GetType()}:{component.GetHashCode()}:{component.Def.Tonnage}");
         }

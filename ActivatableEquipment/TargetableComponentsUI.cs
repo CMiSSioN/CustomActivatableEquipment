@@ -1878,5 +1878,29 @@ namespace CustomActivatableEquipment {
       }
     }
   }
+  [HarmonyPatch(typeof(MechValidationRules))]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyPatch("ValidateMechTonnage")]
+  public static class MechValidationRules_ValidateMechTonnage {
+    public static void Prefix(ref bool __runOriginal,DataManager dataManager, MechDef mechDef) {
+      try {
+        if(__runOriginal == false) { return; }
+        bool has_addons = false;
+        foreach(var component in mechDef.Inventory) {
+          if(component == null) { continue; }
+          if(component.Def == null) { continue; }
+          if(component.Def.isHasAddons() == false) { continue; }
+          has_addons = true;
+          break;
+        }
+        if(has_addons) {
+          Log.Debug?.TWL(0, $"ResolveAddonsOnInventory:{mechDef.ChassisID}");
+          TargetsPopupSupervisor.ResolveAddonsOnInventory(mechDef.Inventory.ToList(), $"{mechDef.ChassisID}:MechValidationRules.ValidateMechTonnage");
+        }
+      } catch(Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
+      }
+    }
+  }
 
 }
