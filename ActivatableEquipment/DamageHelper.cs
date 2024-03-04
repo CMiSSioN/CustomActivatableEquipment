@@ -127,7 +127,12 @@ namespace CustomActivatableEquipment.DamageHelpers {
       Vehicle vehicle = owner as Vehicle;
       foreach (MechComponent component in owner.allComponents) {
         if (component.IsFunctional == false) { continue; }
-        if (owner.StructureForLocation(component.Location) < Core.Epsilon) { continue; }
+        if (component.Location == (int)ChassisLocations.None) { continue; }
+        try { 
+          if (owner.StructureForLocation(component.Location) < Core.Epsilon) { continue; }
+        }catch(Exception) {
+          Log.Debug?.WL(1, $"{component.defId} have location:{component.Location} can't be damaged");
+        }
         ActivatableComponent tactivatable = component.componentDef.GetComponent<ActivatableComponent>();
         if (tactivatable == null) { continue; }
         if (ActivatableComponent.canBeDamageActivated(component) == false) { continue; };
