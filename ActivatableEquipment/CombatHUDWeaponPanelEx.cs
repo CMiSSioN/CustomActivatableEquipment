@@ -637,6 +637,8 @@ namespace CustomActivatableEquipment {
         if (flashT < 0f) { flashT = 0f; flashSpeedCurrent = 2f; }
         this.mainImage.color = Color.Lerp(this.LookAndColorConstants.WeaponSlotColors.AvailableBGColor, Color.red, flashT);
       }
+      if (T < 0f) { T = 0f; }
+      if (T > 0f) { T -= Time.deltaTime; }
       //if (heatBackgroundRT == null) {
       //  heatBackgroundRT = heatBackground.GetComponent<RectTransform>();
       //}
@@ -659,8 +661,12 @@ namespace CustomActivatableEquipment {
       hovered = false;
       this.RefreshNonHighlighted();
     }
+    public float T = 0f;
+    public static float DEMULTIPICATOR = 3f;
     public override void OnPointerClick(PointerEventData eventData) {
-      Log.Debug?.TWL(0, "CombatHUDEquipmentSlotEx.OnPointerClick");
+      Log.Debug?.TWL(0, $"CombatHUDEquipmentSlotEx.OnPointerClick demultipicator:{T}");
+      if (T > 0f) { return; }
+      T = DEMULTIPICATOR;
       try {
         if (activeDef == null) { return; }
         if (component == null) { return; }
@@ -717,8 +723,10 @@ namespace CustomActivatableEquipment {
         Log.Debug?.WL(1, $"Toggle activatable {component.defId}");
         ActivatableComponent.toggleComponentActivation(this.component);
         equipPanel.RefreshDisplayedEquipment(component.parent);
-      }catch(Exception e) {
+        Log.Debug?.TWL(0, $"CombatHUDEquipmentSlotEx.OnPointerClick success");
+      } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
+        UIManager.logger.LogException(e);
       }
     }
     public static Dictionary<MechComponent, string> stateCache = new Dictionary<MechComponent, string>();

@@ -492,7 +492,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(SelectionType), typeof(Ability), typeof(AbstractActor) })]
   public static class CombatHUDActionButton_InitHoverInfo {
     public static void Postfix(CombatHUDActionButton __instance, SelectionType SelectionType, Ability Ability, AbstractActor actor) {
-      Log.Debug?.WL(0, "CombatHUDActionButton.InitHoverInfo " + __instance.GUID);
+      //Log.Debug?.WL(0, "CombatHUDActionButton.InitHoverInfo " + __instance.GUID);
       try {
         if(__instance.GUID != CombatHUDHeatSinkControl.BUTTON_ID) { return; };
         if(__instance.hoverToolTip != null) {

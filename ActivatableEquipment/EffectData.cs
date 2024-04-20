@@ -136,7 +136,7 @@ namespace CustomActivatableEquipment {
         }
         AbstractActor unit = targetStatCollection.actor();
         MechComponent sourceComponent = Thread.CurrentThread.peekFromStack<MechComponent>("EFFECT_SOURCE");
-        Log.Debug?.TWL(0, $"StatisticEffect.initStatisiticEffect id:{effectData.Description.Id} statName:{effectData.statisticData.statName} target:{(unit == null ? "null" : unit.PilotableActorDef.ChassisID)} sourceComponent:{(sourceComponent == null ? "null" : sourceComponent.defId)}");
+        //Log.Debug?.TWL(0, $"StatisticEffect.initStatisiticEffect id:{effectData.Description.Id} statName:{effectData.statisticData.statName} target:{(unit == null ? "null" : unit.PilotableActorDef.ChassisID)} sourceComponent:{(sourceComponent == null ? "null" : sourceComponent.defId)}");
         if ((unit != null) && (string.IsNullOrEmpty(SourceLocation) == false)) {
           if (sourceComponent != null) {
             int sourceLocation = -1;
@@ -164,7 +164,7 @@ namespace CustomActivatableEquipment {
                 object defValue = stat.GetType().GetMethod("DefaultValue").MakeGenericMethod(stat.ValueType()).Invoke(stat, new object[] { });
                 AddStatistic.MakeGenericMethod(stat.ValueType()).Invoke(targetStatCollection, new object[] { locstatname, defValue });
               }
-              Log.Debug?.WL(1, $"location stat name:{locstatname}");
+              //Log.Debug?.WL(1, $"location stat name:{locstatname}");
               __instance.ModVariant.statName = locstatname;
             }
           }
@@ -269,7 +269,7 @@ namespace CustomActivatableEquipment {
           return;
         }
         string SourceLocation = StatisticEffectData_Location.GetValue(effectData.statisticData) as string;
-        Log.Debug?.TWL(0, $"EffectManager.GetTargetStatCollections {effectData.Description.Id} sourceLocation:{SourceLocation} collections:{__result.Count}");
+        //Log.Debug?.TWL(0, $"EffectManager.GetTargetStatCollections {effectData.Description.Id} sourceLocation:{SourceLocation} collections:{__result.Count}");
         if (string.IsNullOrEmpty(SourceLocation)) { return; }
         int sourceLocation = -1;
         bool isAbove = false;
@@ -334,7 +334,7 @@ namespace CustomActivatableEquipment {
               if (targetComponent.vehicleComponentRef != null) {
                 targetLocation = (int)targetComponent.vehicleComponentRef.MountedLocation.FakeVehicleLocation();
               }
-              Log.Debug?.WL(1, $"component {targetComponent.defId} UID:{targetComponent.uid} location:{targetLocation} effect location:{sourceLocation}");
+              //Log.Debug?.WL(1, $"component {targetComponent.defId} UID:{targetComponent.uid} location:{targetLocation} effect location:{sourceLocation}");
               if (ShouldNotHaveTags.Count > 0) {
                 if (targetComponent.componentDef.ComponentTags.ContainsAny(ShouldNotHaveTags)) { continue; }
               }
@@ -356,7 +356,7 @@ namespace CustomActivatableEquipment {
               if (isAbove) { continue; }
               if (isOnlyOne) {
                 if (statCollection.GetStatistic(effectData.Description.Id + "_only_one_tracker") != null) {
-                  Log.Debug?.WL(2, $"already applied");
+                  //Log.Debug?.WL(2, $"already applied");
                   continue;
                 }
               }
@@ -367,12 +367,12 @@ namespace CustomActivatableEquipment {
             }
           }
           if (aboveComponent != null) {
-            Log.Debug?.WL(1, $"above component {aboveComponent.defId} UID:{aboveComponent.uid} sourceComponent.UID:{sourceComponent.uid}");
+            //Log.Debug?.WL(1, $"above component {aboveComponent.defId} UID:{aboveComponent.uid} sourceComponent.UID:{sourceComponent.uid}");
             result.Add(aboveComponent.StatCollection);
           }
         }
         __result = result.ToList();
-        Log.Debug?.WL(1, $"filtered:{__result.Count}");
+       // Log.Debug?.WL(1, $"filtered:{__result.Count}");
       } catch (Exception e) {
         Log.Error?.TWL(0, e.ToString(), true);
       }

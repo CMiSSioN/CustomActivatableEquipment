@@ -5,6 +5,7 @@ using CustomActivatablePatches;
 using CustomAmmoCategoriesPatches;
 using CustomComponents;
 using HarmonyLib;
+using IRBTModUtils;
 using Localize;
 using System;
 using System.Collections.Generic;
@@ -35,35 +36,33 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(new Type[] { typeof(bool) })]
   public static class MechComponent_CancelCreatedEffects {
     public static bool Prefix(MechComponent __instance,ref HashSet<EffectData> __state) {
-      Log.Debug?.Write(__instance.parent.GUID+":"+__instance.defId+".CancelCreatedEffects prefix\n");
+      Log.Debug?.TWL(0,$"{__instance.parent.GUID}:{__instance.defId}.CancelCreatedEffects prefix");
       __state = new HashSet<EffectData>();
-      for (int index1 = 0; index1 < __instance.createdEffectIDs.Count; ++index1) {
-        List<Effect> allEffectsWithId = __instance.parent.Combat.EffectManager.GetAllEffectsWithID(__instance.createdEffectIDs[index1]);
-        for (int index2 = 0; index2 < allEffectsWithId.Count; ++index2) {
-          EffectData statusEffect = allEffectsWithId[index2].EffectData;
+      foreach (var effectID in __instance.createdEffectIDs) {
+        List<Effect> allEffectsWithId = __instance.parent.Combat.EffectManager.GetAllEffectsWithID(effectID);
+        foreach(var effect in allEffectsWithId) {
+          EffectData statusEffect = effect.EffectData;
+          Log.Debug?.WL(0,$"id:{effectID} statusEffect.statisticData:{(statusEffect.statisticData == null?"null":"not null")} effectTriggerType:{statusEffect.targetingData.effectTriggerType} effectTargetType:{statusEffect.targetingData.effectTargetType} effectType:{effect.EffectData.effectType} effectsPersistAfterDestruction:{(statusEffect.statisticData == null ? "null" : effect.EffectData.statisticData.effectsPersistAfterDestruction.ToString())}");
+          if (effectID.StartsWith("PassiveEffect_") == false) { continue; }
           if (statusEffect.statisticData == null) { continue; };
           if (statusEffect.targetingData.effectTriggerType != EffectTriggerType.Passive) { continue; };
           if (statusEffect.targetingData.effectTargetType != EffectTargetType.Creator) { continue; };
-          if ((allEffectsWithId[index2].EffectData.effectType == EffectType.StatisticEffect) && (allEffectsWithId[index2].EffectData.statisticData.effectsPersistAfterDestruction == true)) {
-            if (__state.Contains(statusEffect) == false) {
-              __state.Add(statusEffect);
-              Log.Debug?.Write(" " + allEffectsWithId[index2].EffectData.Description.Id + " need to be restored\n");
-            }
-          }
+          if (effect.EffectData.effectType != EffectType.StatisticEffect) { continue; };
+          if (effect.EffectData.statisticData.effectsPersistAfterDestruction == false) { continue; };
+          __state.Add(statusEffect);
+          Log.Debug?.WL(1, effect.EffectData.Description.Id + " need to be restored");
         }
       }
       return true;
     }
     public static void Postfix(MechComponent __instance, ref HashSet<EffectData> __state) {
-      Log.Debug?.Write(__instance.parent.GUID + ":" + __instance.defId + ".CancelCreatedEffects postfix\n");
+      Log.Debug?.TWL(0,__instance.parent.GUID + ":" + __instance.defId + ".CancelCreatedEffects postfix");
       MechComponent component = __instance;
       foreach (EffectData statusEffect in __state) {
-        string effectID = string.Format("ActivatableEffect_{0}_{1}", (object)component.parent.GUID, (object)component.uid);
-        typeof(MechComponent).GetMethod("ApplyPassiveEffectToTarget", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(component, new object[4] {
-                (object)statusEffect,(object)component.parent,(object)((ICombatant)component.parent),(object)effectID
-              });
+        string effectID = string.Format("PassiveEffect_{0}_{1}", (object)component.parent.GUID, (object)component.uid);
+        component.ApplyPassiveEffectToTarget(statusEffect, component.parent, component.parent, effectID);
         component.createdEffectIDs.Add(effectID);
-        Log.Debug?.Write("restore effect " + effectID + ":" + statusEffect.Description.Id + "\n");
+        Log.Debug?.WL(1,"restore effect " + effectID + ":" + statusEffect.Description.Id);
       }
     }
   }
@@ -871,8 +870,20 @@ namespace CustomActivatableEquipment {
         if (target.GUID == component.parent.GUID) { continue; };
         if (target.IsDead) { continue; };
         if (target.isDropshipNotLanded()) { continue; };
-        Vector3 CurrentPosition = target.CurrentPosition + Vector3.up * target.FlyingHeight();
-        float distance = Vector3.Distance(CurrentPosition, component.parent.CurrentPosition);
+        ICombatant aoeTarget = target;
+        if (target is ICustomMech cmech) {
+          if (cmech.carrier != null) {
+            Log.Debug?.WL(1, $"{target.DisplayName} attached to {cmech.carrier.DisplayName} using its position and LoS instead");
+            aoeTarget = cmech.carrier;
+            if (cmech.isMountedExternal == false) {
+              Log.Debug?.WL(1, $"mounted internally. no AoE damage");
+              continue;
+            }
+          }
+        }
+        Vector3 CurrentPosition = aoeTarget.CurrentPosition + Vector3.up * aoeTarget.FlyingHeight();
+        float distance = Vector3.Distance(CurrentPosition, component.parent.TargetPosition);
+        float realdistance = distance;
         if (CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range < CustomAmmoCategories.Epsilon) { CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range = 1f; }
         distance /= CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Range;
         target.TagAoEModifiers(out float tagAoEModRange, out float tagAoEDamage);
@@ -880,6 +891,18 @@ namespace CustomActivatableEquipment {
         if (tagAoEDamage < CustomAmmoCategories.Epsilon) { tagAoEDamage = 1f; }
         distance /= tagAoEModRange;
         if (distance > Range) { continue; };
+        if(CustomAmmoCategories.Settings.PhysicsAoE_API && (realdistance > CustomAmmoCategories.Settings.PhysicsAoE_MinDist)) {
+          Vector3 raycastStart = component.parent.TargetPosition;
+          Vector3 raycastEnd = aoeTarget.TargetPosition;
+          AreaOfEffectHelper.pseudoLOSActor.Combat = target.Combat;
+          AreaOfEffectHelper.pseudoLOSActor.SpotterDistance = Vector3.Distance(raycastStart, raycastEnd) + 100f;
+          AreaOfEffectHelper.pseudoLOSActor.pseudo_losSourcePositions[0] = raycastStart;
+          AreaOfEffectHelper.pseudoLOSActor._team = target.Combat.LocalPlayerTeam;
+          AreaOfEffectHelper.pseudoLOSActor._teamId = target.Combat.LocalPlayerTeamGuid;
+          var lof = target.Combat.LOS.GetLineOfFire(AreaOfEffectHelper.pseudoLOSActor, raycastStart, aoeTarget, aoeTarget.CurrentPosition, aoeTarget.CurrentRotation, out var collisionWorldPos);
+          Log.Debug?.WL(2, $"{raycastStart}->{target.DisplayName} LoF:{lof}");
+          if (lof == LineOfFireLevel.LOFBlocked) { continue; }
+        }
         float rangeMult = (Range - distance) / Range;
         float targetAoEMult = target.AoEDamageMult();
         float unitTypeAoEMult = CustomAmmoCategories.Settings.DefaultAoEDamageMult[target.UnitType].Damage;

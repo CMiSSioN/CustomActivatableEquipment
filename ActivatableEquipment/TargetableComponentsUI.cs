@@ -1592,23 +1592,15 @@ namespace CustomActivatableEquipment {
   }
   [HarmonyPatch(typeof(LanceMechEquipmentList))]
   [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPatch("SetLoadout")]
-  [HarmonyPatch(new Type[] { })]
-  public static class LanceMechEquipmentList_SetLoadout {
+  [HarmonyPatch("Init")]
+  [HarmonyPatch(new Type[] { typeof(MechDef), typeof(DataManager) })]
+  public static class LanceMechEquipmentList_Init {
     private delegate string d_Field_get(BattleTech.BaseComponentRef src);
     private delegate void d_Field_set(BattleTech.BaseComponentRef src, string value);
-    private delegate MechComponentRef d_MechComponentRef_get(BattleTech.UI.LanceMechEquipmentListItem src);
-    private delegate void d_MechComponentRef_set(BattleTech.UI.LanceMechEquipmentListItem src, MechComponentRef value);
-    private delegate MechDef d_MechDef_get(BattleTech.UI.LanceMechEquipmentListItem src);
-    private delegate void d_MechDef_set(BattleTech.UI.LanceMechEquipmentListItem src, MechDef value);
     private static d_Field_get i_LocalGUID_get = null;
     private static d_Field_set i_LocalGUID_set = null;
     private static d_Field_get i_TargetComponentGUID_get = null;
     private static d_Field_set i_TargetComponentGUID_set = null;
-    private static d_MechComponentRef_get i_MechComponentRef_get = null;
-    private static d_MechComponentRef_set i_MechComponentRef_set = null;
-    private static d_MechDef_get i_MechDef_get = null;
-    private static d_MechDef_set i_MechDef_set = null;
     public static string LocalGUID(this BattleTech.BaseComponentRef src, bool cached = true) {
       if (i_LocalGUID_get == null) { return string.Empty; }
       if (src == null) { return string.Empty; }
@@ -1632,22 +1624,6 @@ namespace CustomActivatableEquipment {
       if (src == null) { return; }
       i_TargetComponentGUID_set(src, value);
       if (update) { src.WriteAdditionaldataRegistry(); }
-    }
-    public static MechComponentRef componentRef(this LanceMechEquipmentListItem src) {
-      if (i_MechComponentRef_get == null) { return null; }
-      return i_MechComponentRef_get(src);
-    }
-    public static void componentRef(this LanceMechEquipmentListItem src, MechComponentRef value) {
-      if (i_MechComponentRef_set == null) { return; }
-      i_MechComponentRef_set(src, value);
-    }
-    public static MechDef mechDef(this LanceMechEquipmentListItem src) {
-      if (i_MechDef_get == null) { return null; }
-      return i_MechDef_get(src);
-    }
-    public static void mechDef(this LanceMechEquipmentListItem src, MechDef value) {
-      if (i_MechDef_set == null) { return; }
-      i_MechDef_set(src, value);
     }
     private static bool? PrepareCalled = new bool?();
     public static bool Prepare() {
@@ -1695,73 +1671,72 @@ namespace CustomActivatableEquipment {
           i_TargetComponentGUID_set = (d_Field_set)dm.CreateDelegate(typeof(d_Field_set));
         }
       } else { PrepareCalled = false; return false; }
-      FieldInfo componentRef = typeof(LanceMechEquipmentListItem).GetField("componentRef", BindingFlags.Public | BindingFlags.Instance);
-      Log.Debug?.WL(1, $"LanceMechEquipmentListItem.componentRef {(componentRef == null ? "not found" : "found")}");
-      if (componentRef != null) {
-        {
-          var dm = new DynamicMethod("get_componentRef", typeof(MechComponentRef), new Type[] { typeof(LanceMechEquipmentListItem) });
-          var gen = dm.GetILGenerator();
-          gen.Emit(OpCodes.Ldarg_0);
-          gen.Emit(OpCodes.Ldfld, componentRef);
-          gen.Emit(OpCodes.Ret);
-          i_MechComponentRef_get = (d_MechComponentRef_get)dm.CreateDelegate(typeof(d_MechComponentRef_get));
-        }
-        {
-          var dm = new DynamicMethod("set_componentRef", null, new Type[] { typeof(LanceMechEquipmentListItem), typeof(MechComponentRef) });
-          var gen = dm.GetILGenerator();
-          gen.Emit(OpCodes.Ldarg_0);
-          gen.Emit(OpCodes.Ldarg_1);
-          gen.Emit(OpCodes.Stfld, componentRef);
-          gen.Emit(OpCodes.Ret);
-          i_MechComponentRef_set = (d_MechComponentRef_set)dm.CreateDelegate(typeof(d_MechComponentRef_set));
-        }
-      } else { PrepareCalled = false; return false; }
-      FieldInfo mechDef = typeof(LanceMechEquipmentListItem).GetField("mechDef", BindingFlags.Public | BindingFlags.Instance);
-      Log.Debug?.WL(1, $"LanceMechEquipmentListItem.mechDef {(componentRef == null ? "not found" : "found")}");
-      if (componentRef != null) {
-        {
-          var dm = new DynamicMethod("get_mechDef", typeof(MechDef), new Type[] { typeof(LanceMechEquipmentListItem) });
-          var gen = dm.GetILGenerator();
-          gen.Emit(OpCodes.Ldarg_0);
-          gen.Emit(OpCodes.Ldfld, componentRef);
-          gen.Emit(OpCodes.Ret);
-          i_MechDef_get = (d_MechDef_get)dm.CreateDelegate(typeof(d_MechDef_get));
-        }
-        {
-          var dm = new DynamicMethod("set_mechDef", null, new Type[] { typeof(LanceMechEquipmentListItem), typeof(MechDef) });
-          var gen = dm.GetILGenerator();
-          gen.Emit(OpCodes.Ldarg_0);
-          gen.Emit(OpCodes.Ldarg_1);
-          gen.Emit(OpCodes.Stfld, componentRef);
-          gen.Emit(OpCodes.Ret);
-          i_MechDef_set = (d_MechDef_set)dm.CreateDelegate(typeof(d_MechDef_set));
-        }
-      } else { PrepareCalled = false; return false; }
       return true;
     }
-    public static void Postfix(LanceMechEquipmentList __instance, List<GameObject> ___allComponents, MechDef ___activeMech) {
+    public static void Prefix(LanceMechEquipmentList __instance, MechDef mechDef, DataManager dataManager) {
       try {
-        Log.Debug?.TWL(0,$"LanceMechEquipmentList.SetLoadout {___allComponents.Count}");
+        if (mechDef == null) { return; }
+        Log.Debug?.TWL(0, $"LanceMechEquipmentList.Init {mechDef.ChassisID}:{mechDef.GUID} {__instance.allComponents.Count}");
         ComponentRefTrackersList componentRefTrackersList = __instance.gameObject.GetComponent<ComponentRefTrackersList>();
         if (componentRefTrackersList == null) { componentRefTrackersList = __instance.gameObject.AddComponent<ComponentRefTrackersList>(); }
-        componentRefTrackersList.mechDef = ___activeMech;
+        componentRefTrackersList.mechDef = mechDef;
         componentRefTrackersList.inventory.Clear();
-        foreach (var go in ___allComponents) {
+        componentRefTrackersList.inventory.AddRange(mechDef.Inventory.ToList());
+        foreach (var go in __instance.allComponents) {
           LanceMechEquipmentListItem component = go.GetComponent<LanceMechEquipmentListItem>();
           if (component == null) { continue; }
           ComponentRefTracker refTracker = go.GetComponent<ComponentRefTracker>();
-          if (refTracker == null) { refTracker = go.AddComponent<ComponentRefTracker>(); }
+          if (refTracker == null) { continue; }
+          refTracker.componentRef = null;
           refTracker.listItem = component;
-          Log.Debug?.WL(1, $"{(component.componentRef()==null?"null": component.componentRef().ComponentDefID )}");
-          refTracker.componentRef = component.componentRef();
-          refTracker.parent = componentRefTrackersList;
-          componentRefTrackersList.inventory.Add(refTracker.componentRef);
-          //refTracker.mechDef = component.mechDef();
-          refTracker.Init();
+          if (refTracker.settingsButton != null) {
+            refTracker.settingsButton.gameObject.SetActive(false);
+          }
         }
-        TargetsPopupSupervisor.ResolveAddonsOnInventory(componentRefTrackersList.inventory, $"{componentRefTrackersList.mechDef.ChassisID}:LanceMechEquipmentList.SetLoadout");
+        //foreach (var go in ___allComponents) {
+        //  LanceMechEquipmentListItem component = go.GetComponent<LanceMechEquipmentListItem>();
+        //  if (component == null) { continue; }
+        //  ComponentRefTracker refTracker = go.GetComponent<ComponentRefTracker>();
+        //  if (refTracker == null) { refTracker = go.AddComponent<ComponentRefTracker>(); }
+        //  refTracker.listItem = component;
+        //  Log.Debug?.WL(1, $"{(component.componentRef()==null?"null": component.componentRef().ComponentDefID )}");
+        //  refTracker.componentRef = component.componentRef();
+        //  refTracker.parent = componentRefTrackersList;
+        //  componentRefTrackersList.inventory.Add(refTracker.componentRef);
+        //  //refTracker.mechDef = component.mechDef();
+        //  refTracker.Init();
+        //}
+        TargetsPopupSupervisor.ResolveAddonsOnInventory(componentRefTrackersList.inventory, $"{mechDef.ChassisID}:{mechDef.GUID}:LanceMechEquipmentList.SetLoadout");
       } catch(Exception e) {
         Log.Error?.TWL(0,e.ToString());
+        UIManager.logger.LogException(e);
+      }
+    }
+    public static void Postfix(LanceMechEquipmentList __instance, MechDef mechDef, DataManager dataManager) {
+      try {
+        if (mechDef == null) { return; }
+        ComponentRefTrackersList componentRefTrackersList = __instance.gameObject.GetComponent<ComponentRefTrackersList>();
+        if (componentRefTrackersList == null) { componentRefTrackersList = __instance.gameObject.AddComponent<ComponentRefTrackersList>(); }
+        HashSet<MechComponentRef> inventory = mechDef.Inventory.ToHashSet();
+        foreach (var go in __instance.allComponents) {
+          LanceMechEquipmentListItem component = go.GetComponent<LanceMechEquipmentListItem>();
+          if (component == null) { continue; }
+          if (component.componentRef != null) {
+            if (inventory.Contains(component.componentRef)) {
+              Log.Debug?.WL(0, $"!Warning! component from other mech. Should not be here {component.componentRef.ComponentDefID}:{component.componentRef.SimGameUID}");
+              component.componentRef = null;
+            }
+          }
+          ComponentRefTracker refTracker = go.GetComponent<ComponentRefTracker>();
+          if (refTracker == null) { refTracker = go.AddComponent<ComponentRefTracker>(); }
+          refTracker.listItem = component;
+          refTracker.componentRef = component.componentRef;
+          refTracker.parent = componentRefTrackersList;
+          refTracker.Init();
+        }
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString());
+        UIManager.logger.LogException(e);
       }
     }
   }

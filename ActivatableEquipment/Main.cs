@@ -485,6 +485,8 @@ namespace CustomActivatableEquipment {
     public string statusEffectsCollectionName { get; set; }
     public string statusEffectsCollection { get; set; }
     public string statusEffectsCollectionActorStat { get; set; }
+    public bool PhysicsAoE { get; set; } = false;
+    public float PhysicsAoE_Height { get; set; } = float.NaN;
     public AoEExplosion() {
       Range = -1f;
       Damage = -1f;
@@ -518,6 +520,8 @@ namespace CustomActivatableEquipment {
       ExplodeSound = string.Empty;
       ExplodeSoundActorStat = string.Empty;
       statusEffects = new EffectData[0];
+      PhysicsAoE = false;
+      PhysicsAoE_Height = float.NaN;
     }
   }
   public enum DamageActivationType { Threshhold, Single, Level }
@@ -1116,26 +1120,30 @@ namespace CustomActivatableEquipment {
     }
     public static void activateComponent(MechComponent component, bool autoActivate, bool isInital) {
       CombatHUDEquipmentSlotEx.ClearCache(component);
-      Log.Debug?.Write("activateComponent " + component.defId + "\n");
+      Log.Debug?.TWL(0, $"activateComponent {component.defId}");
       if (component.IsFunctional == false) {
-        Log.Debug?.Write(" not functional\n");
+        Log.Debug?.WL(1,"not functional");
         return;
       };
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) {
-        Log.Debug?.Write(" not activatable\n");
+        Log.Debug?.WL(1,"not activatable");
         return;
       }
       if (ActivatableComponent.isComponentActivated(component) == true) {
-        Log.Debug?.Write(" already activated\n");
+        Log.Debug?.WL(1, "already activated");
         return;
       };
       if (ActivatableComponent.isOutOfCharges(component)) {
-        Log.Debug?.Write(" out of charges\n");
+        Log.Debug?.WL(1, "out of charges");
+        return;
+      }
+      if(activatable.ActivateOncePerRound && (component.parent.Combat.TurnDirector.CurrentRound == ActivatableComponent.getComponentActivedRound(component))) {
+        Log.Debug?.WL(1, "can only be activated once per round");
         return;
       }
       if (activatable.EjectOnActivationTry) {
-        Log.Debug?.Write(" eject on activation try\n");
+        Log.Debug?.WL(1, "eject on activation try");
         component.parent.EjectPilot(component.parent.GUID, -1, DeathMethod.PilotEjection, false);
       };
       ICustomMech custMech = component.parent as ICustomMech;
@@ -1153,12 +1161,12 @@ namespace CustomActivatableEquipment {
     skip_pilot_processing_try:
       if (autoActivate == false) {
         if (ActivatableComponent.rollFail(component, true) == false) {
-          Log.Debug?.Write(" fail to activate\n");
+          Log.Debug?.WL(1,"fail to activate");
           component.playDeactivateSound();
           return;
         }
       } else {
-        Log.Debug?.Write(" auto activation. no fail roll needed\n");
+        Log.Debug?.WL(1,"auto activation. no fail roll needed");
       }
       if (activatable.ChargesCount != 0) {
         if (activatable.ChargesCount > 0) {
@@ -1166,13 +1174,13 @@ namespace CustomActivatableEquipment {
           if (charges > 0) {
             --charges;
             ActivatableComponent.setChargesCount(component, charges);
-            Log.Debug?.Write(" remains charges:" + charges + "\n");
+            Log.Debug?.WL(1, $"remains charges:{charges}");
           } else {
-            Log.Debug?.Write(" out of charges\n");
+            Log.Debug?.WL(1,"out of charges");
             return;
           }
         } else {
-          Log.Debug?.Write(" infinate charges\n");
+          Log.Debug?.WL(1,"infinite charges");
         }
       } else {
         if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentActiveStatName) == false) {
@@ -1193,7 +1201,7 @@ namespace CustomActivatableEquipment {
         ActivatableComponent.setComponentFailChance(component, curFailChance);
       }
       if (activatable.EjectOnSuccess) {
-        Log.Debug?.Write(" eject on activation success\n");
+        Log.Debug?.WL(1,"eject on activation success");
         component.parent.EjectPilot(component.parent.GUID, -1, DeathMethod.PilotEjection, false);
       };
       if ((custMech != null)) { if (custMech.isSquad) { goto skip_pilot_processing_success; } }
@@ -1233,41 +1241,47 @@ namespace CustomActivatableEquipment {
       CAEAuraHelper.ClearAuraPreviewCache();
       if (activatable.ExplodeOnSuccess) { component.AoEExplodeComponent(); }
       component.LinkageActivate(isInital);
+      Log.Debug?.TWL(0, $"activateComponent success {component.defId}");
     }
 
     public void applyOnlineEffects(MechComponent component, bool isInital) {
       if (this.statusEffects == null) {
-        Log.Debug?.Write(" no activatable effects\n");
+        Log.Debug?.WL(1,"no activatable effects");
       } else {
-        Log.Debug?.Write(" activatable effects count: " + this.statusEffects.Length + "\n");
-        Log.Debug?.Write(" sprint:" + component.parent.MaxSprintDistance + "\n");
-        Log.Debug?.Write(" walk:" + component.parent.MaxWalkDistance + "\n");
+        Log.Debug?.WL(1,$"activatable effects count: {this.statusEffects.Length}");
+        Log.Debug?.WL(1, $"sprint:{component.parent.MaxSprintDistance}");
+        Log.Debug?.WL(1, $"walk:{component.parent.MaxWalkDistance}");
         Thread.CurrentThread.pushToStack<MechComponent>("EFFECT_SOURCE", component);
         for (int index = 0; index < this.statusEffects.Length; ++index) {
           EffectData statusEffect = this.statusEffects[index];
           if (statusEffect.targetingData.effectTriggerType == EffectTriggerType.Passive) {
-            string effectID = string.Format("ActivatableEffect_{0}_{1}", (object)component.parent.GUID, (object)component.uid);
+            string effectID = string.Format("ActivatableEffect_{0}_{1}", component.parent.GUID, component.uid);
             if (statusEffect.targetingData.specialRules == AbilityDef.SpecialRules.Aura && !component.parent.AuraComponents.Contains(component)) {
               component.parent.AuraComponents.Add(component);
             } else if (statusEffect.targetingData.effectTargetType == EffectTargetType.Creator) {
-              typeof(MechComponent).GetMethod("ApplyPassiveEffectToTarget", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(component, new object[4] {
-                (object)statusEffect,(object)component.parent,(object)((ICombatant)component.parent),(object)effectID
-              });
+              component.ApplyPassiveEffectToTarget(statusEffect, component.parent, component.parent, effectID);
+              //typeof(MechComponent).GetMethod("ApplyPassiveEffectToTarget", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(component, new object[4] {
+              //  (object)statusEffect,(object)component.parent,(object)((ICombatant)component.parent),(object)effectID
+              //});
               component.createdEffectIDs.Add(effectID);
-              Log.Debug?.Write("Activate effect " + effectID + ":" + statusEffect.Description.Id + "\n");
+              Log.Debug?.WL(0, $"Activate effect {effectID}:{statusEffect.Description.Id}");
             }
           }
         }
         Thread.CurrentThread.popFromStack<MechComponent>("EFFECT_SOURCE");
-        PrintActorStatistic(component.parent);
+        //PrintActorStatistic(component.parent);
         component.parent.ResetPathing(false);
         //if (isInital == false) {
         //  Log.LogWrite(" Updating auras\n");
         //  AuraCache.UpdateAurasToActor(component.parent.Combat.AllActors, component.parent, component.parent.CurrentPosition, EffectTriggerType.TurnUpdate, true);
         //  AuraCache.RefreshECMStates(component.parent.Combat.AllActors, EffectTriggerType.TurnUpdate);
         //}
-        Log.Debug?.Write(" sprint:" + component.parent.MaxSprintDistance + "\n");
-        Log.Debug?.Write(" walk:" + component.parent.MaxWalkDistance + "\n");
+        Log.Debug?.WL(1, $"sprint:{component.parent.MaxSprintDistance}");
+        Log.Debug?.WL(1, $"walk:{component.parent.MaxWalkDistance}");
+        //if (component.defId == "Gear_Remote_Sensor_Dispenser") {
+        //  Log.Debug?.WL(1, $"log FoW update");
+        //  FogOfWarView_Update.LOG = true;
+        //}
       }
     }
     public void PrintActorStatistic(AbstractActor actor) {
@@ -1425,14 +1439,14 @@ namespace CustomActivatableEquipment {
     }
     public static void toggleComponentActivation(MechComponent component) {
       CombatHUDEquipmentSlotEx.ClearCache(component);
-      Log.Debug?.Write("toggleComponentActivation " + component.defId + "\n");
+      Log.Debug?.WL(0, $"toggleComponentActivation {component.defId}");
       if (component.IsFunctional == false) {
-        Log.Debug?.Write(" not functional\n");
+        Log.Debug?.WL(1,"not functional");
         return;
       };
       ActivatableComponent activatable = component.componentDef.GetComponent<ActivatableComponent>();
       if (activatable == null) {
-        Log.Debug?.Write(" not activatable\n");
+        Log.Debug?.WL(1,"not activatable");
         return;
       }
       if (activatable.SafeActivation == false) { component.parent.OnActivationBegin(component.parent.GUID, -1); };
@@ -1443,7 +1457,7 @@ namespace CustomActivatableEquipment {
         component.StatCollection.AddStatistic<int>(ActivatableComponent.CAEComponentActiveRounds, 0);
       }
       if (ActivatableComponent.isComponentActivated(component) == false) {
-        Log.Debug?.Write(" activating\n");
+        Log.Debug?.WL(1,"activating");
         ActivatableComponent.activateComponent(component, false, false);
         if (CustomActivatableEquipment.Core.checkExistance(component.StatCollection, ActivatableComponent.CAEComponentActivedRound) == false) {
           component.StatCollection.AddStatistic<int>(ActivatableComponent.CAEComponentActivedRound, component.parent.Combat.TurnDirector.CurrentRound);

@@ -149,6 +149,7 @@
     <Compile Include="EncounterTagStatistic.cs" />
     <Compile Include="ExplodeComponent.cs" />
     <Compile Include="FailDamageHelper.cs" />
+    <Compile Include="FogOfWarDebug.cs" />
     <Compile Include="HeadHitsHelper.cs" />
     <Compile Include="HeatSinkControl.cs" />
     <Compile Include="JSONSerializationUtility.cs" />
