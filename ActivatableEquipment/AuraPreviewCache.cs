@@ -65,7 +65,7 @@ namespace CustomActivatableEquipment {
       List<AbstractActor> actors = movingActor.Combat.AllActors;
       //Log.LogWrite("RecalculateStealthPips\n");
       foreach(AbstractActor actor in actors) {
-        int pips = actor.StealthPipsCurrent;
+        int pips = actor.StealthPipsTotal;
         //Log.LogWrite(" "+actor.DisplayName+":"+pips+"\n");
         bool nofurthercalc = false;
         List<AuraPreview> auras = previewAurasAdded(actor);
@@ -110,7 +110,7 @@ namespace CustomActivatableEquipment {
         }
         if (nofurthercalc) {
           //Log.LogWrite(" no further calc\n");
-          stealthPipsPreview.Add(actor, pips); continue;
+          stealthPipsPreview.Add(actor, System.Math.Max(pips, 0)); continue;
         }
         auras = previewAurasRemoved(actor);
         foreach (AuraPreview aura in auras) {
@@ -149,7 +149,7 @@ namespace CustomActivatableEquipment {
             //Log.LogWrite("  pips altered:" + pips + "\n");
           }
         }
-        stealthPipsPreview.Add(actor, pips);
+        stealthPipsPreview.Add(actor, System.Math.Max(pips, 0));
       }
     }
     public int getStealthPipsPreview(AbstractActor unit) {
