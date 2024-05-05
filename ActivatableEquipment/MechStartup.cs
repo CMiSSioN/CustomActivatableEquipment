@@ -157,22 +157,22 @@ namespace CustomActivatablePatches {
       return;
     }
   }
-  [HarmonyPatch(typeof(MechComponent))]
-  [HarmonyPatch("CancelCreatedEffects")]
-  [HarmonyPatch(MethodType.Normal)]
-  [HarmonyPatch(new Type[] { typeof(bool) })]
-  public static class MechComponent_CancelCreatedEffects {
-    public static void Prefix(MechComponent __instance, bool performAuraRefresh) {
-      try {
-        Log.Debug?.Write("MechComponent.CancelCreatedEffects "+__instance.defId+"\n");
-        ActivatableComponent.shutdownComponent(__instance);
-      } catch (Exception e) {
-        Log.Debug?.Write(e.ToString() + "\n");
-        AbstractActor.logger.LogException(e);
-      }
-      return;
-    }
-  }
+  //[HarmonyPatch(typeof(MechComponent))]
+  //[HarmonyPatch("CancelCreatedEffects")]
+  //[HarmonyPatch(MethodType.Normal)]
+  //[HarmonyPatch(new Type[] { typeof(bool) })]
+  //public static class MechComponent_CancelCreatedEffects {
+  //  public static void Prefix(MechComponent __instance, bool performAuraRefresh) {
+  //    try {
+  //      Log.Debug?.Write("MechComponent.CancelCreatedEffects "+__instance.defId+"\n");
+  //      ActivatableComponent.shutdownComponent(__instance);
+  //    } catch (Exception e) {
+  //      Log.Debug?.Write(e.ToString() + "\n");
+  //      AbstractActor.logger.LogException(e);
+  //    }
+  //    return;
+  //  }
+  //}
   [HarmonyPatch(typeof(Mech))]
   [HarmonyPatch("GenerateFallSequence")]
   [HarmonyPatch(MethodType.Normal)]

@@ -9,6 +9,7 @@ using IRBTModUtils;
 using Localize;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using UnityEngine;
@@ -16,6 +17,41 @@ using Building = BattleTech.Building;
 using Random = UnityEngine.Random;
 
 namespace CustomActivatableEquipment {
+  public static class MechEngineerHelper {
+    private static MethodInfo HeatSinkCapacityStatFeature_IgnoreShutdown = null;
+    private static FieldInfo HeatSinkCapacityStatFeature_Shared = null;
+    public static void Init() {
+      foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+        if (assembly.FullName.StartsWith("MechEngineer, Version=") == false) { continue; }
+        Log.Debug?.WL(1, "MechEngineer assembly found:" + assembly.FullName);
+        Type MechEngineer_Features_HeatSinkCapacityStat_HeatSinkCapacityStatFeature = assembly.GetType("MechEngineer.Features.HeatSinkCapacityStat.HeatSinkCapacityStatFeature");
+        if(MechEngineer_Features_HeatSinkCapacityStat_HeatSinkCapacityStatFeature != null) {
+          Log.Debug?.WL(2, $"{MechEngineer_Features_HeatSinkCapacityStat_HeatSinkCapacityStatFeature.GetType().ToString()} type found");
+        } else {
+          continue;
+        }
+        HeatSinkCapacityStatFeature_Shared = MechEngineer_Features_HeatSinkCapacityStat_HeatSinkCapacityStatFeature.GetField("Shared", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        if(HeatSinkCapacityStatFeature_Shared != null) {
+          Log.Debug?.WL(2, $"{MechEngineer_Features_HeatSinkCapacityStat_HeatSinkCapacityStatFeature.GetType().ToString()}.{HeatSinkCapacityStatFeature_Shared.Name} field found");
+        } else {
+          continue;
+        }
+        HeatSinkCapacityStatFeature_IgnoreShutdown = MechEngineer_Features_HeatSinkCapacityStat_HeatSinkCapacityStatFeature.GetMethod("IgnoreShutdown", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (HeatSinkCapacityStatFeature_IgnoreShutdown != null) {
+          Log.Debug?.WL(2, $"{MechEngineer_Features_HeatSinkCapacityStat_HeatSinkCapacityStatFeature.GetType().ToString()}.{HeatSinkCapacityStatFeature_IgnoreShutdown.Name} method found");
+        } else {
+          continue;
+        }
+      }
+    }
+    public static bool ME_IgnoreShutdown(this MechComponent component) {
+      if (component == null) { return false; }
+      if (HeatSinkCapacityStatFeature_Shared == null) { return false; }
+      if (HeatSinkCapacityStatFeature_IgnoreShutdown == null) { return false; }
+      object Shared = HeatSinkCapacityStatFeature_Shared.GetValue(null);
+      return (bool)HeatSinkCapacityStatFeature_IgnoreShutdown.Invoke(Shared, new object[] { component });
+    }
+  }
   [HarmonyPatch(typeof(MechComponent))]
   [HarmonyPatch("InitStats")]
   [HarmonyPatch(MethodType.Normal)]
@@ -31,40 +67,96 @@ namespace CustomActivatableEquipment {
     }
   }
   [HarmonyPatch(typeof(MechComponent))]
-  [HarmonyPatch("CancelCreatedEffects")]
+  [HarmonyPatch("RestartPassiveEffects")]
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { typeof(bool) })]
-  public static class MechComponent_CancelCreatedEffects {
-    public static bool Prefix(MechComponent __instance,ref HashSet<EffectData> __state) {
-      Log.Debug?.TWL(0,$"{__instance.parent.GUID}:{__instance.defId}.CancelCreatedEffects prefix");
-      __state = new HashSet<EffectData>();
-      foreach (var effectID in __instance.createdEffectIDs) {
-        List<Effect> allEffectsWithId = __instance.parent.Combat.EffectManager.GetAllEffectsWithID(effectID);
-        foreach(var effect in allEffectsWithId) {
-          EffectData statusEffect = effect.EffectData;
-          Log.Debug?.WL(0,$"id:{effectID} statusEffect.statisticData:{(statusEffect.statisticData == null?"null":"not null")} effectTriggerType:{statusEffect.targetingData.effectTriggerType} effectTargetType:{statusEffect.targetingData.effectTargetType} effectType:{effect.EffectData.effectType} effectsPersistAfterDestruction:{(statusEffect.statisticData == null ? "null" : effect.EffectData.statisticData.effectsPersistAfterDestruction.ToString())}");
-          if (effectID.StartsWith("PassiveEffect_") == false) { continue; }
-          if (statusEffect.statisticData == null) { continue; };
-          if (statusEffect.targetingData.effectTriggerType != EffectTriggerType.Passive) { continue; };
-          if (statusEffect.targetingData.effectTargetType != EffectTargetType.Creator) { continue; };
-          if (effect.EffectData.effectType != EffectType.StatisticEffect) { continue; };
-          if (effect.EffectData.statisticData.effectsPersistAfterDestruction == false) { continue; };
-          __state.Add(statusEffect);
-          Log.Debug?.WL(1, effect.EffectData.Description.Id + " need to be restored");
+  public static class MechComponent_RestartPassiveEffects {
+    public static void Prefix(ref bool __runOriginal, MechComponent __instance, bool performAuraRefresh) {
+      try {
+        if (__runOriginal == false) { return; }
+        __runOriginal = false;
+        if (__instance.DamageLevel > ComponentDamageLevel.Functional)
+          return;
+        if (__instance.componentDef.statusEffects != null) {
+          for (int index = 0; index < __instance.componentDef.statusEffects.Length; ++index) {
+            EffectData statusEffect = __instance.componentDef.statusEffects[index];
+            if (statusEffect.targetingData.effectTriggerType == EffectTriggerType.Passive) {
+              if (statusEffect.statisticData != null) {
+                if (statusEffect.statisticData.effectsPersistAfterDestruction) {
+                  EffectManager.AbilityLogger.LogWarning($"skip {statusEffect.Description.Id} cause it was not removed on CancelCreatedEffects");
+                }
+              }
+              string effectID = string.Format("PassiveEffect_{0}_{1}", (object)__instance.parent.GUID, (object)__instance.uid);
+              switch (statusEffect.targetingData.effectTargetType) {
+                case EffectTargetType.Creator:
+                  __instance.ApplyPassiveEffectToTarget(statusEffect, __instance.parent, (ICombatant)__instance.parent, effectID);
+                  __instance.AddCreatedEffectID(effectID);
+                  continue;
+                case EffectTargetType.AllLanceMates:
+                  __instance.ApplyLanceEffect(statusEffect, __instance.parent, effectID);
+                  __instance.AddCreatedEffectID(effectID);
+                  continue;
+                default:
+                  AbstractActor.initLogger.LogWarning("InitEffects for " + statusEffect.Description.Id + " has an unsupported effectTargetType: " + (object)statusEffect.targetingData.effectTargetType);
+                  continue;
+              }
+            }
+          }
         }
-      }
-      return true;
-    }
-    public static void Postfix(MechComponent __instance, ref HashSet<EffectData> __state) {
-      Log.Debug?.TWL(0,__instance.parent.GUID + ":" + __instance.defId + ".CancelCreatedEffects postfix");
-      MechComponent component = __instance;
-      foreach (EffectData statusEffect in __state) {
-        string effectID = string.Format("PassiveEffect_{0}_{1}", (object)component.parent.GUID, (object)component.uid);
-        component.ApplyPassiveEffectToTarget(statusEffect, component.parent, component.parent, effectID);
-        component.createdEffectIDs.Add(effectID);
-        Log.Debug?.WL(1,"restore effect " + effectID + ":" + statusEffect.Description.Id);
+        if (performAuraRefresh) {
+          AuraCache.UpdateAurasToActor(__instance.parent.Combat.AllActors, __instance.parent, __instance.parent.CurrentPosition, EffectTriggerType.OnDamaged, true);
+        }
+      } catch (Exception e) {
+        Log.Error?.TWL(0, e.ToString(), true);
       }
     }
+  }
+  [HarmonyPatch(typeof(MechComponent))]
+  [HarmonyPatch("CancelCreatedEffects")]
+  [HarmonyPatch(MethodType.Normal)]
+  [HarmonyAfter("us.frostraptor.LowVisibility")]
+  [HarmonyPatch(new Type[] { typeof(bool) })]
+  public static class MechComponent_CancelCreatedEffects {
+    public static void Prefix(ref bool __runOriginal, MechComponent __instance,ref HashSet<EffectData> __state, bool performAuraRefresh) {
+      if (__runOriginal == false) { return; }
+      try {
+        Log.Debug?.TWL(0, $"{__instance.parent.GUID}:{__instance.defId}.CancelCreatedEffects");
+        ActivatableComponent.shutdownComponent(__instance);
+        HashSet<string> keepEffectIds = new HashSet<string>();
+        for (int index1 = 0; index1 < __instance.createdEffectIDs.Count; ++index1) {
+          List<Effect> allEffectsWithId = __instance.parent.Combat.EffectManager.GetAllEffectsWithID(__instance.createdEffectIDs[index1]);
+          for (int index2 = 0; index2 < allEffectsWithId.Count; ++index2) {
+            Effect effect = allEffectsWithId[index2];
+            if(effect.EffectData.statisticData != null) {
+              if (effect.EffectData.statisticData.effectsPersistAfterDestruction) {
+                keepEffectIds.Add(__instance.createdEffectIDs[index1]);
+                Log.Debug?.WL(1, $"{__instance.createdEffectIDs[index1]}:{effect.EffectData.Description.Id} keep cause it has effectsPersistAfterDestruction");
+                continue;
+              }
+            }
+            Log.Debug?.WL(1, $"{__instance.createdEffectIDs[index1]}:{effect.EffectData.Description.Id} cancel effect");
+            __instance.parent.CancelEffect(effect, false);
+          }
+        }
+        __instance.createdEffectIDs = keepEffectIds.ToList();
+        if (performAuraRefresh) {
+          AuraCache.UpdateAurasToActor(__instance.parent.Combat.AllActors, __instance.parent, __instance.parent.CurrentPosition, EffectTriggerType.OnDamaged, true);
+        }
+      }catch(Exception e) {
+        Log.Error?.TWL(0,e.ToString());
+        EffectManager.AbilityLogger.LogException(e);
+      }
+    }
+    //public static void Postfix(MechComponent __instance, ref HashSet<EffectData> __state) {
+    //  Log.Debug?.TWL(0,__instance.parent.GUID + ":" + __instance.defId + ".CancelCreatedEffects postfix");
+    //  MechComponent component = __instance;
+    //  foreach (EffectData statusEffect in __state) {
+    //    string effectID = string.Format("PassiveEffect_{0}_{1}", (object)component.parent.GUID, (object)component.uid);
+    //    component.ApplyPassiveEffectToTarget(statusEffect, component.parent, component.parent, effectID);
+    //    component.createdEffectIDs.Add(effectID);
+    //    Log.Debug?.WL(1,"restore effect " + effectID + ":" + statusEffect.Description.Id);
+    //  }
+    //}
   }
   public class AoEComponentExplosionHitRecord {
     public Vector3 hitPosition;

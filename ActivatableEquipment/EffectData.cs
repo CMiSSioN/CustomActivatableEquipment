@@ -86,7 +86,7 @@ namespace CustomActivatableEquipment {
   [HarmonyPatch(MethodType.Normal)]
   [HarmonyPatch(new Type[] { })]
   public static class MechComponent_InitPassiveSelfEffects {
-    public static void Prefix(MechComponent __instance) {
+    public static void Prefix(ref bool __runOriginal, MechComponent __instance) {
       try {
         Thread.CurrentThread.pushToStack<MechComponent>("EFFECT_SOURCE", __instance);
       } catch (Exception e) {

@@ -1810,6 +1810,7 @@ namespace CustomActivatableEquipment {
         CustomPrewarm.Core.RegisterSerializator("CustomActivatableEquipment", BattleTechResourceType.AbilityDef, CAEAuraHelper.GetAuras);
         WeaponDefModesCollectHelper.RegisterCallback("ActivatebleEquipment", WeaponAddonDefHelper.GatherModes);
         C3Helper.Init();
+        MechEngineerHelper.Init();
         Core.harmony.Patch(InjurePilot_Check.PatchMethod(), new HarmonyMethod(InjurePilot_Check.PrefixMethod()), new HarmonyMethod(InjurePilot_Check.PostfixMethod()));
         Core.harmony.Patch(AccessTools.Method(typeof(MechComponent), "DamageComponent"), MechComponent_DamageComponent_Stack.PrefixMethod(), MechComponent_DamageComponent_Stack.PostfixMethod());
         //var DamageComponent_patches = Core.harmony.GetPatchInfo(AccessTools.Method(typeof(MechComponent), "DamageComponent"));
