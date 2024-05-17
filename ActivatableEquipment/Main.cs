@@ -1940,6 +1940,7 @@ namespace CustomActivatableEquipment {
         //Log.Debug?.WL(0, JsonConvert.SerializeObject(testClassObj, Formatting.Indented));
       } catch (Exception e) {
         CustomActivatableEquipment.Log.Debug?.Write(e.ToString() + "\n");
+        throw;
       }
     }
   }
